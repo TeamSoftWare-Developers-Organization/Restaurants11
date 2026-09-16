@@ -17,7 +17,9 @@ import {
     Utensils,
     CheckCircle2,
     ChevronDown,
-    FileText
+    FileText,
+    Home,
+    Compass
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -47,7 +49,8 @@ export default function ReservationsPage() {
         number_of_guests: 2,
         status: 'confirmed',
         table_id: undefined,
-        notes: ''
+        notes: '',
+        reservation_type: 'internal'
     });
 
     useEffect(() => {
@@ -80,6 +83,7 @@ export default function ReservationsPage() {
             setEditingItem(item);
             const date = new Date(item.reservation_time);
             const formattedTime = date.toISOString().slice(0, 16);
+            const isExt = item.reservation_type === 'external' || (!item.table && item.notes?.includes('[حجز خارجي]'));
 
             setFormData({
                 customer_name: item.customer_name,
@@ -87,8 +91,9 @@ export default function ReservationsPage() {
                 reservation_time: formattedTime,
                 number_of_guests: item.number_of_guests,
                 status: item.status,
-                table_id: item.table?.id,
-                notes: item.notes || ''
+                table_id: isExt ? undefined : item.table?.id,
+                notes: item.notes?.replace('[حجز خارجي]', '').trim() || '',
+                reservation_type: isExt ? 'external' : 'internal'
             });
         } else {
             setEditingItem(null);
@@ -100,7 +105,8 @@ export default function ReservationsPage() {
                 number_of_guests: 2,
                 status: 'confirmed',
                 table_id: tables.length > 0 ? tables[0].id : undefined,
-                notes: ''
+                notes: '',
+                reservation_type: 'internal'
             });
         }
         setIsModalOpen(true);
@@ -109,10 +115,19 @@ export default function ReservationsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const isExternal = formData.reservation_type === 'external';
+            const payload: Partial<Reservation> = {
+                ...formData,
+                table_id: isExternal ? undefined : formData.table_id,
+                notes: isExternal 
+                    ? `[حجز خارجي] ${formData.notes || ''}`.trim()
+                    : formData.notes
+            };
+
             if (editingItem) {
-                await reservationService.updateReservation(editingItem.id, formData);
+                await reservationService.updateReservation(editingItem.id, payload);
             } else {
-                await reservationService.createReservation(formData);
+                await reservationService.createReservation(payload);
             }
             setIsModalOpen(false);
             fetchData();
@@ -426,6 +441,11 @@ export default function ReservationsPage() {
                                                             )}
                                                         </div>
                                                     </div>
+                                                ) : res.reservation_type === 'external' || res.notes?.includes('[حجز خارجي]') ? (
+                                                    <span className="inline-flex items-center gap-1 font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-lg text-xs border border-amber-200/50 dark:border-amber-900/30">
+                                                        <Compass className="w-3 h-3" />
+                                                        حجز خارجي
+                                                    </span>
                                                 ) : (
                                                     <span className="text-xs text-gray-400 italic">غير محددة</span>
                                                 )}
@@ -573,23 +593,62 @@ export default function ReservationsPage() {
                             required
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الطاولة</label>
-                            <select
-                                value={formData.table_id || ''}
-                                onChange={(e) => setFormData({ ...formData, table_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                    {/* نوع الحجز: داخلي أو خارجي */}
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">نوع الحجز</label>
+                        <div className="grid grid-cols-2 gap-2 p-1 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-800">
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, reservation_type: 'internal', table_id: formData.table_id || (tables.length > 0 ? tables[0].id : undefined) })}
+                                className={`py-2 px-3 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                                    formData.reservation_type !== 'external'
+                                        ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/20'
+                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                }`}
                             >
-                                <option value="">لم تحدد طاولة بعد</option>
-                                {tables.map(table => (
-                                    <option key={table.id} value={table.id}>
-                                        طاولة {table.table_number} (سعة: {table.capacity} أشخاص)
-                                    </option>
-                                ))}
-                            </select>
+                                <Home className="w-3.5 h-3.5" />
+                                <span>حجز داخلي (طاولة بالصالة)</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, reservation_type: 'external', table_id: undefined })}
+                                className={`py-2 px-3 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                                    formData.reservation_type === 'external'
+                                        ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/20'
+                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                            >
+                                <Compass className="w-3.5 h-3.5" />
+                                <span>حجز خارجي (بدون طاولة)</span>
+                            </button>
                         </div>
-                        <div className="space-y-1">
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* تظهر قائمة الطاولات فقط عند اختيار حجز داخلي */}
+                        {formData.reservation_type !== 'external' && (
+                            <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1 flex items-center gap-1">
+                                    <Utensils className="w-3 h-3 text-sky-500" />
+                                    <span>الطاولة المخصصة</span>
+                                </label>
+                                <select
+                                    value={formData.table_id || ''}
+                                    onChange={(e) => setFormData({ ...formData, table_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                                    className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                                    required
+                                >
+                                    <option value="">اختر طاولة للزبون...</option>
+                                    {tables.map(table => (
+                                        <option key={table.id} value={table.id}>
+                                            طاولة {table.table_number} (سعة: {table.capacity} أشخاص)
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div className={`space-y-1 ${formData.reservation_type === 'external' ? 'md:col-span-2' : ''}`}>
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الحالة</label>
                             <select
                                 value={formData.status}

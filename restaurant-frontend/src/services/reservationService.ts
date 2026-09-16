@@ -18,6 +18,7 @@ export interface Reservation {
     status: string;
     notes?: string;
     table_id?: number;
+    reservation_type?: 'internal' | 'external';
 }
 
 export const reservationService = {
