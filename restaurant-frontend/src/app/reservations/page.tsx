@@ -20,7 +20,9 @@ import {
     FileText,
     Home,
     TreePine,
-    MapPin
+    MapPin,
+    ExternalLink,
+    RefreshCw
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -40,7 +42,7 @@ export default function ReservationsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'today' | 'upcoming' | 'confirmed' | 'pending' | 'completed'>('today');
 
-    // Modal & Form State
+    // Modal & Form State for Reservation
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Reservation | null>(null);
     const [reservationType, setReservationType] = useState<'internal' | 'external'>('internal');
@@ -52,6 +54,16 @@ export default function ReservationsPage() {
         status: 'confirmed',
         table_id: undefined,
         notes: ''
+    });
+
+    // Quick Add Table Modal State
+    const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+    const [isCreatingTable, setIsCreatingTable] = useState(false);
+    const [tableFormData, setTableFormData] = useState<Partial<Table>>({
+        table_number: '',
+        capacity: 4,
+        status: 'available',
+        location: ''
     });
 
     useEffect(() => {
@@ -134,6 +146,34 @@ export default function ReservationsPage() {
         } catch (err) {
             console.error('Save failed', err);
             alert('حدث خطأ أثناء حفظ الحجز. يرجى التحقق من صحة المدخلات.');
+        }
+    };
+
+    const handleRefreshTables = async () => {
+        try {
+            const data = await reservationService.getTables();
+            setTables(data);
+        } catch (err) {
+            console.error('Failed to refresh tables', err);
+        }
+    };
+
+    const handleCreateTable = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!tableFormData.table_number) return;
+        try {
+            setIsCreatingTable(true);
+            const newTable = await reservationService.createTable(tableFormData);
+            const updatedTables = await reservationService.getTables();
+            setTables(updatedTables);
+            setFormData(prev => ({ ...prev, table_id: newTable.id }));
+            setIsTableModalOpen(false);
+            setTableFormData({ table_number: '', capacity: 4, status: 'available', location: '' });
+        } catch (err) {
+            console.error('Failed to create table', err);
+            alert('فشل إضافة الطاولة. قد يكون رقم الطاولة مكرراً.');
+        } finally {
+            setIsCreatingTable(false);
         }
     };
 
@@ -639,7 +679,37 @@ export default function ReservationsPage() {
                         {/* Table Select - Only shown when reservationType is 'internal' */}
                         {reservationType === 'internal' ? (
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الطاولة</label>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الطاولة</label>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsTableModalOpen(true)}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-[10px] font-black border border-sky-200/60 dark:border-sky-800/60 transition-colors"
+                                            title="إضافة طاولة جديدة مباشرة"
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                            <span>طاولة جديدة</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleRefreshTables}
+                                            className="p-1 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                            title="تحديث قائمة الطاولات"
+                                        >
+                                            <RefreshCw className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => window.open('/tables', '_blank')}
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-gray-500 hover:text-sky-600 dark:text-gray-400 dark:hover:text-sky-400 text-[10px] font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                            title="فتح صفحة الطاولات في تبويب جديد"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            <span>صفحة الطاولات</span>
+                                        </button>
+                                    </div>
+                                </div>
                                 <select
                                     value={formData.table_id || ''}
                                     onChange={(e) => setFormData({ ...formData, table_id: e.target.value ? parseInt(e.target.value) : undefined })}
@@ -694,6 +764,94 @@ export default function ReservationsPage() {
                         <Save className="w-4 h-4" />
                         {editingItem ? 'حفظ تعديلات الحجز' : 'تأكيد وحفظ الحجز'}
                     </button>
+                </form>
+            </Modal>
+
+            {/* Quick Add Table Modal */}
+            <Modal
+                isOpen={isTableModalOpen}
+                onClose={() => setIsTableModalOpen(false)}
+                title="إضافة طاولة جديدة"
+            >
+                <form onSubmit={handleCreateTable} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">رقم / اسم الطاولة</label>
+                            <input
+                                type="text"
+                                required
+                                value={tableFormData.table_number || ''}
+                                onChange={(e) => setTableFormData({ ...tableFormData, table_number: e.target.value })}
+                                placeholder="مثال: T12 أو VIP-2"
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">السعة (عدد الأشخاص)</label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={50}
+                                required
+                                value={tableFormData.capacity || 4}
+                                onChange={(e) => setTableFormData({ ...tableFormData, capacity: parseInt(e.target.value) || 1 })}
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الموقع / القسم</label>
+                            <input
+                                type="text"
+                                value={tableFormData.location || ''}
+                                onChange={(e) => setTableFormData({ ...tableFormData, location: e.target.value })}
+                                placeholder="مثال: الصالة الرئيسية، التراس، الطابق الثاني"
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الحالة</label>
+                            <select
+                                value={tableFormData.status || 'available'}
+                                onChange={(e) => setTableFormData({ ...tableFormData, status: e.target.value })}
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                            >
+                                <option value="available">متاحة</option>
+                                <option value="reserved">محجوزة</option>
+                                <option value="occupied">مشغولة</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between gap-3">
+                        <button
+                            type="button"
+                            onClick={() => window.open('/tables', '_blank')}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-sky-600 transition-colors"
+                        >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>فتح صفحة الطاولات الكاملة</span>
+                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsTableModalOpen(false)}
+                                className="px-4 h-10 rounded-xl border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                إلغاء
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isCreatingTable}
+                                className="px-5 h-10 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black shadow-md shadow-sky-600/20 flex items-center gap-2 transition-all disabled:opacity-50"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                {isCreatingTable ? 'جاري الإضافة...' : 'إضافة واختيار الطاولة'}
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </Modal>
         </div>
