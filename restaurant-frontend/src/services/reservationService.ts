@@ -17,7 +17,7 @@ export interface Reservation {
     number_of_guests: number;
     status: string;
     notes?: string;
-    table_id?: number;
+    table_id?: number | null;
     reservation_type?: 'internal' | 'external';
 }
 

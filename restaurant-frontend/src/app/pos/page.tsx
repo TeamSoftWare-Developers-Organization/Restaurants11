@@ -315,20 +315,20 @@ export default function POSPage() {
             {/* Main Content Area - Responsively bounded to prevent viewport overflow */}
             <div className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} flex flex-col min-h-screen min-w-0 w-full overflow-x-hidden transition-all duration-300`}>
                 
-                {/* 1. TOP HEADER (SimplePOS Dark Header) */}
-                <header className="no-print bg-[#101426] text-white px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-md border-b border-slate-800 z-20 min-w-0 w-full gap-2">
+                {/* 1. TOP HEADER (Matching System Theme) */}
+                <header className="no-print bg-card dark:bg-card px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-xs border-b border-gray-100 dark:border-gray-800/60 z-20 min-w-0 w-full gap-2 transition-colors duration-200">
                     {/* Brand & Cashier details */}
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-base sm:text-lg shadow-sm shadow-indigo-600/30 shrink-0">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-white text-base sm:text-lg shadow-sm shadow-emerald-600/20 shrink-0">
                             P
                         </div>
 
                         <div className="min-w-0">
                             <div className="flex items-center gap-1.5 sm:gap-2">
-                                <h1 className="text-sm sm:text-base font-bold tracking-tight text-white leading-none truncate">نقطة البيع</h1>
+                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-none truncate">نقطة البيع</h1>
                             </div>
-                            <p className="text-slate-400 text-[11px] sm:text-xs font-normal truncate mt-0.5">
-                                Counter 01 · Cashier: <span className="text-slate-200 font-medium">{user?.first_name ? `${user.first_name}` : 'Alex'}</span>
+                            <p className="text-gray-400 dark:text-gray-500 text-[11px] sm:text-xs font-bold truncate mt-0.5">
+                                كاونتر 01 · الكاشير: <span className="text-gray-700 dark:text-gray-300 font-bold">{user?.first_name ? `${user.first_name}` : 'Alex'}</span>
                             </p>
                         </div>
                     </div>
@@ -341,10 +341,10 @@ export default function POSPage() {
                                 fetchActiveOrders();
                                 setShowActiveOrdersModal(true);
                             }}
-                            className="relative flex items-center gap-1 bg-slate-800/80 hover:bg-slate-700 text-slate-200 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-700/60 transition-all active:scale-95"
+                            className="relative flex items-center gap-1 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/80 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold border border-gray-200/80 dark:border-gray-700/60 transition-all active:scale-95 shadow-2xs"
                             title="عرض الطلبيات المعلقة والنشطة"
                         >
-                            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                             <span className="hidden md:inline">الطلبات المعلقة</span>
                             {activeOrders.length > 0 && (
                                 <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
@@ -359,27 +359,27 @@ export default function POSPage() {
                                 setShiftMode(activeShift ? 'close' : 'open');
                                 setShowShiftModal(true);
                             }}
-                            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 border ${
+                            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border shadow-2xs ${
                                 activeShift 
-                                    ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/60 hover:bg-emerald-900/50' 
-                                    : 'bg-rose-950/40 text-rose-300 border-rose-800/60 hover:bg-rose-900/50'
+                                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60' 
+                                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60'
                             }`}
                             title="إدارة الوردية الحالية"
                         >
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${activeShift ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${activeShift ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
                             <span className="hidden sm:inline">{activeShift ? 'وردية مفتوحة' : 'فتح وردية'}</span>
                         </button>
 
                         {/* Expense Shortcut */}
                         <button
                             onClick={() => setShowExpenseModal(true)}
-                            className="hidden lg:flex items-center gap-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-700/60 transition-all active:scale-95"
+                            className="hidden lg:flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/80 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-2.5 py-1.5 rounded-xl text-xs font-bold border border-gray-200/80 dark:border-gray-700/60 transition-all active:scale-95 shadow-2xs"
                         >
                             مصروف
                         </button>
 
                         {/* Digital Live Clock */}
-                        <div className="bg-slate-900/90 text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-700/80 font-mono text-xs sm:text-sm md:text-base font-extrabold tracking-wider shadow-inner shrink-0">
+                        <div className="bg-gray-50 dark:bg-gray-800/90 text-gray-800 dark:text-gray-100 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-gray-200/80 dark:border-gray-700/60 font-mono text-xs sm:text-sm md:text-base font-black tracking-wider shadow-2xs shrink-0">
                             {currentTime}
                         </div>
                     </div>
