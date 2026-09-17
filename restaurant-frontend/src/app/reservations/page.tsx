@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Sidebar, Modal } from '@/components';
 import {
     BadgeCheck,
@@ -699,15 +700,15 @@ export default function ReservationsPage() {
                                         >
                                             <RefreshCw className="w-3 h-3" />
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => window.open('/tables', '_blank')}
+                                        <Link
+                                            href="/tables"
+                                            onClick={() => setIsModalOpen(false)}
                                             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-gray-500 hover:text-sky-600 dark:text-gray-400 dark:hover:text-sky-400 text-[10px] font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                            title="فتح صفحة الطاولات في تبويب جديد"
+                                            title="الانتقال إلى صفحة الطاولات"
                                         >
                                             <ExternalLink className="w-3 h-3" />
                                             <span>صفحة الطاولات</span>
-                                        </button>
+                                        </Link>
                                     </div>
                                 </div>
                                 <select
@@ -826,14 +827,17 @@ export default function ReservationsPage() {
                     </div>
 
                     <div className="pt-2 flex items-center justify-between gap-3">
-                        <button
-                            type="button"
-                            onClick={() => window.open('/tables', '_blank')}
+                        <Link
+                            href="/tables"
+                            onClick={() => {
+                                setIsTableModalOpen(false);
+                                setIsModalOpen(false);
+                            }}
                             className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-sky-600 transition-colors"
                         >
                             <ExternalLink className="w-3.5 h-3.5" />
-                            <span>فتح صفحة الطاولات الكاملة</span>
-                        </button>
+                            <span>الانتقال إلى صفحة الطاولات الكاملة</span>
+                        </Link>
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"

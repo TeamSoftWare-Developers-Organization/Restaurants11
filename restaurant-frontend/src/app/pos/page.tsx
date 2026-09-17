@@ -494,12 +494,12 @@ export default function POSPage() {
                         )}
                     </section>
 
-                    {/* RIGHT / ASIDE SECTION: Simple "Current Order" Cart - Widened for optimal POS usability */}
-                    <aside className={`w-full lg:w-[420px] xl:w-[480px] 2xl:w-[540px] shrink-0 min-w-0 ${mobileTab === 'menu' ? 'hidden lg:block' : 'block'}`}>
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/70 p-4 sm:p-6 flex flex-col h-auto lg:h-[calc(100vh-6.5rem)] lg:sticky lg:top-4">
+                    {/* RIGHT / ASIDE SECTION: Simple "Current Order" Cart - Widened and Spacious */}
+                    <aside className={`w-full lg:w-[480px] xl:w-[540px] 2xl:w-[600px] shrink-0 min-w-0 ${mobileTab === 'menu' ? 'hidden lg:block' : 'block'}`}>
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/70 p-4 sm:p-5 lg:p-6 flex flex-col min-h-[620px] lg:h-[calc(100vh-6.5rem)] lg:sticky lg:top-4">
                             
                             {/* Header: Title + Items Badge */}
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700/60">
+                            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-700/60">
                                 <div className="flex items-center gap-2.5">
                                     <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">الطلب الحالي</h2>
                                     <span className="text-xs font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 rounded-full">
@@ -519,15 +519,15 @@ export default function POSPage() {
                             </div>
 
                             {/* Order Type & Table Selection */}
-                            <div className="py-2.5 border-b border-slate-100 dark:border-slate-700/60 space-y-2">
+                            <div className="py-3 border-b border-slate-100 dark:border-slate-700/60 space-y-2">
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setOrderType('takeaway')}
-                                        className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                        className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                                             orderType === 'takeaway'
-                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60'
-                                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 shadow-xs'
+                                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent'
                                         }`}
                                     >
                                         طلب سفري
@@ -535,10 +535,10 @@ export default function POSPage() {
                                     <button
                                         type="button"
                                         onClick={() => setOrderType('dine_in')}
-                                        className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                        className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                                             orderType === 'dine_in'
-                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60'
-                                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 shadow-xs'
+                                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent'
                                         }`}
                                     >
                                         طلب محلي (صالة)
@@ -550,7 +550,7 @@ export default function POSPage() {
                                         <select
                                             value={selectedTableId || ''}
                                             onChange={(e) => setSelectedTableId(parseInt(e.target.value))}
-                                            className="w-full h-8 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 pr-7 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                                            className="w-full h-9 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 pr-8 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
                                         >
                                             <option value="" disabled>اختر الطاولة...</option>
                                             {tables.map(table => (
@@ -559,18 +559,18 @@ export default function POSPage() {
                                                 </option>
                                             ))}
                                         </select>
-                                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                        <ChevronDown className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     </div>
                                 )}
                             </div>
 
-                            {/* Cart Line Items */}
-                            <div className="flex-1 overflow-y-auto py-2.5 space-y-2.5 max-h-[300px] lg:max-h-none scrollbar-thin">
+                            {/* Cart Line Items - Spacious Container with min-height */}
+                            <div className="flex-1 overflow-y-auto py-3 space-y-2.5 min-h-[240px] max-h-[380px] lg:max-h-none scrollbar-thin">
                                 {items.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-center py-8 opacity-40">
-                                        <ShoppingBag className="w-10 h-10 text-slate-400 mb-2" />
-                                        <p className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">السلة فارغة</p>
-                                        <p className="text-[11px] text-slate-400">انقر على صنف من القائمة لإضافته</p>
+                                    <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center py-8 opacity-40">
+                                        <ShoppingBag className="w-12 h-12 text-slate-400 mb-2" />
+                                        <p className="text-sm font-bold text-slate-600 dark:text-slate-300">السلة فارغة</p>
+                                        <p className="text-xs text-slate-400 mt-1">انقر على صنف من القائمة لإضافته للطلب</p>
                                     </div>
                                 ) : (
                                     items.map((item, idx) => {
@@ -580,56 +580,60 @@ export default function POSPage() {
                                         const lineTotal = (item.price * item.quantity).toFixed(2);
 
                                         return (
-                                            <div key={item.id} className="space-y-1 group bg-slate-50/50 dark:bg-slate-700/20 p-2 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                                            <div key={item.id} className="space-y-1.5 group bg-slate-50/80 dark:bg-slate-700/30 border border-slate-200/70 dark:border-slate-700/60 p-2.5 sm:p-3 rounded-2xl transition-all hover:bg-slate-100/80 dark:hover:bg-slate-700/50 shadow-2xs">
                                                 <div className="flex items-center justify-between gap-3">
-                                                    {/* Soft Pastel Mini Badge / Icon */}
-                                                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${palette.bg} ${palette.text}`}>
-                                                        {item.image_url ? (
-                                                            <img
-                                                                src={getFullUrl(item.image_url)}
-                                                                alt={item.name}
-                                                                className="w-full h-full object-cover rounded-xl"
-                                                            />
-                                                        ) : (
-                                                            <ItemIcon className="w-5 h-5" />
-                                                        )}
+                                                    {/* Soft Pastel Mini Badge / Icon + Name & Unit Price */}
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${palette.bg} ${palette.text} shadow-xs`}>
+                                                            {item.image_url ? (
+                                                                <img
+                                                                    src={getFullUrl(item.image_url)}
+                                                                    alt={item.name}
+                                                                    className="w-full h-full object-cover rounded-xl"
+                                                                />
+                                                            ) : (
+                                                                <ItemIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                                                            )}
+                                                        </div>
+
+                                                        <div className="min-w-0 flex-1">
+                                                            <h4 className="text-sm sm:text-[15px] font-bold text-slate-800 dark:text-slate-100 truncate leading-snug">
+                                                                {item.name}
+                                                            </h4>
+                                                            <p className="text-xs text-gray-400 font-bold tabular-nums mt-0.5">
+                                                                {item.price.toFixed(2)} د.ل
+                                                            </p>
+                                                        </div>
                                                     </div>
 
-                                                    {/* Item Name & Unit Price */}
-                                                     <div className="flex-1 min-w-0 pr-1">
-                                                         <h4 className="text-xs sm:text-sm md:text-[15px] font-bold text-slate-800 dark:text-slate-100 truncate leading-snug">
-                                                             {item.name}
-                                                         </h4>
-                                                         <p className="text-[11px] sm:text-xs text-gray-400 font-bold tabular-nums">
-                                                             {item.price.toFixed(2)} د.ل
-                                                         </p>
-                                                     </div>
+                                                    {/* Stepper + Line Total */}
+                                                    <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+                                                        {/* Sleek Stepper [-] qty [+] */}
+                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-1.5 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-2xs" dir="ltr">
+                                                            <button
+                                                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs font-bold transition-all active:scale-90"
+                                                                title="تقليل الكمية"
+                                                            >
+                                                                <Minus className="w-3 h-3" />
+                                                            </button>
+                                                            <span className="text-xs sm:text-sm md:text-base font-black text-slate-800 dark:text-white min-w-[1.25rem] text-center tabular-nums">
+                                                                {item.quantity}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs font-bold transition-all active:scale-90"
+                                                                title="زيادة الكمية"
+                                                            >
+                                                                <Plus className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
 
-                                                     {/* Sleek Minimalist Stepper [-] qty [+] */}
-                                                     <div className="flex items-center gap-1.5" dir="ltr">
-                                                         <button
-                                                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                             className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs font-bold transition-all active:scale-90"
-                                                             title="تقليل الكمية"
-                                                         >
-                                                             <Minus className="w-3 h-3" />
-                                                         </button>
-                                                         <span className="text-xs sm:text-sm md:text-base font-bold text-slate-800 dark:text-white min-w-[1.25rem] text-center tabular-nums">
-                                                             {item.quantity}
-                                                         </span>
-                                                         <button
-                                                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                                             className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs font-bold transition-all active:scale-90"
-                                                             title="زيادة الكمية"
-                                                         >
-                                                             <Plus className="w-3 h-3" />
-                                                         </button>
-                                                     </div>
-
-                                                     {/* Line Total */}
-                                                     <div className="min-w-[60px] sm:min-w-[70px] text-end font-black text-xs sm:text-sm md:text-base text-gray-900 dark:text-white tabular-nums">
-                                                         {lineTotal} د.ل
-                                                     </div>
+                                                        {/* Line Total */}
+                                                        <div className="min-w-[65px] sm:min-w-[75px] text-end font-black text-sm sm:text-base text-indigo-600 dark:text-indigo-400 tabular-nums">
+                                                            {lineTotal} د.ل
+                                                        </div>
+                                                    </div>
                                                 </div>
 
                                                 {/* Optional Note Tag / Edit Trigger */}
