@@ -374,8 +374,9 @@ export default function POSPage() {
                 .pos-tile {
                     position: relative;
                     background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 14px;
+                    border: 1px solid rgba(226, 232, 240, 0.9);
+                    border-color: color-mix(in srgb, var(--c, #6366f1) 28%, #e2e8f0);
+                    border-radius: 16px;
                     padding: 13px;
                     display: flex;
                     flex-direction: column;
@@ -384,16 +385,27 @@ export default function POSPage() {
                     text-align: right;
                     font-family: inherit;
                     color: inherit;
-                    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+                    box-shadow: 
+                        0 0 0 1px color-mix(in srgb, var(--c, #6366f1) 20%, transparent),
+                        0 2px 10px -2px color-mix(in srgb, var(--c, #6366f1) 15%, transparent),
+                        0 2px 5px rgba(0, 0, 0, 0.03);
+                    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                                box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                                border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                     user-select: none;
                     overflow: hidden;
                     min-height: 180px;
                 }
                 :global(.dark) .pos-tile {
                     background: #1e293b;
-                    border-color: #334155;
+                    border-color: color-mix(in srgb, var(--c, #6366f1) 36%, #334155);
                     color: #f8fafc;
+                    box-shadow: 
+                        0 0 0 1px color-mix(in srgb, var(--c, #6366f1) 32%, transparent),
+                        0 0 14px -1px color-mix(in srgb, var(--c, #6366f1) 22%, transparent),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.08);
                 }
+                /* Top colored glowing accent bar */
                 .pos-tile::after {
                     content: "";
                     position: absolute;
@@ -402,15 +414,53 @@ export default function POSPage() {
                     right: 0;
                     height: 3.5px;
                     background: var(--c, #3b82f6);
+                    box-shadow: 0 1px 8px color-mix(in srgb, var(--c, #3b82f6) 80%, transparent);
+                }
+                /* Elegant light shine/sweep effect across the card */
+                .pos-tile::before {
+                    content: "";
+                    position: absolute;
+                    top: 0;
+                    left: -130%;
+                    width: 60%;
+                    height: 100%;
+                    background: linear-gradient(
+                        90deg,
+                        transparent,
+                        rgba(255, 255, 255, 0.28),
+                        transparent
+                    );
+                    transform: skewX(-22deg);
+                    transition: left 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+                    pointer-events: none;
+                    z-index: 1;
+                }
+                :global(.dark) .pos-tile::before {
+                    background: linear-gradient(
+                        90deg,
+                        transparent,
+                        rgba(255, 255, 255, 0.1),
+                        transparent
+                    );
                 }
                 .pos-tile:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-                    border-color: #94a3b8;
+                    transform: translateY(-3px);
+                    border-color: color-mix(in srgb, var(--c, #6366f1) 60%, #94a3b8);
+                    box-shadow: 
+                        0 0 0 1.5px color-mix(in srgb, var(--c, #6366f1) 50%, transparent),
+                        0 0 22px -1px color-mix(in srgb, var(--c, #6366f1) 38%, transparent),
+                        0 10px 24px -4px rgba(0, 0, 0, 0.09);
+                }
+                .pos-tile:hover::before {
+                    left: 170%;
                 }
                 :global(.dark) .pos-tile:hover {
-                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-                    border-color: #64748b;
+                    border-color: color-mix(in srgb, var(--c, #6366f1) 80%, #64748b);
+                    box-shadow: 
+                        0 0 0 1.5px color-mix(in srgb, var(--c, #6366f1) 68%, transparent),
+                        0 0 28px 2px color-mix(in srgb, var(--c, #6366f1) 50%, transparent),
+                        0 12px 28px -4px rgba(0, 0, 0, 0.5),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.15);
                 }
                 .pos-tile:active {
                     transform: scale(0.98);
@@ -419,10 +469,15 @@ export default function POSPage() {
                     opacity: 0.55;
                     cursor: not-allowed;
                     filter: grayscale(0.2);
+                    box-shadow: none !important;
                 }
                 .pos-tile.is-out:hover, .pos-tile[disabled]:hover {
                     transform: none;
-                    box-shadow: none;
+                    box-shadow: none !important;
+                    border-color: #e2e8f0;
+                }
+                :global(.dark) .pos-tile.is-out:hover, :global(.dark) .pos-tile[disabled]:hover {
+                    border-color: #334155;
                 }
                 .pos-cat-tag {
                     display: inline-flex;
