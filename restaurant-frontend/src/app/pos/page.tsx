@@ -76,6 +76,51 @@ function getFoodIcon(name: string = '', category?: string | null) {
     return Utensils;
 }
 
+const CATEGORY_COLORS: Record<string, { c: string; cbg: string }> = {
+    'بيتزا': { c: '#e74c3c', cbg: 'rgba(231, 76, 60, 0.15)' },
+    'pizza': { c: '#e74c3c', cbg: 'rgba(231, 76, 60, 0.15)' },
+    'مشروبات': { c: '#3b82f6', cbg: 'rgba(59, 130, 246, 0.15)' },
+    'المشروبات': { c: '#3b82f6', cbg: 'rgba(59, 130, 246, 0.15)' },
+    'drinks': { c: '#3b82f6', cbg: 'rgba(59, 130, 246, 0.15)' },
+    'برجر': { c: '#22c55e', cbg: 'rgba(34, 197, 94, 0.15)' },
+    'burger': { c: '#22c55e', cbg: 'rgba(34, 197, 94, 0.15)' },
+    'حلويات': { c: '#a855f7', cbg: 'rgba(168, 85, 247, 0.15)' },
+    'الحلويات': { c: '#a855f7', cbg: 'rgba(168, 85, 247, 0.15)' },
+    'dessert': { c: '#a855f7', cbg: 'rgba(168, 85, 247, 0.15)' },
+    'مشويات': { c: '#f97316', cbg: 'rgba(249, 115, 22, 0.15)' },
+    'مقبلات': { c: '#06b6d4', cbg: 'rgba(6, 182, 212, 0.15)' },
+    'سلطات': { c: '#84cc16', cbg: 'rgba(132, 204, 22, 0.15)' },
+    'شاورما': { c: '#eab308', cbg: 'rgba(234, 179, 8, 0.15)' },
+    'سندوتشات': { c: '#6366f1', cbg: 'rgba(99, 102, 241, 0.15)' },
+    'وجبات': { c: '#ec4899', cbg: 'rgba(236, 72, 153, 0.15)' },
+};
+
+const PALETTE_FALLBACKS = [
+    { c: '#e74c3c', cbg: 'rgba(231, 76, 60, 0.15)' },
+    { c: '#3b82f6', cbg: 'rgba(59, 130, 246, 0.15)' },
+    { c: '#22c55e', cbg: 'rgba(34, 197, 94, 0.15)' },
+    { c: '#a855f7', cbg: 'rgba(168, 85, 247, 0.15)' },
+    { c: '#f97316', cbg: 'rgba(249, 115, 22, 0.15)' },
+    { c: '#06b6d4', cbg: 'rgba(6, 182, 212, 0.15)' },
+    { c: '#6366f1', cbg: 'rgba(99, 102, 241, 0.15)' },
+];
+
+function getCategoryColor(catName?: string) {
+    if (!catName) return PALETTE_FALLBACKS[0];
+    const clean = catName.trim().toLowerCase();
+    for (const key of Object.keys(CATEGORY_COLORS)) {
+        if (clean.includes(key) || key.includes(clean)) {
+            return CATEGORY_COLORS[key];
+        }
+    }
+    let hash = 0;
+    for (let i = 0; i < clean.length; i++) {
+        hash = (hash << 5) - hash + clean.charCodeAt(i);
+        hash |= 0;
+    }
+    return PALETTE_FALLBACKS[Math.abs(hash) % PALETTE_FALLBACKS.length];
+}
+
 export default function POSPage() {
     const { isSidebarCollapsed } = useUIStore();
     const { isLoggedIn, user, activeShift, setActiveShift } = useAuthStore();
@@ -265,15 +310,28 @@ export default function POSPage() {
         }
     };
 
-    if (!isClient || !isLoggedIn) return null;
+    // Items to display, filtered by search query and ordered cleanly by category
+    const displayedItems = React.useMemo(() => {
+        let list = menuItems;
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            list = list.filter(item =>
+                item.name.toLowerCase().includes(q) ||
+                (item.category?.name && item.category.name.toLowerCase().includes(q))
+            );
+        }
+        return [...list].sort((a, b) => {
+            const catA = a.category?.name || '';
+            const catB = b.category?.name || '';
+            return catA.localeCompare(catB, 'ar');
+        });
+    }, [menuItems, searchQuery]);
 
-    const filteredItems = menuItems.filter(item => {
-        const matchesCategory = activeCategory === 'All' || activeCategory === 'الكل' || item.category?.name === activeCategory;
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
-    });
+    const filteredItems = displayedItems;
 
     const totalItemCount = items.reduce((sum, it) => sum + it.quantity, 0);
+
+    if (!isClient || !isLoggedIn) return null;
 
     return (
         <div className="flex bg-[#f4f6fb] dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100 transition-colors duration-200 overflow-x-hidden">
@@ -307,6 +365,152 @@ export default function POSPage() {
                         visibility: visible !important;
                         color: black !important;
                     }
+                }
+                .pos-tiles-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+                    gap: 12px;
+                }
+                .pos-tile {
+                    position: relative;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 14px;
+                    padding: 13px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    cursor: pointer;
+                    text-align: right;
+                    font-family: inherit;
+                    color: inherit;
+                    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+                    user-select: none;
+                    overflow: hidden;
+                    min-height: 180px;
+                }
+                :global(.dark) .pos-tile {
+                    background: #1e293b;
+                    border-color: #334155;
+                    color: #f8fafc;
+                }
+                .pos-tile::after {
+                    content: "";
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 3.5px;
+                    background: var(--c, #3b82f6);
+                }
+                .pos-tile:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+                    border-color: #94a3b8;
+                }
+                :global(.dark) .pos-tile:hover {
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+                    border-color: #64748b;
+                }
+                .pos-tile:active {
+                    transform: scale(0.98);
+                }
+                .pos-tile.is-out, .pos-tile[disabled] {
+                    opacity: 0.55;
+                    cursor: not-allowed;
+                    filter: grayscale(0.2);
+                }
+                .pos-tile.is-out:hover, .pos-tile[disabled]:hover {
+                    transform: none;
+                    box-shadow: none;
+                }
+                .pos-cat-tag {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                    font-size: 11px;
+                    color: var(--c, #3b82f6);
+                    font-weight: 700;
+                    width: fit-content;
+                }
+                .pos-dot {
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    background: var(--c, #3b82f6);
+                    flex-shrink: 0;
+                }
+                .pos-icobox {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: var(--cbg, rgba(59, 130, 246, 0.12));
+                    color: var(--c, #3b82f6);
+                    overflow: hidden;
+                    flex-shrink: 0;
+                }
+                .pos-tname {
+                    font-size: 13.5px;
+                    font-weight: 700;
+                    line-height: 19px;
+                    color: #0f172a;
+                    min-height: 38px;
+                }
+                :global(.dark) .pos-tname {
+                    color: #f1f5f9;
+                }
+                .pos-trow {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-top: auto;
+                    padding-top: 4px;
+                }
+                .pos-tprice {
+                    font-size: 14.5px;
+                    font-weight: 800;
+                    color: #0f172a;
+                    font-variant-numeric: tabular-nums;
+                }
+                :global(.dark) .pos-tprice {
+                    color: #f8fafc;
+                }
+                .pos-tcur {
+                    font-size: 11px;
+                    color: #94a3b8;
+                    font-weight: 500;
+                }
+                .pos-plus {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 8px;
+                    border: 1px solid #cbd5e1;
+                    background: transparent;
+                    color: inherit;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    opacity: 0;
+                    transition: all 0.15s ease;
+                }
+                :global(.dark) .pos-plus {
+                    border-color: #475569;
+                }
+                .pos-tile:hover .pos-plus {
+                    opacity: 1;
+                }
+                .pos-tile:hover .pos-plus:hover {
+                    background: var(--c, #3b82f6);
+                    border-color: var(--c, #3b82f6);
+                    color: #ffffff;
+                }
+                .pos-tstock {
+                    font-size: 11px;
+                    color: #94a3b8;
+                    font-weight: 500;
                 }
             `}</style>
 
@@ -419,90 +623,103 @@ export default function POSPage() {
                 {/* 2. MAIN RESPONSIVE CONTENT AREA */}
                 <main className="flex-1 p-3 sm:p-4 md:p-6 flex flex-col lg:flex-row gap-4 sm:gap-6 items-start min-w-0 w-full">
                     
-                    {/* LEFT / MAIN SECTION: Category Pills + Menu Grid */}
+                    {/* LEFT / MAIN SECTION: Unified Product Tiles with Embedded Category */}
                     <section className={`flex-1 min-w-0 w-full space-y-4 ${mobileTab === 'cart' ? 'hidden lg:block' : 'block'}`}>
-                        
-                        {/* Category Pills */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none flex-nowrap shrink-0">
-                            {categories.map((cat) => {
-                                const isSelected = activeCategory === cat;
-                                return (
-                                    <button
-                                        key={cat}
-                                        onClick={() => setActiveCategory(cat)}
-                                        className={`px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer shrink-0 ${
-                                            isSelected
-                                                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30 ring-2 ring-indigo-600/20'
-                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 shadow-xs'
-                                        }`}
-                                    >
-                                        {cat}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Menu Items Grid - Fully Responsive */}
-                        {filteredItems.length === 0 ? (
+                        {displayedItems.length === 0 ? (
                             <div className="bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700 p-8 sm:p-12 text-center text-slate-400">
                                 <Utensils className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 opacity-30" />
-                                <p className="text-sm sm:text-base font-semibold">لا توجد أصناف تطابق هذا البحث أو التصنيف</p>
+                                <p className="text-sm sm:text-base font-semibold">لا توجد أصناف تطابق بحثك حالياً</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 min-w-0">
-                                {filteredItems.map((item, idx) => {
-                                    const palette = getPastelPalette(idx);
-                                    const ItemIcon = getFoodIcon(item.name, item.category?.name);
+                            <div className="pos-tiles-grid">
+                                {displayedItems.map((item) => {
+                                    const catName = item.category?.name || 'عام';
+                                    const colorInfo = getCategoryColor(catName);
+                                    const ItemIcon = getFoodIcon(item.name, catName);
+                                    const isOutOfStock = item.is_available === false;
+
                                     return (
-                                        <div
+                                        <button
                                             key={item.id}
-                                            onClick={() => addItem({
-                                                id: item.id,
-                                                name: item.name,
-                                                price: item.price,
-                                                image_url: item.image_url,
-                                                category: item.category?.name
-                                            })}
-                                            className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-4 shadow-xs hover:shadow-md transition-all duration-200 border border-slate-100 dark:border-slate-700/60 cursor-pointer flex flex-col justify-between aspect-square active:scale-95 group select-none min-h-[140px]"
+                                            type="button"
+                                            disabled={isOutOfStock}
+                                            style={{
+                                                '--c': colorInfo.c,
+                                                '--cbg': colorInfo.cbg,
+                                            } as React.CSSProperties}
+                                            onClick={() => {
+                                                if (isOutOfStock) return;
+                                                addItem({
+                                                    id: item.id,
+                                                    name: item.name,
+                                                    price: item.price,
+                                                    image_url: item.image_url,
+                                                    category: catName
+                                                });
+                                            }}
+                                            className={`pos-tile group ${isOutOfStock ? 'is-out' : ''}`}
                                         >
-                                            {/* Pastel Rounded Square Badge */}
-                                            <div className={`w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${palette.bg} ${palette.text} transition-transform group-hover:scale-105 overflow-hidden shadow-xs shrink-0`}>
+                                            {/* Top Row: Category Tag + Out-of-Stock Badge */}
+                                            <div className="flex items-center justify-between w-full">
+                                                <span className="pos-cat-tag">
+                                                    <span className="pos-dot" />
+                                                    <span className="truncate max-w-[105px]">{catName}</span>
+                                                </span>
+                                                {isOutOfStock && (
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
+                                                        نفذ
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Centered Thumbnail / Icon Box */}
+                                            <div className="pos-icobox">
                                                 {item.image_url ? (
                                                     <img
                                                         src={getFullUrl(item.image_url)}
                                                         alt={item.name}
-                                                        className="w-full h-full object-cover"
+                                                        className="w-full h-full object-cover rounded-lg"
                                                     />
                                                 ) : (
-                                                    <ItemIcon className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+                                                    <ItemIcon className="w-6 h-6" />
                                                 )}
                                             </div>
 
-                                            {/* Item Name & Price */}
-                                            <div className="mt-auto pt-2 sm:pt-3">
-                                                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm md:text-base leading-tight truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                                    {item.name}
-                                                </h3>
-                                                <p className="text-indigo-600 dark:text-indigo-400 font-black text-xs sm:text-sm md:text-base mt-0.5 sm:mt-1 tabular-nums">
-                                                    {item.price.toFixed(2)} د.ل
-                                                </p>
+                                            {/* Item Name */}
+                                            <span className="pos-tname line-clamp-2" title={item.name}>
+                                                {item.name}
+                                            </span>
+
+                                            {/* Price Row & Plus Action Button */}
+                                            <div className="pos-trow">
+                                                <span className="pos-tprice">
+                                                    {item.price.toFixed(2)} <span className="pos-tcur">د.ل</span>
+                                                </span>
+                                                <span className="pos-plus">
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                </span>
                                             </div>
-                                        </div>
+
+                                            {/* Stock / Availability Indicator */}
+                                            <span className={`pos-tstock ${isOutOfStock ? 'text-rose-500' : ''}`}>
+                                                {isOutOfStock ? 'غير متوفر' : 'متوفر للطلب'}
+                                            </span>
+                                        </button>
                                     );
                                 })}
                             </div>
                         )}
                     </section>
 
-                    {/* RIGHT / ASIDE SECTION: Simple "Current Order" Cart - Widened and Spacious */}
-                    <aside className={`w-full lg:w-[480px] xl:w-[540px] 2xl:w-[600px] shrink-0 min-w-0 ${mobileTab === 'menu' ? 'hidden lg:block' : 'block'}`}>
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/70 p-4 sm:p-5 lg:p-6 flex flex-col min-h-[620px] lg:h-[calc(100vh-6.5rem)] lg:sticky lg:top-4">
+                    {/* RIGHT / ASIDE SECTION: Standard Professional POS Receipt-Style Cart */}
+                    <aside className={`w-full lg:w-[420px] xl:w-[470px] 2xl:w-[520px] shrink-0 min-w-0 ${mobileTab === 'menu' ? 'hidden lg:block' : 'block'}`}>
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700/70 p-3 sm:p-4 flex flex-col h-[calc(100vh-5.5rem)] max-h-[calc(100vh-5.5rem)] lg:sticky lg:top-3 overflow-hidden">
                             
-                            {/* Header: Title + Items Badge */}
-                            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-700/60">
-                                <div className="flex items-center gap-2.5">
-                                    <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">الطلب الحالي</h2>
-                                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 rounded-full">
+                            {/* 1. Header: Title + Items Badge + Clear All */}
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-none">الطلب الحالي</h2>
+                                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
                                         {totalItemCount} {totalItemCount === 1 ? 'صنف' : 'أصناف'}
                                     </span>
                                 </div>
@@ -510,23 +727,23 @@ export default function POSPage() {
                                 {items.length > 0 && (
                                     <button
                                         onClick={clearCart}
-                                        className="text-xs text-slate-400 hover:text-rose-500 font-bold transition-colors"
-                                        title="تفريغ السلة"
+                                        className="text-xs text-rose-500 hover:text-rose-600 font-bold transition-colors"
+                                        title="تفريغ السلة بالكامل"
                                     >
                                         مسح الكل
                                     </button>
                                 )}
                             </div>
 
-                            {/* Order Type & Table Selection */}
-                            <div className="py-3 border-b border-slate-100 dark:border-slate-700/60 space-y-2">
-                                <div className="flex gap-2">
+                            {/* 2. Order Type & Table Selection */}
+                            <div className="py-2 border-b border-slate-100 dark:border-slate-700/60 space-y-1.5 shrink-0">
+                                <div className="flex gap-1.5">
                                     <button
                                         type="button"
                                         onClick={() => setOrderType('takeaway')}
-                                        className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                                        className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
                                             orderType === 'takeaway'
-                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 shadow-xs'
+                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 shadow-2xs'
                                                 : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent'
                                         }`}
                                     >
@@ -535,9 +752,9 @@ export default function POSPage() {
                                     <button
                                         type="button"
                                         onClick={() => setOrderType('dine_in')}
-                                        className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                                        className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
                                             orderType === 'dine_in'
-                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 shadow-xs'
+                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 shadow-2xs'
                                                 : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent'
                                         }`}
                                     >
@@ -550,7 +767,7 @@ export default function POSPage() {
                                         <select
                                             value={selectedTableId || ''}
                                             onChange={(e) => setSelectedTableId(parseInt(e.target.value))}
-                                            className="w-full h-9 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 pr-8 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                                            className="w-full h-8 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 pr-7 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
                                         >
                                             <option value="" disabled>اختر الطاولة...</option>
                                             {tables.map(table => (
@@ -559,86 +776,86 @@ export default function POSPage() {
                                                 </option>
                                             ))}
                                         </select>
-                                        <ChevronDown className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     </div>
                                 )}
                             </div>
 
-                            {/* Cart Line Items - Spacious Container with min-height */}
-                            <div className="flex-1 overflow-y-auto py-3 space-y-2.5 min-h-[240px] max-h-[380px] lg:max-h-none scrollbar-thin">
+                            {/* 3. Table Column Headers */}
+                            <div className="grid grid-cols-12 gap-1.5 px-2.5 py-1.5 bg-slate-100/80 dark:bg-slate-700/50 rounded-xl text-[11px] font-black text-slate-500 dark:text-slate-300 mt-2 shrink-0">
+                                <span className="col-span-5 text-start">الصنف</span>
+                                <span className="col-span-3 text-center">الكمية</span>
+                                <span className="col-span-3 text-end">الإجمالي</span>
+                                <span className="col-span-1 text-center"></span>
+                            </div>
+
+                            {/* 4. Normal POS Items List (Compact, Scrollable Table) */}
+                            <div className="flex-1 overflow-y-auto min-h-0 py-1 divide-y divide-slate-100 dark:divide-slate-700/50 scrollbar-thin">
                                 {items.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center py-8 opacity-40">
-                                        <ShoppingBag className="w-12 h-12 text-slate-400 mb-2" />
-                                        <p className="text-sm font-bold text-slate-600 dark:text-slate-300">السلة فارغة</p>
-                                        <p className="text-xs text-slate-400 mt-1">انقر على صنف من القائمة لإضافته للطلب</p>
+                                    <div className="flex flex-col items-center justify-center h-full min-h-[140px] text-center py-6 opacity-40">
+                                        <ShoppingBag className="w-9 h-9 text-slate-400 mb-1.5" />
+                                        <p className="text-xs font-bold text-slate-600 dark:text-slate-300">السلة فارغة</p>
+                                        <p className="text-[11px] text-slate-400">انقر على أي صنف لإضافته مباشرة</p>
                                     </div>
                                 ) : (
-                                    items.map((item, idx) => {
-                                        const palette = getPastelPalette(idx);
-                                        const ItemIcon = getFoodIcon(item.name, item.category);
+                                    items.map((item) => {
                                         const isEditingNote = editingNoteItemId === item.id;
                                         const lineTotal = (item.price * item.quantity).toFixed(2);
 
                                         return (
-                                            <div key={item.id} className="space-y-1.5 group bg-slate-50/80 dark:bg-slate-700/30 border border-slate-200/70 dark:border-slate-700/60 p-2.5 sm:p-3 rounded-2xl transition-all hover:bg-slate-100/80 dark:hover:bg-slate-700/50 shadow-2xs">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    {/* Soft Pastel Mini Badge / Icon + Name & Unit Price */}
-                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${palette.bg} ${palette.text} shadow-xs`}>
-                                                            {item.image_url ? (
-                                                                <img
-                                                                    src={getFullUrl(item.image_url)}
-                                                                    alt={item.name}
-                                                                    className="w-full h-full object-cover rounded-xl"
-                                                                />
-                                                            ) : (
-                                                                <ItemIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                                                            )}
-                                                        </div>
-
-                                                        <div className="min-w-0 flex-1">
-                                                            <h4 className="text-sm sm:text-[15px] font-bold text-slate-800 dark:text-slate-100 truncate leading-snug">
-                                                                {item.name}
-                                                            </h4>
-                                                            <p className="text-xs text-gray-400 font-bold tabular-nums mt-0.5">
-                                                                {item.price.toFixed(2)} د.ل
-                                                            </p>
-                                                        </div>
+                                            <div key={item.id} className="py-2 px-1.5 hover:bg-slate-50/80 dark:hover:bg-slate-700/30 rounded-lg transition-colors group">
+                                                <div className="grid grid-cols-12 gap-1.5 items-center">
+                                                    {/* Item Name & Unit Price */}
+                                                    <div className="col-span-5 min-w-0 pr-1">
+                                                        <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate leading-tight" title={item.name}>
+                                                            {item.name}
+                                                        </h4>
+                                                        <p className="text-[11px] text-slate-400 font-bold tabular-nums">
+                                                            {item.price.toFixed(2)} د.ل
+                                                        </p>
                                                     </div>
 
-                                                    {/* Stepper + Line Total */}
-                                                    <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-                                                        {/* Sleek Stepper [-] qty [+] */}
-                                                        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-1.5 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-2xs" dir="ltr">
-                                                            <button
-                                                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs font-bold transition-all active:scale-90"
-                                                                title="تقليل الكمية"
-                                                            >
-                                                                <Minus className="w-3 h-3" />
-                                                            </button>
-                                                            <span className="text-xs sm:text-sm md:text-base font-black text-slate-800 dark:text-white min-w-[1.25rem] text-center tabular-nums">
-                                                                {item.quantity}
-                                                            </span>
-                                                            <button
-                                                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xs font-bold transition-all active:scale-90"
-                                                                title="زيادة الكمية"
-                                                            >
-                                                                <Plus className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
+                                                    {/* Stepper [-] qty [+] */}
+                                                    <div className="col-span-3 flex items-center justify-center gap-1" dir="ltr">
+                                                        <button
+                                                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold transition-all active:scale-90"
+                                                            title="تقليل الكمية"
+                                                        >
+                                                            <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                        </button>
+                                                        <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-white min-w-[1rem] text-center tabular-nums">
+                                                            {item.quantity}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold transition-all active:scale-90"
+                                                            title="زيادة الكمية"
+                                                        >
+                                                            <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                        </button>
+                                                    </div>
 
-                                                        {/* Line Total */}
-                                                        <div className="min-w-[65px] sm:min-w-[75px] text-end font-black text-sm sm:text-base text-indigo-600 dark:text-indigo-400 tabular-nums">
-                                                            {lineTotal} د.ل
-                                                        </div>
+                                                    {/* Line Total */}
+                                                    <div className="col-span-3 text-end font-black text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums">
+                                                        {lineTotal} <span className="text-[10px] text-slate-400 font-normal">د.ل</span>
+                                                    </div>
+
+                                                    {/* Quick Remove (✕) */}
+                                                    <div className="col-span-1 flex items-center justify-center">
+                                                        <button
+                                                            onClick={() => removeItem(item.id)}
+                                                            className="w-5 h-5 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition-colors"
+                                                            title="إزالة الصنف"
+                                                        >
+                                                            <X className="w-3.5 h-3.5" />
+                                                        </button>
                                                     </div>
                                                 </div>
 
-                                                {/* Optional Note Tag / Edit Trigger */}
+                                                {/* Optional Item Note */}
                                                 {item.notes && !isEditingNote && (
-                                                    <div className="flex items-center justify-between text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md">
+                                                    <div className="flex items-center justify-between text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded mt-1">
                                                         <span className="truncate">* {item.notes}</span>
                                                         <button
                                                             onClick={() => {
@@ -653,7 +870,7 @@ export default function POSPage() {
                                                 )}
 
                                                 {isEditingNote && (
-                                                    <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                                    <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-700/50 rounded-lg mt-1">
                                                         <input
                                                             type="text"
                                                             placeholder="ملاحظة..."
@@ -685,66 +902,58 @@ export default function POSPage() {
                                 )}
                             </div>
 
-                            {/* Summary & Checkout Actions */}
-                            <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-3 mt-auto">
+                            {/* 5. Pinned Footer: Totals + Quick Actions (Always visible on screen) */}
+                            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700 space-y-2 shrink-0 mt-auto bg-white dark:bg-slate-800">
                                 
                                 {/* Subtotal & Tax */}
-                                <div className="space-y-1 text-xs sm:text-sm font-bold text-gray-500 dark:text-gray-400">
-                                    <div className="flex justify-between items-center">
-                                        <span>المجموع الفرعي:</span>
-                                        <span className="font-black text-gray-700 dark:text-gray-200 tabular-nums">
-                                            {subtotal.toFixed(2)} د.ل
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span>الضريبة (10%):</span>
-                                        <span className="font-black text-gray-700 dark:text-gray-200 tabular-nums">
-                                            {taxAmount.toFixed(2)} د.ل
-                                        </span>
-                                    </div>
+                                <div className="flex justify-between items-center text-xs font-bold text-gray-500 dark:text-gray-400 px-0.5">
+                                    <span>المجموع: <span className="text-gray-800 dark:text-gray-200 font-black">{subtotal.toFixed(2)} د.ل</span></span>
+                                    <span>الضريبة (10%): <span className="text-gray-800 dark:text-gray-200 font-black">{taxAmount.toFixed(2)} د.ل</span></span>
                                 </div>
 
-                                {/* Grand Total */}
-                                <div className="flex justify-between items-baseline pt-2 border-t border-gray-100 dark:border-gray-800/60">
-                                    <span className="text-base sm:text-lg font-black text-gray-900 dark:text-white">الإجمالي:</span>
-                                    <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
-                                        {total.toFixed(2)} <span className="text-sm font-bold text-gray-400">د.ل</span>
-                                    </span>
-                                </div>
+                                {/* Grand Total + Compact Pay & Clear Buttons */}
+                                <div className="flex justify-between items-center pt-1.5 border-t border-slate-100 dark:border-slate-700/60 px-0.5">
+                                    <div>
+                                        <span className="text-[11px] font-bold text-slate-400 block leading-tight">الإجمالي المستحق:</span>
+                                        <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
+                                            {total.toFixed(2)} <span className="text-xs font-bold text-gray-400">د.ل</span>
+                                        </span>
+                                    </div>
 
-                                {/* Row 1: مسح + دفع */}
-                                <div className="flex gap-2.5 pt-0.5">
-                                    <button
-                                        type="button"
-                                        onClick={clearCart}
-                                        disabled={items.length === 0}
-                                        className="w-1/3 h-11 sm:h-12 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-xl font-bold text-xs sm:text-sm transition-all active:scale-95 disabled:opacity-40 shadow-xs"
-                                    >
-                                        مسح
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (items.length === 0 && !currentOrder) {
-                                                alert('يرجى إضافة أصناف إلى السلة أولاً');
-                                                return;
-                                            }
-                                            setShowChargeModal(true);
-                                        }}
-                                        disabled={isProcessingCheckout || (items.length === 0 && !currentOrder)}
-                                        className="flex-1 h-11 sm:h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-base sm:text-lg shadow-md shadow-indigo-600/30 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {isProcessingCheckout ? 'جاري الدفع...' : 'دفع'}
-                                    </button>
+                                    {/* Compact Actions: مسح + دفع */}
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={clearCart}
+                                            disabled={items.length === 0}
+                                            className="h-8 px-3 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-lg font-bold text-xs transition-all active:scale-95 disabled:opacity-40"
+                                        >
+                                            مسح
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (items.length === 0 && !currentOrder) {
+                                                    alert('يرجى إضافة أصناف إلى السلة أولاً');
+                                                    return;
+                                                }
+                                                setShowChargeModal(true);
+                                            }}
+                                            disabled={isProcessingCheckout || (items.length === 0 && !currentOrder)}
+                                            className="h-8 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow-xs transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                        >
+                                            {isProcessingCheckout ? 'جاري الدفع...' : 'دفع'}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Row 2: Quick Cash Buttons (المبلغ بالضبط, 20 د.ل, 50 د.ل) */}
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-3 gap-1.5">
                                     <button
                                         type="button"
                                         onClick={() => handleCheckout('cash')}
                                         disabled={isProcessingCheckout || items.length === 0}
-                                        className="h-9 sm:h-10 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 disabled:opacity-40 shadow-xs"
+                                        className="h-8 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 disabled:opacity-40"
                                     >
                                         المبلغ بالضبط
                                     </button>
@@ -752,7 +961,7 @@ export default function POSPage() {
                                         type="button"
                                         onClick={() => handleCheckout('cash')}
                                         disabled={isProcessingCheckout || items.length === 0}
-                                        className="h-9 sm:h-10 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 disabled:opacity-40 shadow-xs"
+                                        className="h-8 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 disabled:opacity-40"
                                     >
                                         20 د.ل
                                     </button>
@@ -760,14 +969,14 @@ export default function POSPage() {
                                         type="button"
                                         onClick={() => handleCheckout('cash')}
                                         disabled={isProcessingCheckout || items.length === 0}
-                                        className="h-9 sm:h-10 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 disabled:opacity-40 shadow-xs"
+                                        className="h-8 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 disabled:opacity-40"
                                     >
                                         50 د.ل
                                     </button>
                                 </div>
 
                                 {/* Row 3: Secondary Actions (Card / Debt / Hold / Print) */}
-                                <div className="grid grid-cols-4 gap-1.5 sm:gap-2 pt-0.5">
+                                <div className="grid grid-cols-4 gap-1 pt-0.5">
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -775,7 +984,7 @@ export default function POSPage() {
                                             setShowCardModal(true);
                                         }}
                                         disabled={items.length === 0 && !currentOrder}
-                                        className="py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all disabled:opacity-40 border border-slate-100 dark:border-slate-700"
+                                        className="py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[11px] font-bold transition-all disabled:opacity-40 border border-slate-200/80 dark:border-slate-700"
                                     >
                                         بطاقة
                                     </button>
@@ -786,7 +995,7 @@ export default function POSPage() {
                                             setShowDebtModal(true);
                                         }}
                                         disabled={items.length === 0 && !currentOrder}
-                                        className="py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all disabled:opacity-40 border border-slate-100 dark:border-slate-700"
+                                        className="py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[11px] font-bold transition-all disabled:opacity-40 border border-slate-200/80 dark:border-slate-700"
                                     >
                                         آجل
                                     </button>
@@ -794,7 +1003,7 @@ export default function POSPage() {
                                         type="button"
                                         onClick={handleHoldOrder}
                                         disabled={items.length === 0 || isProcessingHold}
-                                        className="py-2 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 rounded-xl text-xs font-bold transition-all disabled:opacity-40 border border-amber-200/50"
+                                        className="py-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 rounded-lg text-[11px] font-bold transition-all disabled:opacity-40 border border-amber-200/50"
                                         title="تعليق الطلب وسداده لاحقاً"
                                     >
                                         تعليق
@@ -803,7 +1012,7 @@ export default function POSPage() {
                                         type="button"
                                         onClick={handlePrintInvoice}
                                         disabled={items.length === 0}
-                                        className="py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all disabled:opacity-40 border border-slate-100 dark:border-slate-700"
+                                        className="py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[11px] font-bold transition-all disabled:opacity-40 border border-slate-200/80 dark:border-slate-700"
                                     >
                                         طباعة
                                     </button>
