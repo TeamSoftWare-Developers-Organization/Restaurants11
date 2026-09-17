@@ -25,7 +25,8 @@ import {
     X,
     CheckCircle,
     AlertCircle,
-    ShoppingBag
+    ShoppingBag,
+    ChevronLeft
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -76,33 +77,43 @@ function getFoodIcon(name: string = '', category?: string | null) {
     return Utensils;
 }
 
-const CATEGORY_COLORS: Record<string, { c: string; cbg: string }> = {
-    'بيتزا': { c: '#e74c3c', cbg: 'rgba(231, 76, 60, 0.15)' },
-    'pizza': { c: '#e74c3c', cbg: 'rgba(231, 76, 60, 0.15)' },
-    'مشروبات': { c: '#3b82f6', cbg: 'rgba(59, 130, 246, 0.15)' },
-    'المشروبات': { c: '#3b82f6', cbg: 'rgba(59, 130, 246, 0.15)' },
-    'drinks': { c: '#3b82f6', cbg: 'rgba(59, 130, 246, 0.15)' },
-    'برجر': { c: '#22c55e', cbg: 'rgba(34, 197, 94, 0.15)' },
-    'burger': { c: '#22c55e', cbg: 'rgba(34, 197, 94, 0.15)' },
-    'حلويات': { c: '#a855f7', cbg: 'rgba(168, 85, 247, 0.15)' },
-    'الحلويات': { c: '#a855f7', cbg: 'rgba(168, 85, 247, 0.15)' },
-    'dessert': { c: '#a855f7', cbg: 'rgba(168, 85, 247, 0.15)' },
-    'مشويات': { c: '#f97316', cbg: 'rgba(249, 115, 22, 0.15)' },
-    'مقبلات': { c: '#06b6d4', cbg: 'rgba(6, 182, 212, 0.15)' },
-    'سلطات': { c: '#84cc16', cbg: 'rgba(132, 204, 22, 0.15)' },
-    'شاورما': { c: '#eab308', cbg: 'rgba(234, 179, 8, 0.15)' },
-    'سندوتشات': { c: '#6366f1', cbg: 'rgba(99, 102, 241, 0.15)' },
-    'وجبات': { c: '#ec4899', cbg: 'rgba(236, 72, 153, 0.15)' },
+const CATEGORY_COLORS: Record<string, { c: string; cbg: string; grad: string }> = {
+    'ساخنة': { c: '#b45309', cbg: 'rgba(180, 83, 9, 0.15)', grad: 'linear-gradient(180deg, rgba(146, 64, 14, 0.88) 0%, rgba(120, 53, 15, 0.98) 100%)' },
+    'قهوة': { c: '#b45309', cbg: 'rgba(180, 83, 9, 0.15)', grad: 'linear-gradient(180deg, rgba(146, 64, 14, 0.88) 0%, rgba(120, 53, 15, 0.98) 100%)' },
+    'شاي': { c: '#854d0e', cbg: 'rgba(133, 77, 14, 0.15)', grad: 'linear-gradient(180deg, rgba(113, 63, 18, 0.88) 0%, rgba(84, 49, 12, 0.98) 100%)' },
+    'باردة': { c: '#0284c7', cbg: 'rgba(2, 132, 199, 0.15)', grad: 'linear-gradient(180deg, rgba(3, 105, 161, 0.88) 0%, rgba(7, 89, 133, 0.98) 100%)' },
+    'مشروبات': { c: '#0284c7', cbg: 'rgba(2, 132, 199, 0.15)', grad: 'linear-gradient(180deg, rgba(3, 105, 161, 0.88) 0%, rgba(7, 89, 133, 0.98) 100%)' },
+    'المشروبات': { c: '#0284c7', cbg: 'rgba(2, 132, 199, 0.15)', grad: 'linear-gradient(180deg, rgba(3, 105, 161, 0.88) 0%, rgba(7, 89, 133, 0.98) 100%)' },
+    'drinks': { c: '#0284c7', cbg: 'rgba(2, 132, 199, 0.15)', grad: 'linear-gradient(180deg, rgba(3, 105, 161, 0.88) 0%, rgba(7, 89, 133, 0.98) 100%)' },
+    'عصائر': { c: '#15803d', cbg: 'rgba(21, 128, 61, 0.15)', grad: 'linear-gradient(180deg, rgba(21, 128, 61, 0.88) 0%, rgba(20, 83, 45, 0.98) 100%)' },
+    'طبيعية': { c: '#15803d', cbg: 'rgba(21, 128, 61, 0.15)', grad: 'linear-gradient(180deg, rgba(21, 128, 61, 0.88) 0%, rgba(20, 83, 45, 0.98) 100%)' },
+    'معجنات': { c: '#d97706', cbg: 'rgba(217, 119, 6, 0.15)', grad: 'linear-gradient(180deg, rgba(180, 83, 9, 0.88) 0%, rgba(120, 53, 15, 0.98) 100%)' },
+    'حلويات': { c: '#7e22ce', cbg: 'rgba(126, 34, 206, 0.15)', grad: 'linear-gradient(180deg, rgba(126, 34, 206, 0.88) 0%, rgba(88, 28, 135, 0.98) 100%)' },
+    'الحلويات': { c: '#7e22ce', cbg: 'rgba(126, 34, 206, 0.15)', grad: 'linear-gradient(180deg, rgba(126, 34, 206, 0.88) 0%, rgba(88, 28, 135, 0.98) 100%)' },
+    'dessert': { c: '#7e22ce', cbg: 'rgba(126, 34, 206, 0.15)', grad: 'linear-gradient(180deg, rgba(126, 34, 206, 0.88) 0%, rgba(88, 28, 135, 0.98) 100%)' },
+    'سندوتشات': { c: '#365314', cbg: 'rgba(54, 83, 20, 0.15)', grad: 'linear-gradient(180deg, rgba(63, 98, 18, 0.88) 0%, rgba(26, 46, 5, 0.98) 100%)' },
+    'سندويتش': { c: '#365314', cbg: 'rgba(54, 83, 20, 0.15)', grad: 'linear-gradient(180deg, rgba(63, 98, 18, 0.88) 0%, rgba(26, 46, 5, 0.98) 100%)' },
+    'مقبلات': { c: '#854d0e', cbg: 'rgba(133, 77, 14, 0.15)', grad: 'linear-gradient(180deg, rgba(146, 64, 14, 0.88) 0%, rgba(69, 26, 3, 0.98) 100%)' },
+    'شيشة': { c: '#581c87', cbg: 'rgba(88, 28, 135, 0.15)', grad: 'linear-gradient(180deg, rgba(107, 33, 168, 0.88) 0%, rgba(59, 7, 100, 0.98) 100%)' },
+    'ايس كريم': { c: '#0369a1', cbg: 'rgba(3, 105, 161, 0.15)', grad: 'linear-gradient(180deg, rgba(14, 116, 144, 0.88) 0%, rgba(21, 94, 117, 0.98) 100%)' },
+    'بيتزا': { c: '#dc2626', cbg: 'rgba(220, 38, 38, 0.15)', grad: 'linear-gradient(180deg, rgba(190, 18, 60, 0.88) 0%, rgba(136, 19, 55, 0.98) 100%)' },
+    'pizza': { c: '#dc2626', cbg: 'rgba(220, 38, 38, 0.15)', grad: 'linear-gradient(180deg, rgba(190, 18, 60, 0.88) 0%, rgba(136, 19, 55, 0.98) 100%)' },
+    'برجر': { c: '#c2410c', cbg: 'rgba(194, 65, 12, 0.15)', grad: 'linear-gradient(180deg, rgba(234, 88, 12, 0.88) 0%, rgba(154, 52, 18, 0.98) 100%)' },
+    'burger': { c: '#c2410c', cbg: 'rgba(194, 65, 12, 0.15)', grad: 'linear-gradient(180deg, rgba(234, 88, 12, 0.88) 0%, rgba(154, 52, 18, 0.98) 100%)' },
+    'مشويات': { c: '#b91c1c', cbg: 'rgba(185, 28, 28, 0.15)', grad: 'linear-gradient(180deg, rgba(185, 28, 28, 0.88) 0%, rgba(127, 29, 29, 0.98) 100%)' },
+    'سلطات': { c: '#15803d', cbg: 'rgba(21, 128, 61, 0.15)', grad: 'linear-gradient(180deg, rgba(21, 128, 61, 0.88) 0%, rgba(20, 83, 45, 0.98) 100%)' },
+    'شاورما': { c: '#b45309', cbg: 'rgba(180, 83, 9, 0.15)', grad: 'linear-gradient(180deg, rgba(217, 119, 6, 0.88) 0%, rgba(120, 53, 15, 0.98) 100%)' },
+    'وجبات': { c: '#be185d', cbg: 'rgba(190, 24, 93, 0.15)', grad: 'linear-gradient(180deg, rgba(219, 39, 119, 0.88) 0%, rgba(131, 24, 67, 0.98) 100%)' },
 };
 
 const PALETTE_FALLBACKS = [
-    { c: '#e74c3c', cbg: 'rgba(231, 76, 60, 0.15)' },
-    { c: '#3b82f6', cbg: 'rgba(59, 130, 246, 0.15)' },
-    { c: '#22c55e', cbg: 'rgba(34, 197, 94, 0.15)' },
-    { c: '#a855f7', cbg: 'rgba(168, 85, 247, 0.15)' },
-    { c: '#f97316', cbg: 'rgba(249, 115, 22, 0.15)' },
-    { c: '#06b6d4', cbg: 'rgba(6, 182, 212, 0.15)' },
-    { c: '#6366f1', cbg: 'rgba(99, 102, 241, 0.15)' },
+    { c: '#0284c7', cbg: 'rgba(2, 132, 199, 0.15)', grad: 'linear-gradient(180deg, rgba(3, 105, 161, 0.88) 0%, rgba(7, 89, 133, 0.98) 100%)' },
+    { c: '#b45309', cbg: 'rgba(180, 83, 9, 0.15)', grad: 'linear-gradient(180deg, rgba(146, 64, 14, 0.88) 0%, rgba(120, 53, 15, 0.98) 100%)' },
+    { c: '#15803d', cbg: 'rgba(21, 128, 61, 0.15)', grad: 'linear-gradient(180deg, rgba(21, 128, 61, 0.88) 0%, rgba(20, 83, 45, 0.98) 100%)' },
+    { c: '#7e22ce', cbg: 'rgba(126, 34, 206, 0.15)', grad: 'linear-gradient(180deg, rgba(126, 34, 206, 0.88) 0%, rgba(88, 28, 135, 0.98) 100%)' },
+    { c: '#c2410c', cbg: 'rgba(194, 65, 12, 0.15)', grad: 'linear-gradient(180deg, rgba(234, 88, 12, 0.88) 0%, rgba(154, 52, 18, 0.98) 100%)' },
+    { c: '#0e7490', cbg: 'rgba(14, 116, 144, 0.15)', grad: 'linear-gradient(180deg, rgba(14, 116, 144, 0.88) 0%, rgba(21, 94, 117, 0.98) 100%)' },
+    { c: '#365314', cbg: 'rgba(54, 83, 20, 0.15)', grad: 'linear-gradient(180deg, rgba(63, 98, 18, 0.88) 0%, rgba(26, 46, 5, 0.98) 100%)' },
 ];
 
 function getCategoryColor(catName?: string) {
@@ -368,204 +379,241 @@ export default function POSPage() {
                 }
                 .pos-tiles-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-                    gap: 12px;
+                    grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+                    gap: 16px;
                 }
                 .pos-tile {
                     position: relative;
-                    background: #ffffff;
-                    border: 1px solid rgba(226, 232, 240, 0.9);
-                    border-color: color-mix(in srgb, var(--c, #6366f1) 28%, #e2e8f0);
-                    border-radius: 16px;
-                    padding: 13px;
+                    background: #1e293b;
+                    border: 2px solid color-mix(in srgb, var(--c, #6366f1) 50%, #cbd5e1);
+                    border-radius: 18px;
+                    padding: 0;
                     display: flex;
                     flex-direction: column;
-                    gap: 8px;
                     cursor: pointer;
                     text-align: right;
                     font-family: inherit;
                     color: inherit;
                     box-shadow: 
-                        0 0 0 1px color-mix(in srgb, var(--c, #6366f1) 20%, transparent),
-                        0 2px 10px -2px color-mix(in srgb, var(--c, #6366f1) 15%, transparent),
-                        0 2px 5px rgba(0, 0, 0, 0.03);
-                    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                        0 0 0 1.5px color-mix(in srgb, var(--c, #6366f1) 45%, transparent),
+                        0 0 20px 2px color-mix(in srgb, var(--c, #6366f1) 38%, transparent),
+                        0 4px 14px rgba(0, 0, 0, 0.08);
+                    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
                                 box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                                border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                                border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
                     user-select: none;
                     overflow: hidden;
-                    min-height: 180px;
+                    height: 200px;
                 }
                 :global(.dark) .pos-tile {
-                    background: #1e293b;
-                    border-color: color-mix(in srgb, var(--c, #6366f1) 36%, #334155);
-                    color: #f8fafc;
+                    background: #0f172a;
+                    border: 2px solid color-mix(in srgb, var(--c, #6366f1) 75%, #334155);
                     box-shadow: 
-                        0 0 0 1px color-mix(in srgb, var(--c, #6366f1) 32%, transparent),
-                        0 0 14px -1px color-mix(in srgb, var(--c, #6366f1) 22%, transparent),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+                        0 0 0 1.5px color-mix(in srgb, var(--c, #6366f1) 65%, transparent),
+                        0 0 28px 4px color-mix(in srgb, var(--c, #6366f1) 55%, transparent),
+                        inset 0 1px 1.5px rgba(255, 255, 255, 0.25);
                 }
-                /* Top colored glowing accent bar */
-                .pos-tile::after {
-                    content: "";
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    height: 3.5px;
-                    background: var(--c, #3b82f6);
-                    box-shadow: 0 1px 8px color-mix(in srgb, var(--c, #3b82f6) 80%, transparent);
-                }
-                /* Elegant light shine/sweep effect across the card */
+                /* Elegant light sweep shine across card */
                 .pos-tile::before {
                     content: "";
                     position: absolute;
                     top: 0;
-                    left: -130%;
+                    left: -140%;
                     width: 60%;
                     height: 100%;
                     background: linear-gradient(
                         90deg,
                         transparent,
-                        rgba(255, 255, 255, 0.28),
+                        rgba(255, 255, 255, 0.35),
                         transparent
                     );
                     transform: skewX(-22deg);
-                    transition: left 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+                    transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1);
                     pointer-events: none;
-                    z-index: 1;
+                    z-index: 10;
                 }
                 :global(.dark) .pos-tile::before {
                     background: linear-gradient(
                         90deg,
                         transparent,
-                        rgba(255, 255, 255, 0.1),
+                        rgba(255, 255, 255, 0.18),
                         transparent
                     );
                 }
                 .pos-tile:hover {
-                    transform: translateY(-3px);
-                    border-color: color-mix(in srgb, var(--c, #6366f1) 60%, #94a3b8);
+                    transform: translateY(-4px) scale(1.01);
+                    border-color: color-mix(in srgb, var(--c, #6366f1) 95%, #ffffff);
                     box-shadow: 
-                        0 0 0 1.5px color-mix(in srgb, var(--c, #6366f1) 50%, transparent),
-                        0 0 22px -1px color-mix(in srgb, var(--c, #6366f1) 38%, transparent),
-                        0 10px 24px -4px rgba(0, 0, 0, 0.09);
+                        0 0 0 2.5px color-mix(in srgb, var(--c, #6366f1) 90%, transparent),
+                        0 0 36px 6px color-mix(in srgb, var(--c, #6366f1) 70%, transparent),
+                        0 14px 30px -4px rgba(0, 0, 0, 0.22);
                 }
                 .pos-tile:hover::before {
-                    left: 170%;
+                    left: 180%;
                 }
                 :global(.dark) .pos-tile:hover {
-                    border-color: color-mix(in srgb, var(--c, #6366f1) 80%, #64748b);
+                    border-color: color-mix(in srgb, var(--c, #6366f1) 100%, #ffffff);
                     box-shadow: 
-                        0 0 0 1.5px color-mix(in srgb, var(--c, #6366f1) 68%, transparent),
-                        0 0 28px 2px color-mix(in srgb, var(--c, #6366f1) 50%, transparent),
-                        0 12px 28px -4px rgba(0, 0, 0, 0.5),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+                        0 0 0 3px color-mix(in srgb, var(--c, #6366f1) 100%, transparent),
+                        0 0 48px 10px color-mix(in srgb, var(--c, #6366f1) 85%, transparent),
+                        inset 0 1px 2.5px rgba(255, 255, 255, 0.5),
+                        0 16px 36px -4px rgba(0, 0, 0, 0.65);
                 }
                 .pos-tile:active {
                     transform: scale(0.98);
                 }
                 .pos-tile.is-out, .pos-tile[disabled] {
-                    opacity: 0.55;
+                    opacity: 0.5;
                     cursor: not-allowed;
-                    filter: grayscale(0.2);
+                    filter: grayscale(0.5);
                     box-shadow: none !important;
                 }
                 .pos-tile.is-out:hover, .pos-tile[disabled]:hover {
                     transform: none;
                     box-shadow: none !important;
-                    border-color: #e2e8f0;
                 }
-                :global(.dark) .pos-tile.is-out:hover, :global(.dark) .pos-tile[disabled]:hover {
-                    border-color: #334155;
+                /* Upper Image Area */
+                .pos-img-container {
+                    position: relative;
+                    width: 100%;
+                    flex: 1;
+                    min-height: 130px;
+                    overflow: hidden;
+                    background: #1e293b;
                 }
-                .pos-cat-tag {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 5px;
-                    font-size: 11px;
-                    color: var(--c, #3b82f6);
-                    font-weight: 700;
-                    width: fit-content;
+                .pos-card-img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
                 }
-                .pos-dot {
-                    width: 6px;
-                    height: 6px;
-                    border-radius: 50%;
-                    background: var(--c, #3b82f6);
-                    flex-shrink: 0;
+                .pos-tile:hover .pos-card-img {
+                    transform: scale(1.08);
                 }
-                .pos-icobox {
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 10px;
+                .pos-card-img-placeholder {
+                    width: 100%;
+                    height: 100%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: var(--cbg, rgba(59, 130, 246, 0.12));
-                    color: var(--c, #3b82f6);
-                    overflow: hidden;
-                    flex-shrink: 0;
+                    background: radial-gradient(circle at center, color-mix(in srgb, var(--c) 45%, #1e293b) 0%, #0f172a 100%);
+                    transition: transform 0.5s ease;
                 }
-                .pos-tname {
-                    font-size: 13.5px;
-                    font-weight: 700;
-                    line-height: 19px;
-                    color: #0f172a;
-                    min-height: 38px;
+                .pos-tile:hover .pos-card-img-placeholder {
+                    transform: scale(1.05);
                 }
-                :global(.dark) .pos-tname {
-                    color: #f1f5f9;
-                }
-                .pos-trow {
+                .pos-img-top-bar {
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    left: 8px;
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    margin-top: auto;
-                    padding-top: 4px;
+                    z-index: 2;
+                    pointer-events: none;
                 }
-                .pos-tprice {
-                    font-size: 14.5px;
+                .pos-cat-pill {
+                    padding: 3px 9px;
+                    border-radius: 9999px;
+                    font-size: 10px;
                     font-weight: 800;
-                    color: #0f172a;
-                    font-variant-numeric: tabular-nums;
+                    color: #ffffff;
+                    background: rgba(0, 0, 0, 0.5);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255, 255, 255, 0.25);
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
                 }
-                :global(.dark) .pos-tprice {
-                    color: #f8fafc;
+                .pos-out-pill {
+                    padding: 3px 8px;
+                    border-radius: 9999px;
+                    font-size: 10px;
+                    font-weight: 800;
+                    color: #fff;
+                    background: rgba(225, 29, 72, 0.85);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255, 255, 255, 0.3);
                 }
-                .pos-tcur {
-                    font-size: 11px;
-                    color: #94a3b8;
-                    font-weight: 500;
+                .pos-img-vignette {
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.45) 100%);
+                    pointer-events: none;
                 }
-                .pos-plus {
-                    width: 28px;
-                    height: 28px;
-                    border-radius: 8px;
-                    border: 1px solid #cbd5e1;
-                    background: transparent;
-                    color: inherit;
+                /* Bottom Themed Banner matching Café POS */
+                .pos-card-banner {
+                    width: 100%;
+                    height: 66px;
+                    background: var(--cgrad, linear-gradient(180deg, #1e293b, #0f172a));
+                    padding: 8px 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                    color: #ffffff;
+                    position: relative;
+                    z-index: 2;
+                    border-top: 1px solid rgba(255, 255, 255, 0.15);
+                }
+                .pos-banner-icon {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(4px);
+                    border: 1.5px solid rgba(255, 255, 255, 0.45);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    opacity: 0;
-                    transition: all 0.15s ease;
+                    flex-shrink: 0;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+                    transition: transform 0.25s ease;
                 }
-                :global(.dark) .pos-plus {
-                    border-color: #475569;
+                .pos-tile:hover .pos-banner-icon {
+                    transform: scale(1.1);
+                    background: rgba(255, 255, 255, 0.3);
                 }
-                .pos-tile:hover .pos-plus {
-                    opacity: 1;
+                .pos-banner-content {
+                    flex: 1;
+                    min-width: 0;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    text-align: right;
                 }
-                .pos-tile:hover .pos-plus:hover {
-                    background: var(--c, #3b82f6);
-                    border-color: var(--c, #3b82f6);
+                .pos-banner-title {
+                    font-size: 13.5px;
+                    font-weight: 900;
+                    line-height: 1.25;
                     color: #ffffff;
+                    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
-                .pos-tstock {
-                    font-size: 11px;
-                    color: #94a3b8;
-                    font-weight: 500;
+                .pos-banner-price-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    margin-top: 2px;
+                }
+                .pos-banner-price {
+                    font-size: 13px;
+                    font-weight: 800;
+                    color: #fef08a;
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+                    line-height: 1.2;
+                }
+                .pos-banner-cur {
+                    font-size: 10.5px;
+                    font-weight: 700;
+                    color: rgba(254, 240, 138, 0.9);
+                }
+                .pos-banner-arrow {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
                 }
             `}</style>
 
@@ -701,6 +749,7 @@ export default function POSPage() {
                                             style={{
                                                 '--c': colorInfo.c,
                                                 '--cbg': colorInfo.cbg,
+                                                '--cgrad': colorInfo.grad,
                                             } as React.CSSProperties}
                                             onClick={() => {
                                                 if (isOutOfStock) return;
@@ -714,51 +763,60 @@ export default function POSPage() {
                                             }}
                                             className={`pos-tile group ${isOutOfStock ? 'is-out' : ''}`}
                                         >
-                                            {/* Top Row: Category Tag + Out-of-Stock Badge */}
-                                            <div className="flex items-center justify-between w-full">
-                                                <span className="pos-cat-tag">
-                                                    <span className="pos-dot" />
-                                                    <span className="truncate max-w-[105px]">{catName}</span>
-                                                </span>
-                                                {isOutOfStock && (
-                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
-                                                        نفذ
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Centered Thumbnail / Icon Box */}
-                                            <div className="pos-icobox">
+                                            {/* Upper Image Section */}
+                                            <div className="pos-img-container">
                                                 {item.image_url ? (
                                                     <img
                                                         src={getFullUrl(item.image_url)}
                                                         alt={item.name}
-                                                        className="w-full h-full object-cover rounded-lg"
+                                                        className="pos-card-img"
                                                     />
                                                 ) : (
-                                                    <ItemIcon className="w-6 h-6" />
+                                                    <div className="pos-card-img-placeholder">
+                                                        <ItemIcon className="w-12 h-12 opacity-80 text-white" />
+                                                    </div>
                                                 )}
+
+                                                {/* Top Badges (Category Pill & Stock Status) */}
+                                                <div className="pos-img-top-bar">
+                                                    <span className="pos-cat-pill">
+                                                        {catName}
+                                                    </span>
+                                                    {isOutOfStock && (
+                                                        <span className="pos-out-pill">
+                                                            نفذ
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Soft shadow vignette to seamlessly transition to bottom banner */}
+                                                <div className="pos-img-vignette" />
                                             </div>
 
-                                            {/* Item Name */}
-                                            <span className="pos-tname line-clamp-2" title={item.name}>
-                                                {item.name}
-                                            </span>
+                                            {/* Bottom Themed Banner */}
+                                            <div className="pos-card-banner">
+                                                {/* Right: Circular Icon */}
+                                                <div className="pos-banner-icon">
+                                                    <ItemIcon className="w-4 h-4 text-white" />
+                                                </div>
 
-                                            {/* Price Row & Plus Action Button */}
-                                            <div className="pos-trow">
-                                                <span className="pos-tprice">
-                                                    {item.price.toFixed(2)} <span className="pos-tcur">د.ل</span>
-                                                </span>
-                                                <span className="pos-plus">
-                                                    <Plus className="w-3.5 h-3.5" />
-                                                </span>
+                                                {/* Center: Title & Price */}
+                                                <div className="pos-banner-content">
+                                                    <span className="pos-banner-title" title={item.name}>
+                                                        {item.name}
+                                                    </span>
+                                                    <div className="pos-banner-price-row">
+                                                        <span className="pos-banner-price">
+                                                            {item.price.toFixed(2)} <span className="pos-banner-cur">د.ل</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Left: Directional Arrow Chevron */}
+                                                <div className="pos-banner-arrow">
+                                                    <ChevronLeft className="w-4 h-4 text-white/80 group-hover:text-white group-hover:-translate-x-1 transition-all" />
+                                                </div>
                                             </div>
-
-                                            {/* Stock / Availability Indicator */}
-                                            <span className={`pos-tstock ${isOutOfStock ? 'text-rose-500' : ''}`}>
-                                                {isOutOfStock ? 'غير متوفر' : 'متوفر للطلب'}
-                                            </span>
                                         </button>
                                     );
                                 })}
