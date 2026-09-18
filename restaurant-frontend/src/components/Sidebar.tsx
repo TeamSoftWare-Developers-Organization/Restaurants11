@@ -37,7 +37,7 @@ const links = [
     { label: 'الموظفون والصلاحيات', icon: User, href: '/employees', color: 'blue', perm: 'employees' },
     { label: 'المخزون', icon: Snowflake, href: '/inventory', color: 'amber', perm: 'inventory' },
     { label: 'دليل الموردين', icon: Building2, href: '/suppliers', color: 'blue', perm: 'inventory' },
-    { label: 'المشتريات والتوريد', icon: ShoppingCart, href: '/purchases/new', color: 'emerald', perm: 'inventory' },
+    { label: 'فواتير المشتريات', icon: ShoppingCart, href: '/purchases', color: 'emerald', perm: 'inventory' },
     { label: 'قائمة الطعام', icon: ChefHat, href: '/menu', color: 'violet', perm: 'menu' },
     { label: 'وصفات الطعام', icon: CookingPot, href: '/recipes', color: 'amber', perm: 'recipes' },
     { label: 'الطلبات', icon: Truck, href: '/orders', color: 'rose', perm: 'orders' },

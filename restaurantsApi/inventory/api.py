@@ -248,6 +248,43 @@ def handle_create_purchase_invoice(payload: PurchaseInvoiceIn):
     return {"status": "success", "invoice_id": invoice.id, "total": total_invoice_sum}
 
 
+def handle_list_purchase_invoices():
+    invoices = PurchaseInvoice.objects.select_related('supplier').prefetch_related('items__ingredient').all().order_by('-id')
+    result = []
+    for inv in invoices:
+        items = []
+        for item in inv.items.all():
+            items.append({
+                "id": item.id,
+                "ingredient_id": item.ingredient_id,
+                "ingredient_name": item.ingredient.name,
+                "unit": item.ingredient.unit,
+                "unit_display": item.ingredient.get_unit_display() if hasattr(item.ingredient, 'get_unit_display') else item.ingredient.unit,
+                "quantity": float(item.quantity),
+                "unit_price": float(item.unit_price),
+                "total_price": float(item.total_price),
+            })
+        result.append({
+            "id": inv.id,
+            "invoice_number": inv.invoice_number,
+            "supplier_id": inv.supplier_id,
+            "supplier_name": inv.supplier.name,
+            "supplier_company": inv.supplier.company_name or "",
+            "supplier_phone": inv.supplier.phone,
+            "supplier_tax_number": inv.supplier.tax_number or "",
+            "total_amount": float(inv.total_amount),
+            "paid_amount": float(inv.paid_amount),
+            "remaining_amount": round(float(inv.total_amount) - float(inv.paid_amount), 2),
+            "status": inv.status,
+            "status_display": dict(PurchaseInvoice.STATUS_CHOICES).get(inv.status, inv.status),
+            "invoice_date": inv.invoice_date.strftime("%Y-%m-%d") if inv.invoice_date else "",
+            "created_at": inv.created_at.strftime("%Y-%m-%d %H:%M"),
+            "items_count": len(items),
+            "items": items,
+        })
+    return result
+
+
 purchases_router = Router(tags=["الموردين والمشتريات"])
 
 @purchases_router.post("/suppliers/")
@@ -262,6 +299,10 @@ def list_suppliers(request):
 def create_purchase_invoice(request, payload: PurchaseInvoiceIn):
     return handle_create_purchase_invoice(payload)
 
+@purchases_router.get("/purchases/")
+def list_purchase_invoices(request):
+    return handle_list_purchase_invoices()
+
 # دعم استدعاء نفس المسارات تحت /inventory أيضاً
 @inventory_router.post("/suppliers/")
 def inv_create_supplier(request, payload: SupplierIn):
@@ -273,4 +314,9 @@ def inv_list_suppliers(request):
 
 @inventory_router.post("/purchases/create-and-receive/")
 def inv_create_purchase_invoice(request, payload: PurchaseInvoiceIn):
-    return handle_create_purchase_invoice(payload)
+    return handle_create_purchase_invoice(payload)
+
+@inventory_router.get("/purchases/")
+def inv_list_purchase_invoices(request):
+    return handle_list_purchase_invoices()
+
