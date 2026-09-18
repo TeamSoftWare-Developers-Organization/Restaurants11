@@ -80,11 +80,12 @@ export default function EmployeesPage() {
     const handleOpenModal = (item?: Employee) => {
         if (item) {
             setEditingItem(item);
+            const cleanPhone = item.phone_number && !item.phone_number.includes('@') ? item.phone_number : '';
             setFormData({
                 first_name: item.first_name,
                 last_name: item.last_name,
                 role: item.role,
-                phone_number: item.phone_number || '',
+                phone_number: cleanPhone,
                 username: item.username,
                 password: '' // Don't show password
             });
@@ -201,10 +202,10 @@ export default function EmployeesPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300 overflow-x-hidden min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-4 md:p-8 transition-all duration-300`}>
+            <main className={`flex-1 min-w-0 w-full mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-4 md:p-6 lg:p-6 transition-all duration-300 overflow-x-hidden`}>
                 {/* Header */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-4">
@@ -376,28 +377,32 @@ export default function EmployeesPage() {
                             </div>
                         </div>
 
-                        <div className="bg-card dark:bg-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/40 overflow-x-auto">
+                        <div className="bg-card dark:bg-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/40 overflow-x-auto w-full max-w-full scrollbar-thin">
                             <table className="w-full text-right text-xs" dir="rtl">
                                 <thead>
                                     <tr className="bg-gray-50/50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-800">
-                                        <th className="p-4 font-black text-gray-700 dark:text-gray-300 min-w-[160px]">المستخدم</th>
-                                        <th className="p-4 font-black text-gray-700 dark:text-gray-300 min-w-[100px]">الدور</th>
+                                        <th className="p-3.5 font-black text-gray-700 dark:text-gray-300 min-w-[135px] sticky right-0 z-20 bg-gray-50 dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+                                            المستخدم
+                                        </th>
+                                        <th className="p-3.5 font-black text-gray-700 dark:text-gray-300 min-w-[90px] sticky right-[135px] z-20 bg-gray-50 dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+                                            الدور
+                                        </th>
                                         {AVAILABLE_PERMISSIONS.map(p => (
-                                            <th key={p.key} className="p-3 text-center font-black text-gray-500 dark:text-gray-400 min-w-[90px] whitespace-nowrap">
+                                            <th key={p.key} className="p-2.5 text-center font-bold text-gray-500 dark:text-gray-400 min-w-[72px] max-w-[85px] text-[10.5px] leading-tight">
                                                 {p.label}
                                             </th>
                                         ))}
-                                        <th className="p-4 text-center font-black text-gray-700 dark:text-gray-300 min-w-[80px]">تعديل</th>
+                                        <th className="p-3 text-center font-black text-gray-700 dark:text-gray-300 min-w-[60px]">تعديل</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50 dark:divide-gray-800/30">
                                     {employeesData.map(emp => (
                                         <tr key={emp.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-900/20">
-                                            <td className="p-4">
-                                                <div className="font-black text-gray-900 dark:text-gray-100">{emp.first_name} {emp.last_name}</div>
-                                                <div className="text-[10px] text-gray-400 font-bold">@{emp.username}</div>
+                                            <td className="p-3.5 sticky right-0 z-10 bg-card border-l border-gray-50 dark:border-gray-800/40 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+                                                <div className="font-black text-gray-900 dark:text-gray-100 truncate max-w-[125px]">{emp.first_name} {emp.last_name}</div>
+                                                <div className="text-[10px] text-gray-400 font-bold truncate max-w-[125px]">@{emp.username}</div>
                                             </td>
-                                            <td className="p-4">
+                                            <td className="p-3.5 sticky right-[135px] z-10 bg-card border-l border-gray-50 dark:border-gray-800/40 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
                                                 <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${getRoleBadgeStyle(emp.role)}`}>
                                                     {getRoleName(emp.role)}
                                                 </span>
@@ -405,20 +410,20 @@ export default function EmployeesPage() {
                                             {AVAILABLE_PERMISSIONS.map(p => {
                                                 const hasPerm = emp.role === 'manager' || !!(emp.permissions && emp.permissions[p.key]);
                                                 return (
-                                                    <td key={p.key} className="p-3 text-center">
+                                                    <td key={p.key} className="p-2 text-center">
                                                         {hasPerm ? (
-                                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800/40">
-                                                                <Check className="w-3.5 h-3.5" />
+                                                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800/40">
+                                                                <Check className="w-3 h-3" />
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-800/40 text-gray-300 dark:text-gray-600">
-                                                                <X className="w-3.5 h-3.5" />
+                                                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-50 dark:bg-gray-800/40 text-gray-300 dark:text-gray-600">
+                                                                <X className="w-3 h-3" />
                                                             </span>
                                                         )}
                                                     </td>
                                                 );
                                             })}
-                                            <td className="p-4 text-center">
+                                            <td className="p-3 text-center">
                                                 <button
                                                     onClick={() => handleOpenPermissionsModal(emp)}
                                                     className="p-1.5 bg-blue-50 dark:bg-blue-950/30 text-blue-600 hover:bg-blue-100 rounded-lg transition-all"
@@ -533,7 +538,7 @@ export default function EmployeesPage() {
                 onClose={() => setIsModalOpen(false)}
                 title={editingItem ? 'تعديل بيانات موظف' : 'إضافة موظف جديد'}
             >
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الاسم الأول</label>
@@ -541,6 +546,7 @@ export default function EmployeesPage() {
                                 type="text"
                                 value={formData.first_name}
                                 onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                autoComplete="given-name"
                                 className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                                 required
                             />
@@ -551,6 +557,7 @@ export default function EmployeesPage() {
                                 type="text"
                                 value={formData.last_name}
                                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                autoComplete="family-name"
                                 className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                                 required
                             />
@@ -563,6 +570,7 @@ export default function EmployeesPage() {
                                 type="text"
                                 value={formData.username}
                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                autoComplete="username"
                                 className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                                 required
                             />
@@ -583,13 +591,14 @@ export default function EmployeesPage() {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">رقم الهاتف</label>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">رقم الهاتف (اختياري)</label>
                         <input
-                            type="text"
+                            type="tel"
                             value={formData.phone_number}
                             onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                            autoComplete="tel"
                             className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
-                            placeholder="050XXXXXXXX"
+                            placeholder="09XXXXXXXX (اختياري)"
                         />
                     </div>
                     <div className="space-y-1">
@@ -598,6 +607,7 @@ export default function EmployeesPage() {
                             type="password"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            autoComplete="new-password"
                             className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                             required={!editingItem}
                         />

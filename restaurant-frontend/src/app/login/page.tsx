@@ -12,7 +12,7 @@ export default function LoginPage() {
     const { theme, setTheme, resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
@@ -28,11 +28,11 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        const success = await login(email, password);
+        const success = await login(username, password);
         if (success) {
             router.push('/');
         } else {
-            setError(storeError || 'البيانات غير صحيحة');
+            setError(storeError || 'بيانات الدخول غير صحيحة. يرجى التأكد من اسم المستخدم وكلمة المرور.');
         }
     };
 
@@ -67,16 +67,17 @@ export default function LoginPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-3.5">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 mr-1 uppercase tracking-widest">البريد الإلكتروني</label>
+                            <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 mr-1 uppercase tracking-widest">اسم المستخدم</label>
                             <div className="relative group">
                                 <User className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 group-focus-within:text-indigo-600 transition-colors" />
                                 <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
                                     className="w-full h-9 bg-gray-50/50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800/40 rounded-lg pr-9 pl-4 text-[12px] font-bold outline-none focus:ring-1 focus:ring-indigo-600/20 transition-all placeholder:text-gray-300"
-                                    placeholder="your@email.com"
+                                    placeholder="أدخل اسم المستخدم"
                                     required
+                                    autoFocus
                                 />
                             </div>
                         </div>

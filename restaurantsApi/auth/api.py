@@ -16,7 +16,8 @@ auth_router = Router(tags=["المصادقة والأمان"])
 # 1. المخططات (Schemas)
 
 class LoginIn(Schema):
-    email: str
+    username: str = None
+    email: str = None
     password: str
 
 class AuthOut(Schema):
@@ -36,14 +37,14 @@ class RegisterIn(Schema):
 @auth_router.post("/login/", response={200: dict, 401: dict})
 def login_user(request: HttpRequest, data: LoginIn):
     """
-    تسجيل الدخول باستخدام البريد الإلكتروني والحصول على توكن JWT.
+    تسجيل الدخول باستخدام اسم المستخدم أو البريد الإلكتروني والحصول على توكن JWT.
     """
-    # البحث عن المستخدم بواسطة البريد الإلكتروني
-    user = User.objects.filter(email=data.email).first()
+    identifier = (data.username or data.email or '').strip()
     
+    # البحث عن المستخدم بواسطة اسم المستخدم أولاً ثم البريد الإلكتروني
+    user = User.objects.filter(username=identifier).first()
     if not user:
-        # محاولة البحث بواسطة اسم المستخدم في حال كان المدخل هو اسم المستخدم
-        user = User.objects.filter(username=data.email).first()
+        user = User.objects.filter(email=identifier).first()
 
     if user:
         user_authenticated = authenticate(username=user.username, password=data.password)
@@ -55,7 +56,7 @@ def login_user(request: HttpRequest, data: LoginIn):
                 'access': str(access),
             }
     
-    return 401, {"message": "بيانات الدخول غير صحيحة. يرجى التأكد من البريد الإلكتروني وكلمة المرور."}
+    return 401, {"message": "بيانات الدخول غير صحيحة. يرجى التأكد من اسم المستخدم وكلمة المرور."}
 
 @auth_router.get("/me/", response={200: AuthOut, 401: dict}, auth=JWTAuth())
 def get_me(request):
