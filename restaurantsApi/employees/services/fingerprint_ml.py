@@ -77,7 +77,9 @@ def build_or_load_model():
     _EMBEDDING_MODEL = model
     return _EMBEDDING_MODEL
 
-def preprocess_fingerprint(image_bytes: bytes) -> np.ndarray:
+from typing import Any
+
+def preprocess_fingerprint(image_bytes: bytes) -> Any:
     """
     Converts raw fingerprint image bytes into Grayscale 128x128 normalized array
     ready for CNN tensor input: shape (1, 128, 128, 1).
