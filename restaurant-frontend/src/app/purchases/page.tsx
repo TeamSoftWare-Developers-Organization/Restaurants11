@@ -165,7 +165,7 @@ export default function PurchasesPage() {
               <span className="text-xs font-bold text-gray-400 dark:text-gray-500">إجمالي قيمة المشتريات</span>
               <h3 className="text-2xl font-black mt-1 text-gray-900 dark:text-white">
                 {totalPurchases.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                <span className="text-xs font-normal text-gray-400 mr-1.5">د.ل / ريال</span>
+                <span className="text-xs font-normal text-gray-400 mr-1.5">د.ل</span>
               </h3>
             </div>
             <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -179,7 +179,7 @@ export default function PurchasesPage() {
               <span className="text-xs font-bold text-gray-400 dark:text-gray-500">إجمالي المدفوع كاش</span>
               <h3 className="text-2xl font-black mt-1 text-emerald-600 dark:text-emerald-400">
                 {totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                <span className="text-xs font-normal text-gray-400 mr-1.5">د.ل / ريال</span>
+                <span className="text-xs font-normal text-gray-400 mr-1.5">د.ل</span>
               </h3>
             </div>
             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/40 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
@@ -193,7 +193,7 @@ export default function PurchasesPage() {
               <span className="text-xs font-bold text-gray-400 dark:text-gray-500">المتبقي كآجل على المطعم</span>
               <h3 className="text-2xl font-black mt-1 text-rose-500 dark:text-rose-400">
                 {totalRemaining.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                <span className="text-xs font-normal text-gray-400 mr-1.5">د.ل / ريال</span>
+                <span className="text-xs font-normal text-gray-400 mr-1.5">د.ل</span>
               </h3>
             </div>
             <div className="w-12 h-12 bg-rose-50 dark:bg-rose-950/40 rounded-xl flex items-center justify-center text-rose-600 dark:text-rose-400">
@@ -470,15 +470,15 @@ export default function PurchasesPage() {
               <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800 space-y-2">
                 <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-slate-400">
                   <span>إجمالي قيمة الفاتورة:</span>
-                  <span className="font-mono text-gray-900 dark:text-white">{selectedInvoice.total_amount.toFixed(2)} د.ل / ريال</span>
+                  <span className="font-mono text-gray-900 dark:text-white">{selectedInvoice.total_amount.toFixed(2)} د.ل</span>
                 </div>
                 <div className="flex justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
                   <span>المدفوع نقداً (كاش):</span>
-                  <span className="font-mono">{selectedInvoice.paid_amount.toFixed(2)} د.ل / ريال</span>
+                  <span className="font-mono">{selectedInvoice.paid_amount.toFixed(2)} د.ل</span>
                 </div>
                 <div className="border-t border-gray-200 dark:border-slate-800 pt-2 flex justify-between text-sm font-black text-rose-500 dark:text-rose-400">
                   <span>المتبقي آجل على المنشأة:</span>
-                  <span className="font-mono">{selectedInvoice.remaining_amount.toFixed(2)} د.ل / ريال</span>
+                  <span className="font-mono">{selectedInvoice.remaining_amount.toFixed(2)} د.ل</span>
                 </div>
               </div>
 

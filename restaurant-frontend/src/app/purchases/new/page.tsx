@@ -268,11 +268,11 @@ export default function NewPurchasePage() {
               <div className="space-y-1">
                 <p className="text-xs font-bold text-gray-400">إجمالي قيمة الفاتورة:</p>
                 <p className="text-3xl font-black text-gray-900 dark:text-white">
-                  {invoiceTotal.toFixed(2)} <span className="text-sm font-normal text-gray-400">د.ل / ريال</span>
+                  {invoiceTotal.toFixed(2)} <span className="text-sm font-normal text-gray-400">د.ل</span>
                 </p>
                 <p className={`text-xs font-bold ${remainingAmount > 0 ? "text-rose-500 dark:text-rose-400" : "text-emerald-500 dark:text-emerald-400"}`}>
                   {remainingAmount > 0
-                    ? `المتبقي كآجل مستحق للمورد: ${remainingAmount.toFixed(2)}`
+                    ? `المتبقي كآجل مستحق للمورد: ${remainingAmount.toFixed(2)} د.ل`
                     : "الفاتورة مسددة بالكامل"}
                 </p>
               </div>

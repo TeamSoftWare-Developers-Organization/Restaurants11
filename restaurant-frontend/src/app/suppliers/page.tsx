@@ -147,7 +147,7 @@ export default function SuppliersPage() {
                     <td className="p-4 text-gray-600 dark:text-slate-300 font-medium">{s.company_name || "—"}</td>
                     <td className="p-4 text-gray-500 dark:text-slate-400 font-mono" dir="ltr">{s.phone}</td>
                     <td className="p-4 text-gray-500 dark:text-slate-400 font-mono">{s.tax_number || "—"}</td>
-                    <td className="p-4 text-rose-500 dark:text-rose-400 font-black">{Number(s.balance).toFixed(2)} د.ل / ريال</td>
+                    <td className="p-4 text-rose-500 dark:text-rose-400 font-black">{Number(s.balance).toFixed(2)} د.ل</td>
                   </tr>
                 ))
               )}

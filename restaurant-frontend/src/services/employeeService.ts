@@ -27,6 +27,7 @@ export interface Employee {
     hire_date: string;
     username: string;
     permissions?: UserPermissions;
+    has_fingerprint?: boolean;
 }
 
 export const AVAILABLE_PERMISSIONS = [

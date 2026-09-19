@@ -19,12 +19,17 @@ import {
     X,
     Lock,
     Key,
-    RotateCcw
+    RotateCcw,
+    Fingerprint,
+    Upload,
+    CheckCircle2,
+    AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { employeeService, Employee, AVAILABLE_PERMISSIONS, UserPermissions } from '@/services/employeeService';
+import { attendanceService } from '@/services/attendanceService';
 
 export default function EmployeesPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -55,6 +60,14 @@ export default function EmployeesPage() {
     const [selectedEmployeeForPerms, setSelectedEmployeeForPerms] = useState<Employee | null>(null);
     const [tempPermissions, setTempPermissions] = useState<UserPermissions>({});
     const [isSavingPerms, setIsSavingPerms] = useState(false);
+
+    // Fingerprint Enrollment Modal
+    const [selectedEmpForFingerprint, setSelectedEmpForFingerprint] = useState<Employee | null>(null);
+    const [isFingerprintModalOpen, setIsFingerprintModalOpen] = useState(false);
+    const [isEnrollingFingerprint, setIsEnrollingFingerprint] = useState(false);
+    const [enrollMsg, setEnrollMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [enrollPreviewUrl, setEnrollPreviewUrl] = useState<string | null>(null);
+    const [enrollFile, setEnrollFile] = useState<File | null>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -169,6 +182,41 @@ export default function EmployeesPage() {
             alert('حدث خطأ أثناء حفظ الصلاحيات');
         } finally {
             setIsSavingPerms(false);
+        }
+    };
+
+    // Fingerprint Modal Handlers
+    const handleOpenFingerprintModal = (emp: Employee) => {
+        setSelectedEmpForFingerprint(emp);
+        setEnrollMsg(null);
+        setEnrollPreviewUrl(null);
+        setEnrollFile(null);
+        setIsFingerprintModalOpen(true);
+    };
+
+    const handleEnrollFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setEnrollFile(file);
+            setEnrollPreviewUrl(URL.createObjectURL(file));
+            setEnrollMsg(null);
+        }
+    };
+
+    const handleEnrollFingerprint = async () => {
+        if (!selectedEmpForFingerprint || !enrollFile) return;
+        try {
+            setIsEnrollingFingerprint(true);
+            setEnrollMsg(null);
+            const res = await attendanceService.enrollFingerprint(selectedEmpForFingerprint.id, enrollFile);
+            setEnrollMsg({ type: 'success', text: res.message || 'تم تسجيل البصمة بنجاح عبر TensorFlow!' });
+            fetchEmployees();
+        } catch (err: any) {
+            console.error('Enrollment error:', err);
+            const errorText = err.response?.data?.detail || err.message || 'فشل تسجيل بصمة الإصبع';
+            setEnrollMsg({ type: 'error', text: errorText });
+        } finally {
+            setIsEnrollingFingerprint(false);
         }
     };
 
@@ -289,14 +337,15 @@ export default function EmployeesPage() {
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الدور الوظيفي</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الهاتف</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الصلاحيات الممنوحة</th>
+                                        <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest text-center">بصمة الإصبع</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest text-center">الإجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50 dark:divide-gray-800/30">
                                     {isLoading ? (
-                                        <tr><td colSpan={5} className="p-8 text-center text-gray-400 font-bold italic">جاري التحميل...</td></tr>
+                                        <tr><td colSpan={6} className="p-8 text-center text-gray-400 font-bold italic">جاري التحميل...</td></tr>
                                     ) : filteredEmployees.length === 0 ? (
-                                        <tr><td colSpan={5} className="p-8 text-center text-gray-400 font-bold">لا يوجد مستخدمون مطابقون.</td></tr>
+                                        <tr><td colSpan={6} className="p-8 text-center text-gray-400 font-bold">لا يوجد مستخدمون مطابقون.</td></tr>
                                     ) : filteredEmployees.map((employee) => {
                                         const grantedCount = Object.values(employee.permissions || {}).filter(Boolean).length;
 
@@ -328,8 +377,29 @@ export default function EmployeesPage() {
                                                         <span>{grantedCount} من {AVAILABLE_PERMISSIONS.length} أقسام</span>
                                                     </button>
                                                 </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenFingerprintModal(employee)}
+                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-black border transition-all ${
+                                                            employee.has_fingerprint
+                                                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-100/70'
+                                                                : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40 hover:bg-amber-100/70'
+                                                        }`}
+                                                    >
+                                                        <Fingerprint className="w-3.5 h-3.5" />
+                                                        <span>{employee.has_fingerprint ? 'بصمة مسجلة' : 'تسجيل بصمة'}</span>
+                                                    </button>
+                                                </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center items-center gap-2">
+                                                        <button
+                                                            onClick={() => handleOpenFingerprintModal(employee)}
+                                                            title={employee.has_fingerprint ? "تحديث البصمة" : "تسجيل بصمة"}
+                                                            className="p-2 bg-purple-50/60 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 rounded-xl hover:scale-105 transition-all border border-purple-100 dark:border-purple-900/30"
+                                                        >
+                                                            <Fingerprint className="w-4 h-4" />
+                                                        </button>
                                                         <button
                                                             onClick={() => handleOpenPermissionsModal(employee)}
                                                             title="تعديل الصلاحيات"
@@ -527,6 +597,88 @@ export default function EmployeesPage() {
                         >
                             <Save className="w-4 h-4" />
                             {isSavingPerms ? 'جاري حفظ الصلاحيات...' : 'حفظ واعتماد الصلاحيات'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Fingerprint Enrollment Modal */}
+            <Modal
+                isOpen={isFingerprintModalOpen}
+                onClose={() => setIsFingerprintModalOpen(false)}
+                title={`تسجيل بصمة الإصبع - ${selectedEmpForFingerprint ? selectedEmpForFingerprint.first_name + ' ' + selectedEmpForFingerprint.last_name : ''}`}
+            >
+                <div className="space-y-4" dir="rtl">
+                    <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl text-xs text-blue-700 dark:text-blue-300">
+                        <p className="font-bold flex items-center gap-2">
+                            <Fingerprint className="w-4 h-4 text-blue-600" />
+                            تسجيل البصمة الرقمية للتعرف الآلي (TensorFlow CNN)
+                        </p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                            قم برفع صورة بصمة الإصبع الخام (من الماسح الضوئي أو ملف). سيقوم النموذج باستخراج مصفوفة الميزات (128-d Vector) وحفظها لمطابقة الحضور والانصراف بدقة.
+                        </p>
+                    </div>
+
+                    {/* Upload / Scanner input */}
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500 rounded-2xl p-6 transition-all bg-gray-50/40 dark:bg-gray-900/30">
+                        {enrollPreviewUrl ? (
+                            <div className="relative group flex flex-col items-center">
+                                <img
+                                    src={enrollPreviewUrl}
+                                    alt="Fingerprint Preview"
+                                    className="w-36 h-36 object-contain rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm bg-black/5"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => { setEnrollFile(null); setEnrollPreviewUrl(null); }}
+                                    className="mt-2 text-xs font-bold text-rose-500 hover:underline"
+                                >
+                                    إلغاء واختيار صورة أخرى
+                                </button>
+                            </div>
+                        ) : (
+                            <label className="flex flex-col items-center cursor-pointer">
+                                <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 mb-2">
+                                    <Upload className="w-6 h-6" />
+                                </div>
+                                <span className="text-xs font-black text-gray-800 dark:text-gray-200">اختر صورة البصمة من الماسح أو الجهاز</span>
+                                <span className="text-[10px] text-gray-400 font-bold mt-1">PNG, JPG, BMP مدعومة</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleEnrollFileChange}
+                                    className="hidden"
+                                />
+                            </label>
+                        )}
+                    </div>
+
+                    {/* Status Messages */}
+                    {enrollMsg && (
+                        <div className={`p-3 rounded-xl flex items-center gap-2 text-xs font-bold ${
+                            enrollMsg.type === 'success'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
+                                : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40'
+                        }`}>
+                            {enrollMsg.type === 'success' ? (
+                                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                            ) : (
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                            )}
+                            <span>{enrollMsg.text}</span>
+                        </div>
+                    )}
+
+                    {/* Submit */}
+                    <div className="pt-2">
+                        <button
+                            type="button"
+                            disabled={!enrollFile || isEnrollingFingerprint}
+                            onClick={handleEnrollFingerprint}
+                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                        >
+                            <Fingerprint className="w-4 h-4" />
+                            {isEnrollingFingerprint ? 'جاري استخراج وتحليل البصمة عبر TensorFlow...' : 'حفظ وتسجيل البصمة'}
                         </button>
                     </div>
                 </div>
