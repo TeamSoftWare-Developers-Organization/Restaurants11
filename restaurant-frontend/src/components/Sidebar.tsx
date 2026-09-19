@@ -26,7 +26,8 @@ import {
     Settings,
     Menu as MenuIcon,
     CookingPot,
-    ShoppingCart
+    ShoppingCart,
+    Fingerprint
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -35,6 +36,7 @@ const links = [
     { label: 'لوحة التحكم', icon: Home, href: '/', color: 'indigo', perm: 'dashboard' },
     { label: 'نقطة البيع', icon: ShoppingBag, href: '/pos', color: 'emerald', perm: 'pos' },
     { label: 'الموظفون والصلاحيات', icon: User, href: '/employees', color: 'blue', perm: 'employees' },
+    { label: 'حضور وبصمة الموظفين', icon: Fingerprint, href: '/attendance', color: 'cyan' },
     { label: 'المخزون', icon: Snowflake, href: '/inventory', color: 'amber', perm: 'inventory' },
     { label: 'دليل الموردين', icon: Building2, href: '/suppliers', color: 'blue', perm: 'inventory' },
     { label: 'فواتير المشتريات', icon: ShoppingCart, href: '/purchases', color: 'emerald', perm: 'inventory' },

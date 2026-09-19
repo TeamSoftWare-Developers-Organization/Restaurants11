@@ -227,12 +227,21 @@ def handle_create_purchase_invoice(payload: PurchaseInvoiceIn):
                 total_price=Decimal(str(round(item_total, 2)))
             )
 
-            # 2. ربط المخزن: تحديث متوسط التكلفة وإضافة الكمية للمخزون
-            current_total_value = float(ingredient.current_stock) * float(ingredient.cost_per_unit)
-            new_stock = float(ingredient.current_stock) + float(item_data.quantity)
-            new_cost_per_unit = (current_total_value + item_total) / new_stock if new_stock > 0 else item_data.unit_price
+            # 2. ربط المخزن: تحديث متوسط التكلفة وإضافة الكمية للمخزون آلياً دون تدخل بشري
+            old_stock = float(ingredient.current_stock)
+            old_cost = float(ingredient.cost_per_unit)
+            
+            # المعادلة الحسابية المرجحة:
+            if old_stock > 0 and old_cost > 0:
+                current_total_value = old_stock * old_cost
+                new_stock = old_stock + float(item_data.quantity)
+                new_cost_per_unit = (current_total_value + item_total) / new_stock if new_stock > 0 else float(item_data.unit_price)
+            else:
+                # إذا كان الرصيد السابق صفراً أو سالباً، تصبح تكلفة الوحدة هي سعر الشراء الجديد مباشرة
+                new_stock = old_stock + float(item_data.quantity)
+                new_cost_per_unit = float(item_data.unit_price)
 
-            ingredient.current_stock = new_stock
+            ingredient.current_stock = round(new_stock, 3)
             ingredient.cost_per_unit = Decimal(str(round(new_cost_per_unit, 2)))
             ingredient.save()
 

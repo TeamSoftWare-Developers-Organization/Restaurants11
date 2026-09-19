@@ -99,8 +99,18 @@ export default function InventoryPage() {
         e.preventDefault();
         try {
             const data = new FormData();
-            Object.entries(formData).forEach(([key, value]) => {
-                data.append(key, value.toString());
+            const submitData = { ...formData };
+            
+            // إذا كان الصنف جديداً ولا يوجد رصيد أول مدة، يُثبت سعر التكلفة على 0 ليُحسب آلياً من الفواتير
+            if (!editingItem && (!submitData.current_stock || submitData.current_stock <= 0)) {
+                submitData.current_stock = 0;
+                submitData.cost_per_unit = 0;
+            }
+
+            Object.entries(submitData).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    data.append(key, value.toString());
+                }
             });
             if (imageFile) {
                 data.append('image', imageFile);
@@ -279,18 +289,30 @@ export default function InventoryPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الكمية الحالية</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">
+                                {editingItem ? 'الكمية الحالية في المخزن' : 'الرصيد الافتتاحي (أول المدة)'}
+                            </label>
                             <input
                                 type="number"
-                                step="0.1"
+                                step="any"
+                                min="0"
                                 value={formData.current_stock !== undefined && !isNaN(formData.current_stock) ? formData.current_stock : ''}
                                 onChange={(e) => {
                                     const val = parseFloat(e.target.value);
-                                    setFormData({ ...formData, current_stock: isNaN(val) ? 0 : val });
+                                    const newStock = isNaN(val) ? 0 : val;
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        current_stock: newStock,
+                                        cost_per_unit: !editingItem && newStock <= 0 ? 0 : prev.cost_per_unit
+                                    }));
                                 }}
                                 className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/10"
+                                placeholder="0 (اتركه 0 إذا لم يكن هناك رصيد مسبق)"
                                 required
                             />
+                            {!editingItem && (
+                                <p className="text-[9px] text-gray-400 font-medium">اتركه 0 إذا كان الصنف جديداً وسيتم توريده بالفواتير.</p>
+                            )}
                         </div>
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">وحدة القياس</label>
@@ -308,24 +330,85 @@ export default function InventoryPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">سعر تكلفة الوحدة</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.cost_per_unit !== undefined && !isNaN(formData.cost_per_unit) ? formData.cost_per_unit : ''}
-                                onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    setFormData({ ...formData, cost_per_unit: isNaN(val) ? 0 : val });
-                                }}
-                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/10"
-                                required
-                            />
+                            {!editingItem ? (
+                                (formData.current_stock || 0) > 0 ? (
+                                    <>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mr-1">
+                                                سعر أول المدة (للوحدة) *
+                                            </label>
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                                                رصيد افتتاحي
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            min="0"
+                                            value={formData.cost_per_unit !== undefined && !isNaN(formData.cost_per_unit) ? formData.cost_per_unit : ''}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value);
+                                                setFormData({ ...formData, cost_per_unit: isNaN(val) ? 0 : val });
+                                            }}
+                                            className="w-full h-10 bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/20"
+                                            placeholder="أدخل تكلفة الوحدة للرصيد السابق"
+                                            required
+                                        />
+                                        <p className="text-[9px] text-amber-600/80 dark:text-amber-400/80 font-medium">
+                                            يُحدد هذا السعر لتقييم رصيد أول المدة المتوفر قبل بدء استخدام فواتير النظام.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">
+                                                سعر التكلفة (محسوب آلياً)
+                                            </label>
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40">
+                                                آلي من الفواتير
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value="0.00 (يحدد تلقائياً مع أول فاتورة)"
+                                            readOnly
+                                            disabled
+                                            className="w-full h-10 bg-gray-100 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 rounded-xl px-4 text-xs font-bold text-gray-400 cursor-not-allowed select-none"
+                                        />
+                                        <p className="text-[9px] text-gray-400 font-medium">
+                                            محسوب آلياً بدون تدخل بشري؛ سيتم تحديد السعر فور تسجيل أول فاتورة توريد.
+                                        </p>
+                                    </>
+                                )
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">
+                                            سعر التكلفة الحالي للوحدة
+                                        </label>
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                                            محسوب آلياً
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        value={formData.cost_per_unit ?? 0}
+                                        readOnly
+                                        disabled
+                                        className="w-full h-10 bg-gray-100 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 rounded-xl px-4 text-sm font-bold text-gray-500 cursor-not-allowed select-none"
+                                    />
+                                    <p className="text-[9px] text-gray-400 font-medium">
+                                        يتم احتسابه وتحديثه تلقائياً بنظام المتوسط المرجح عبر فواتير المشتريات.
+                                    </p>
+                                </>
+                            )}
                         </div>
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">مستوى إعادة الطلب</label>
                             <input
                                 type="number"
                                 step="0.1"
+                                min="0"
                                 value={formData.reorder_level !== undefined && !isNaN(formData.reorder_level) ? formData.reorder_level : ''}
                                 onChange={(e) => {
                                     const val = parseFloat(e.target.value);
@@ -334,9 +417,9 @@ export default function InventoryPage() {
                                 className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/10"
                                 required
                             />
+                            <p className="text-[9px] text-gray-400 font-medium">سيظهر تنبيه عندما تصل الكمية إلى هذا المستوى أو أقل.</p>
                         </div>
                     </div>
-                    <p className="text-[10px] text-gray-400 font-bold opacity-70 -mt-2">سيظهر تنبيه عندما تصل الكمية إلى هذا المستوى أو أقل.</p>
 
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">صورة المادة</label>
