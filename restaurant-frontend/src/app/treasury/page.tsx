@@ -130,7 +130,7 @@ export default function TreasuryPage() {
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto min-h-[400px]">
+                        <div className="overflow-x-auto min-h-100">
                             <table className="w-full text-right text-sm">
                                 <thead>
                                     <tr className="bg-gray-50/30 dark:bg-gray-900/20 text-gray-400 font-black text-[11px] uppercase tracking-widest">
@@ -177,7 +177,7 @@ export default function TreasuryPage() {
                                                 <td className={`px-6 py-4 font-black tabular-nums ${t.transaction_type === 'in' ? 'text-emerald-600' : 'text-rose-600'}`}>
                                                     {t.transaction_type === 'in' ? '+' : '-'}{t.amount.toLocaleString()} د.ل
                                                 </td>
-                                                <td className="px-6 py-4 text-gray-400 dark:text-gray-500 font-bold truncate max-w-[200px]">
+                                                <td className="px-6 py-4 text-gray-400 dark:text-gray-500 font-bold truncate max-w-50">
                                                     {t.description || '--'}
                                                 </td>
                                             </tr>

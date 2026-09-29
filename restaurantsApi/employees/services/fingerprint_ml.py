@@ -12,6 +12,11 @@ try:
 except ImportError:
     Image = None
 
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
 from django.conf import settings
 
 # Global in-memory model cache
@@ -31,10 +36,25 @@ def get_model_path() -> str:
     os.makedirs(models_dir, exist_ok=True)
     return os.path.join(models_dir, 'fingerprint_encoder.keras')
 
+def get_tflite_model_path() -> str:
+    """Returns absolute path to the stored TFLite model file"""
+    base_dir = None
+    try:
+        if settings.configured:
+            base_dir = getattr(settings, 'BASE_DIR', None)
+    except Exception:
+        pass
+    if not base_dir:
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    models_dir = os.path.join(base_dir, 'models')
+    os.makedirs(models_dir, exist_ok=True)
+    return os.path.join(models_dir, 'fingerprint_model.tflite')
+
 def build_or_load_model():
     """
     Loads existing trained CNN feature extractor or builds and saves a lightweight
     TensorFlow Keras model designed specifically for fingerprint embedding extraction.
+    Also exports optimized TensorFlow Lite (.tflite) model for lightweight edge devices.
     """
     global _EMBEDDING_MODEL
     if _EMBEDDING_MODEL is not None:
@@ -74,6 +94,18 @@ def build_or_load_model():
     except Exception as err:
         print(f"Notice: Could not save model to {model_path}: {err}")
 
+    # Export to TFLite for edge devices / Raspberry Pi / hardware scanner bridge
+    try:
+        tflite_path = get_tflite_model_path()
+        if not os.path.exists(tflite_path):
+            converter = tf.lite.TFLiteConverter.from_keras_model(model)
+            converter.optimizations = [tf.lite.Optimize.DEFAULT]
+            tflite_model = converter.convert()
+            with open(tflite_path, "wb") as f:
+                f.write(tflite_model)
+    except Exception as tflite_err:
+        print(f"Notice: Could not export TFLite model: {tflite_err}")
+
     _EMBEDDING_MODEL = model
     return _EMBEDDING_MODEL
 
@@ -83,7 +115,24 @@ def preprocess_fingerprint(image_bytes: bytes) -> Any:
     """
     Converts raw fingerprint image bytes into Grayscale 128x128 normalized array
     ready for CNN tensor input: shape (1, 128, 128, 1).
+    Utilizes OpenCV CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    when available to maximize ridge clarity and eliminate sensor noise.
     """
+    if cv2 is not None and np is not None:
+        try:
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
+            if img is not None:
+                img_resized = cv2.resize(img, (128, 128), interpolation=cv2.INTER_AREA)
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                img_enhanced = clahe.apply(img_resized)
+                img_normalized = (img_enhanced.astype(np.float32) / 255.0)
+                img_input = np.expand_dims(img_normalized, axis=[0, -1])
+                return img_input
+        except Exception:
+            pass
+
+    # Fallback to Pillow
     image = Image.open(io.BytesIO(image_bytes)).convert('L')
     image = image.resize((128, 128))
     img_array = np.array(image, dtype=np.float32) / 255.0
