@@ -16,12 +16,16 @@ import os
 import argparse
 import urllib.request
 import urllib.parse
+import urllib.error
 import json
+from typing import Optional, Any
 
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        if hasattr(sys.stdout, "reconfigure"):
+            getattr(sys.stdout, "reconfigure")(encoding='utf-8')
+        if hasattr(sys.stderr, "reconfigure"):
+            getattr(sys.stderr, "reconfigure")(encoding='utf-8')
     except Exception:
         pass
 
@@ -45,7 +49,7 @@ except ImportError:
 DEFAULT_API_URL = "http://127.0.0.1:8000/api/attendance/fingerprint-checkin/"
 
 
-def preprocess_captured_buffer(raw_bytes: bytes, width: int = None, height: int = None) -> bytes:
+def preprocess_captured_buffer(raw_bytes: bytes, width: Optional[int] = None, height: Optional[int] = None) -> bytes:
     """
     تحسين ومعالجة البصمة الخام عبر OpenCV وإرجاعها كصورة JPEG/PNG معيارية بمقاس 128x128
     """
@@ -130,10 +134,11 @@ def send_to_django_api(image_bytes: bytes, punch_type: str = "CHECK_IN", api_url
 # ----------------------------------------------------
 class ZKTecoScanner:
     def __init__(self):
+        self.zk: Any = None
+        self.device: Any = None
         try:
-            from pyzkfp import ZKFP2
+            from pyzkfp import ZKFP2  # type: ignore
             self.zk = ZKFP2()
-            self.device = None
         except ImportError:
             self.zk = None
             self.device = None
@@ -149,6 +154,9 @@ class ZKTecoScanner:
         print(f"✅ تم الاتصال بمازح ZKTeco بنجاح! عدد الأجهزة المتصلة: {count}")
 
     def listen_loop(self, api_url=DEFAULT_API_URL):
+        if not self.zk:
+            print("⚠️ ماسح ZKTeco غير مهيأ")
+            return
         print("🎯 قارئ ZKTeco في وضع الاستماع... ضع إصبعك على الماسح...")
         try:
             while True:
@@ -174,7 +182,7 @@ class ZKTecoScanner:
         except KeyboardInterrupt:
             print("\nإيقاف قارئ ZKTeco...")
         finally:
-            if self.device:
+            if self.zk and self.device:
                 self.zk.CloseDevice(self.device)
                 self.zk.Terminate()
 
@@ -190,7 +198,7 @@ class SerialOpticalScanner:
     def listen_loop(self, api_url=DEFAULT_API_URL):
         print(f"🔌 جاري محاولة الاتصال بمستشعر البصمة التسلسلي عبر {self.port} بسرعة {self.baudrate}...")
         try:
-            import serial
+            import serial  # type: ignore
             ser = serial.Serial(self.port, baudrate=self.baudrate, timeout=1)
             print("✅ تم فتح المنفذ التسلسلي بنجاح! في انتظار قراءة البصمة...")
         except Exception as e:
