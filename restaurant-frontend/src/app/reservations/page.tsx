@@ -21,14 +21,54 @@ import {
     FileText,
     Home,
     TreePine,
-    MapPin,
     ExternalLink,
-    RefreshCw
+    RefreshCw,
+    Check,
+    XCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { reservationService, Reservation, Table } from '@/services/reservationService';
+
+const STATUS_OPTIONS = [
+    {
+        value: 'confirmed',
+        label: 'مؤكد',
+        description: 'تم تأكيد الحضور مع العميل',
+        icon: CheckCircle2,
+        dotColor: 'bg-emerald-500',
+        colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30',
+        badgeClass: 'bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-300/80 dark:border-emerald-800/60 hover:bg-emerald-500/20'
+    },
+    {
+        value: 'pending',
+        label: 'قيد الانتظار',
+        description: 'بانتظار التأكيد أو وصول الضيوف',
+        icon: Clock,
+        dotColor: 'bg-amber-500',
+        colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/30',
+        badgeClass: 'bg-amber-500/10 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-300/80 dark:border-amber-800/60 hover:bg-amber-500/20'
+    },
+    {
+        value: 'completed',
+        label: 'حاضر / جالس',
+        description: 'العميل استلم الطاولة وبدء الجلوس',
+        icon: Users,
+        dotColor: 'bg-sky-500',
+        colorClass: 'text-sky-500 bg-sky-500/10 border-sky-500/30',
+        badgeClass: 'bg-sky-500/10 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border-sky-300/80 dark:border-sky-800/60 hover:bg-sky-500/20'
+    },
+    {
+        value: 'cancelled',
+        label: 'ملغي',
+        description: 'تم إلغاء الحجز من العميل أو الإدارة',
+        icon: XCircle,
+        dotColor: 'bg-rose-500',
+        colorClass: 'text-rose-500 bg-rose-500/10 border-rose-500/30',
+        badgeClass: 'bg-rose-500/10 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-300/80 dark:border-rose-800/60 hover:bg-rose-500/20'
+    }
+];
 
 export default function ReservationsPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -42,6 +82,9 @@ export default function ReservationsPage() {
     // Search and Tab Filters
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'today' | 'upcoming' | 'confirmed' | 'pending' | 'completed'>('today');
+
+    // Quick Status Dropdown Popover
+    const [openStatusDropdownId, setOpenStatusDropdownId] = useState<number | null>(null);
 
     // Modal & Form State for Reservation
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -411,7 +454,7 @@ export default function ReservationsPage() {
                     </div>
 
                     {/* Table View */}
-                    <div className="overflow-x-auto text-sm">
+                    <div className="overflow-x-auto text-sm min-h-[380px] pb-28">
                         <table className="w-full text-right" dir="rtl">
                             <thead>
                                 <tr className="bg-gray-50/30 dark:bg-gray-900/20 border-b border-gray-50 dark:border-gray-800/40">
@@ -521,26 +564,95 @@ export default function ReservationsPage() {
 
                                             {/* Status with Quick Dropdown */}
                                             <td className="px-6 py-4">
-                                                <div className="relative inline-block">
-                                                    <select
-                                                        value={res.status}
-                                                        onChange={(e) => handleQuickStatusChange(res.id, e.target.value)}
-                                                        className={`text-xs font-black rounded-lg px-2.5 py-1.5 outline-none cursor-pointer border transition-all appearance-none pr-3 pl-6 ${
-                                                            res.status === 'confirmed'
-                                                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800/50'
-                                                                : res.status === 'completed'
-                                                                ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border-sky-300 dark:border-sky-800/50'
-                                                                : res.status === 'cancelled'
-                                                                ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800/50'
-                                                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/50'
+                                                <div className="relative inline-block text-right">
+                                                    {/* Trigger Button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenStatusDropdownId(openStatusDropdownId === res.id ? null : res.id);
+                                                        }}
+                                                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black border transition-all shadow-xs hover:shadow active:scale-95 cursor-pointer ${
+                                                            STATUS_OPTIONS.find(o => o.value === res.status)?.badgeClass ||
+                                                            'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'
                                                         }`}
                                                     >
-                                                        <option value="confirmed">مؤكد</option>
-                                                        <option value="pending">قيد الانتظار</option>
-                                                        <option value="completed">حاضر / جالس</option>
-                                                        <option value="cancelled">ملغي</option>
-                                                    </select>
-                                                    <ChevronDown className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                                                        <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                                            STATUS_OPTIONS.find(o => o.value === res.status)?.dotColor || 'bg-gray-400'
+                                                        } ${res.status === 'confirmed' ? 'animate-pulse' : ''}`} />
+                                                        <span className="leading-none">
+                                                            {STATUS_OPTIONS.find(o => o.value === res.status)?.label || res.status}
+                                                        </span>
+                                                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 opacity-60 ${
+                                                            openStatusDropdownId === res.id ? 'rotate-180 text-sky-500 opacity-100' : ''
+                                                        }`} />
+                                                    </button>
+
+                                                    {/* Dropdown Popover */}
+                                                    {openStatusDropdownId === res.id && (
+                                                        <>
+                                                            {/* Backdrop overlay to close when clicking outside */}
+                                                            <div
+                                                                className="fixed inset-0 z-40 bg-black/5 dark:bg-black/20 backdrop-blur-[1px] cursor-default"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenStatusDropdownId(null);
+                                                                }}
+                                                            />
+
+                                                            <div
+                                                                className="absolute right-0 top-full mt-2 w-64 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/90 dark:border-gray-800/90 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/50 z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150 text-right"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <div className="px-3 py-2 text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-800/60 mb-1 flex items-center justify-between">
+                                                                    <span>تحديث حالة الحجز</span>
+                                                                    <span className="text-[9px] text-sky-500 font-bold">تغيير فوري</span>
+                                                                </div>
+
+                                                                {STATUS_OPTIONS.map((opt) => {
+                                                                    const Icon = opt.icon;
+                                                                    const isSelected = res.status === opt.value;
+                                                                    return (
+                                                                        <button
+                                                                            key={opt.value}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                handleQuickStatusChange(res.id, opt.value);
+                                                                                setOpenStatusDropdownId(null);
+                                                                            }}
+                                                                            className={`w-full flex items-center justify-between p-2 rounded-xl text-right transition-all group cursor-pointer ${
+                                                                                isSelected
+                                                                                    ? 'bg-gray-100/90 dark:bg-gray-800/90 shadow-xs border border-gray-200/60 dark:border-gray-700/60'
+                                                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/40 border border-transparent'
+                                                                            }`}
+                                                                        >
+                                                                            <div className="flex items-center gap-2.5">
+                                                                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 transition-transform group-hover:scale-105 ${opt.colorClass}`}>
+                                                                                    <Icon className="w-3.5 h-3.5" />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <div className={`text-xs font-black ${
+                                                                                        isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                                                                                    }`}>
+                                                                                        {opt.label}
+                                                                                    </div>
+                                                                                    <div className="text-[10px] text-gray-400 dark:text-gray-500 font-medium leading-tight">
+                                                                                        {opt.description}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {isSelected && (
+                                                                                <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                                                                    <Check className="w-3 h-3 stroke-[3]" />
+                                                                                </div>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
 

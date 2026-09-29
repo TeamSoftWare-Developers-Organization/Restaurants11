@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { useSettingsStore } from '@/store/settingsStore';
 
 const links = [
     { label: 'لوحة التحكم', icon: Home, href: '/', color: 'indigo', perm: 'dashboard' },
@@ -105,6 +106,16 @@ export default function Sidebar({ className }: SidebarProps) {
     // Safety fallback: ensure sidebar options are always displayed and never empty
     const displayLinks = visibleLinks.length > 0 ? visibleLinks : links;
 
+    const { settings } = useSettingsStore();
+    const getFullLogoUrl = (path?: string) => {
+        if (!path) return null;
+        if (path.startsWith('http://') || path.startsWith('https://')) return path;
+        const baseApi = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+        const baseUrl = baseApi.replace(/\/api\/?$/, '');
+        return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    };
+    const logoUrl = getFullLogoUrl(settings?.logo);
+
     return (
         <aside
             className={`fixed inset-y-0 right-0 ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-card dark:bg-card border-l border-gray-100 dark:border-gray-800/40 z-50 transition-all duration-300 hidden lg:block shadow-[1px_0_15px_rgba(0,0,0,0.03)] ${className || ''}`}
@@ -113,13 +124,23 @@ export default function Sidebar({ className }: SidebarProps) {
                 {/* Header with Toggle */}
                 <div className="flex items-center justify-between p-4 mb-4">
                     <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 rotate-3 shrink-0">
-                            <LayoutDashboard className="w-5 h-5 text-white" />
-                        </div>
+                        {logoUrl ? (
+                            <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md shrink-0 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 flex items-center justify-center p-0.5">
+                                <img src={logoUrl} alt={settings?.name || 'شعار المطعم'} className="w-full h-full object-contain" />
+                            </div>
+                        ) : (
+                            <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 rotate-3 shrink-0">
+                                <LayoutDashboard className="w-5 h-5 text-white" />
+                            </div>
+                        )}
                         {!isSidebarCollapsed && (
-                            <div className="animate-in fade-in slide-in-from-right-2 duration-300">
-                                <h1 className="text-[15px] font-black text-gray-900 dark:text-white leading-tight">إدارة المطعم</h1>
-                                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest block -mt-0.5 opacity-60">نظام متكامل</span>
+                            <div className="animate-in fade-in slide-in-from-right-2 duration-300 min-w-0">
+                                <h1 className="text-[15px] font-black text-gray-900 dark:text-white leading-tight truncate" title={settings?.name || 'إدارة المطعم'}>
+                                    {settings?.name || 'إدارة المطعم'}
+                                </h1>
+                                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest block -mt-0.5 opacity-60 truncate">
+                                    {settings?.bio || 'نظام متكامل'}
+                                </span>
                             </div>
                         )}
                     </div>
