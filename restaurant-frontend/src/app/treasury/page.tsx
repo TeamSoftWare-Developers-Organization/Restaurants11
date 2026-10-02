@@ -65,24 +65,24 @@ export default function TreasuryPage() {
     ];
 
     return (
-        <div className="flex bg-gray-50 dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-gray-50 dark:bg-background min-h-screen transition-colors duration-300 min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-6 lg:p-8 transition-all duration-300`}>
-                <header className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                            <Banknote className="text-white w-6 h-6" />
+            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300`}>
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                    <div className="flex items-center gap-3.5 sm:gap-4">
+                        <div className="w-10 sm:w-12 h-10 sm:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20 shrink-0">
+                            <Banknote className="text-white w-5 sm:w-6 h-5 sm:h-6" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">خزينة المطعم</h1>
-                            <p className="text-gray-400 text-[13px] font-bold opacity-70 italic">نظرة شاملة على التدفقات المالية والسيولة</p>
+                            <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">خزينة المطعم</h1>
+                            <p className="text-gray-400 text-xs sm:text-[13px] font-bold opacity-70 italic">نظرة شاملة على التدفقات المالية والسيولة</p>
                         </div>
                     </div>
                 </header>
 
                 {/* Main Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
                     {cards.map((card, idx) => (
                         <div key={idx} className="bg-white dark:bg-card p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800/40 relative overflow-hidden group">
                             <div className="flex justify-between items-start relative z-10">
@@ -131,7 +131,7 @@ export default function TreasuryPage() {
                         </div>
 
                         <div className="overflow-x-auto min-h-100">
-                            <table className="w-full text-right text-sm">
+                            <table className="w-full min-w-[650px] text-right text-sm">
                                 <thead>
                                     <tr className="bg-gray-50/30 dark:bg-gray-900/20 text-gray-400 font-black text-[11px] uppercase tracking-widest">
                                         <th className="px-6 py-4">التاريخ والوقت</th>

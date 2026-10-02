@@ -111,20 +111,20 @@ export default function NewPurchasePage() {
   if (!isClient || !isLoggedIn) return null;
 
   return (
-    <div className="flex bg-background dark:bg-background min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300" dir="rtl">
+    <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300 min-w-0 w-full" dir="rtl">
       <Sidebar />
 
-      <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-6 lg:p-8 transition-all duration-300`}>
+      <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300`}>
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
-                <ShoppingCart className="text-white w-6 h-6" />
+            <div className="flex items-center gap-3.5 sm:gap-4">
+              <div className="w-10 sm:w-11 h-10 sm:h-11 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/20 shrink-0">
+                <ShoppingCart className="text-white w-5 sm:w-6 h-5 sm:h-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-black leading-none mb-1">فاتورة مشتريات وتوريد مخزون جديدة</h1>
-                <p className="text-gray-400 dark:text-gray-500 text-[13px] font-bold">
+                <h1 className="text-xl sm:text-2xl font-black leading-none mb-1">فاتورة مشتريات وتوريد مخزون جديدة</h1>
+                <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-[13px] font-bold">
                   سيتم إضافة الكميات مباشرة إلى رصيد المواد الخام وتحديث متوسط تكلفة الوحدة آلياً
                 </p>
               </div>

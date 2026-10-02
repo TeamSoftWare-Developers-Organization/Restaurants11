@@ -250,58 +250,58 @@ export default function EmployeesPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300 overflow-x-hidden min-w-0 w-full" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen transition-colors duration-300 overflow-x-hidden min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 min-w-0 w-full mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-4 md:p-6 lg:p-6 transition-all duration-300 overflow-x-hidden`}>
+            <main className={`flex-1 min-w-0 w-full mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 transition-all duration-300 overflow-x-hidden`}>
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/10 border border-blue-500/20">
-                            <Users className="w-6 h-6" />
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3.5 sm:gap-4">
+                        <div className="w-10 sm:w-12 h-10 sm:h-12 bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/10 border border-blue-500/20 shrink-0">
+                            <Users className="w-5 sm:w-6 h-5 sm:h-6" />
                         </div>
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">
                                 إدارة المستخدمين والصلاحيات
                             </h1>
-                            <p className="text-gray-400 dark:text-gray-500 text-xs md:text-sm font-bold opacity-80">
+                            <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm font-bold opacity-80">
                                 تعيين حسابات فريق العمل وتحديد صلاحيات الوصول لكل شاشة في النظام
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         {/* Tab Switcher */}
-                        <div className="bg-gray-100 dark:bg-gray-800/60 p-1 rounded-xl flex items-center gap-1 border border-gray-200/50 dark:border-gray-700/40">
+                        <div className="bg-gray-100 dark:bg-gray-800/60 p-1 rounded-xl flex items-center gap-1 border border-gray-200/50 dark:border-gray-700/40 flex-1 sm:flex-none">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('list')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                                     activeTab === 'list'
                                         ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-xs'
                                         : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                             >
                                 <Users className="w-3.5 h-3.5" />
-                                قائمة المستخدمين
+                                <span>قائمة المستخدمين</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('permissions')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                                     activeTab === 'permissions'
                                         ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-xs'
                                         : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                             >
                                 <Shield className="w-3.5 h-3.5" />
-                                مصفوفة الصلاحيات
+                                <span>مصفوفة الصلاحيات</span>
                             </button>
                         </div>
 
                         <button
                             onClick={() => handleOpenModal()}
-                            className="group flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl shadow-lg shadow-blue-600/15 active:scale-95 transition-all font-black text-xs"
+                            className="flex-1 sm:flex-none group flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl shadow-lg shadow-blue-600/15 active:scale-95 transition-all font-black text-xs cursor-pointer"
                         >
                             <Plus className="w-4 h-4" />
                             مستخدم جديد
@@ -330,7 +330,7 @@ export default function EmployeesPage() {
                         </div>
 
                         <div className="overflow-x-auto text-sm">
-                            <table className="w-full text-right" dir="rtl">
+                            <table className="w-full min-w-[700px] text-right" dir="rtl">
                                 <thead>
                                     <tr className="bg-gray-50/40 dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-800/40">
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">المستخدم</th>

@@ -127,19 +127,19 @@ export default function PaymentsPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen w-full min-w-0 transition-colors duration-300" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-6 lg:p-8 transition-all duration-300`}>
+            <main className={`flex-1 min-w-0 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 transition-all duration-300`}>
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-600/20">
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-600/20 shrink-0">
                             <Building2 className="text-white w-5 h-5" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">المدفوعات</h1>
-                            <p className="text-gray-400 dark:text-gray-500 text-[13px] font-bold opacity-70">سجل المعاملات وتفصيل طرق الدفع</p>
+                            <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">المدفوعات</h1>
+                            <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-[13px] font-bold opacity-70">سجل المعاملات وتفصيل طرق الدفع</p>
                         </div>
                     </div>
                 </header>
@@ -291,7 +291,7 @@ export default function PaymentsPage() {
                     </div>
 
                     <div className="overflow-x-auto text-sm">
-                        <table className="w-full text-right" dir="rtl">
+                        <table className="w-full min-w-[720px] text-right" dir="rtl">
                             <thead>
                                 <tr className="bg-gray-50/30 dark:bg-gray-900/20 border-b border-gray-50 dark:border-gray-800/40">
                                     <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">رقم المعاملة</th>

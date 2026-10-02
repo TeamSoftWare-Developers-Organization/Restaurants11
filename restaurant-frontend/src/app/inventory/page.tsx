@@ -152,33 +152,33 @@ export default function InventoryPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen transition-colors duration-300 min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-6 lg:p-8 transition-all duration-300`}>
+            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300`}>
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-600/20">
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                    <div className="flex items-center gap-3.5 sm:gap-4">
+                        <div className="w-10 h-10 bg-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-600/20 shrink-0">
                             <Package className="text-white w-5 h-5" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">المخزون</h1>
-                            <p className="text-gray-400 dark:text-gray-500 text-[13px] font-bold opacity-70">الموارد والخامات</p>
+                            <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">المخزون</h1>
+                            <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-[13px] font-bold opacity-70">الموارد والخامات</p>
                         </div>
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="group flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-xl shadow-lg shadow-amber-600/15 active:scale-95 transition-all font-black text-xs"
+                        className="group flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-amber-600/15 active:scale-95 transition-all font-black text-xs w-full sm:w-auto"
                     >
                         <Plus className="w-4 h-4" />
                         صنف جديد
                     </button>
                 </header>
 
-                <section className="bg-card dark:bg-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/40 overflow-hidden">
-                    <div className="p-6 border-b border-gray-50 dark:border-gray-800/30 flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="relative w-full md:w-80 group">
+                <section className="bg-card dark:bg-card rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800/40 overflow-hidden">
+                    <div className="p-4 sm:p-6 border-b border-gray-50 dark:border-gray-800/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="relative w-full sm:w-80 group">
                             <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-600 transition-colors" />
                             <input
                                 type="text"
@@ -189,7 +189,7 @@ export default function InventoryPage() {
                     </div>
 
                     <div className="overflow-x-auto text-sm">
-                        <table className="w-full text-right" dir="rtl">
+                        <table className="w-full min-w-[700px] text-right" dir="rtl">
                             <thead>
                                 <tr className="bg-gray-50/30 dark:bg-gray-900/20 border-b border-gray-50 dark:border-gray-800/40">
                                     <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">المادة</th>

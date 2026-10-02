@@ -115,7 +115,7 @@ export default function PurchasesPage() {
   };
 
   return (
-    <div className="flex bg-background dark:bg-background min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300" dir="rtl">
+    <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300 min-w-0 w-full" dir="rtl">
       <div className="print:hidden">
         <Sidebar />
       </div>
@@ -123,36 +123,36 @@ export default function PurchasesPage() {
       <main
         className={`flex-1 mr-0 ${
           isSidebarCollapsed ? "lg:mr-20" : "lg:mr-64"
-        } min-h-screen p-6 lg:p-8 transition-all duration-300 print:m-0 print:p-0`}
+        } min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300 print:m-0 print:p-0`}
       >
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 print:hidden">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
-              <FileText className="text-white w-6 h-6" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 print:hidden">
+          <div className="flex items-center gap-3.5 sm:gap-4">
+            <div className="w-10 sm:w-11 h-10 sm:h-11 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/20 shrink-0">
+              <FileText className="text-white w-5 sm:w-6 h-5 sm:h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-black leading-none mb-1">فواتير المشتريات والتوريد</h1>
-              <p className="text-gray-400 dark:text-gray-500 text-[13px] font-bold">
+              <h1 className="text-xl sm:text-2xl font-black leading-none mb-1">فواتير المشتريات والتوريد</h1>
+              <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-[13px] font-bold">
                 سجل كامل لجميع فواتير التوريد للمخزن ومتابعة المدفوعات والآجل
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
             <Link
               href="/suppliers"
-              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2.5 rounded-xl font-bold text-xs transition active:scale-95"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2.5 rounded-xl font-bold text-xs transition active:scale-95"
             >
               <Building2 className="w-4 h-4 text-blue-500" />
               دليل الموردين
             </Link>
             <Link
               href="/purchases/new"
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/20 transition active:scale-95"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/20 transition active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              + فاتورة توريد جديدة
+              فاتورة جديدة
             </Link>
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function PurchasesPage() {
         {/* Main Invoices Table */}
         <div className="bg-white dark:bg-card border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm print:hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-sm">
+            <table className="w-full min-w-[780px] text-right text-sm">
               <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-500 font-bold border-b border-gray-100 dark:border-gray-800">
                 <tr>
                   <th className="p-4">رقم الفاتورة</th>

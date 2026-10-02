@@ -140,9 +140,9 @@ export default function SettingsPage() {
 
     if (loading && !localSettings) {
         return (
-            <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900" dir="rtl">
+            <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 w-full min-w-0" dir="rtl">
                 <Sidebar />
-                <main className={`flex-1 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-8 flex items-center justify-center transition-all duration-300`}>
+                <main className={`flex-1 min-w-0 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-6 sm:p-8 flex items-center justify-center transition-all duration-300`}>
                     <div className="flex flex-col items-center gap-4">
                         <RefreshCcw className="w-10 h-10 text-indigo-600 animate-spin" />
                         <p className="text-gray-500 font-bold">جاري تحميل الإعدادات...</p>
@@ -153,19 +153,19 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900" dir="rtl">
+        <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 w-full min-w-0" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-4 lg:p-8 transition-all duration-300`}>
+            <main className={`flex-1 min-w-0 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-3.5 sm:p-6 lg:p-8 transition-all duration-300`}>
                 <div className="max-w-4xl mx-auto">
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                         <div>
-                            <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-                                <Settings className="w-8 h-8 text-indigo-600" />
+                            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                                <Settings className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-600 shrink-0" />
                                 الإعدادات العامة
                             </h1>
-                            <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">
+                            <p className="text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm mt-1">
                                 تخصيص هوية وشعار المطعم، بيانات المالك، والخيارات المالية والتشغيلية
                             </p>
                         </div>
@@ -173,7 +173,7 @@ export default function SettingsPage() {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 transition-all transform active:scale-95"
+                            className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-2xl font-bold text-sm sm:text-base shadow-lg shadow-indigo-600/20 transition-all transform active:scale-95 w-full sm:w-auto shrink-0"
                         >
                             {saving ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                             {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
@@ -182,51 +182,51 @@ export default function SettingsPage() {
 
                     {/* Feedback Messages */}
                     {displayError && (
-                        <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl flex items-center gap-3 text-rose-600 dark:text-rose-400 font-bold">
+                        <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl flex items-center gap-3 text-rose-600 dark:text-rose-400 font-bold text-sm">
                             <AlertCircle className="w-5 h-5 flex-shrink-0" />
                             {displayError}
                         </div>
                     )}
                     {success && (
-                        <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 rounded-2xl flex items-center gap-3 text-emerald-600 dark:text-emerald-400 font-bold animate-in fade-in slide-in-from-top-2">
+                        <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 rounded-2xl flex items-center gap-3 text-emerald-600 dark:text-emerald-400 font-bold text-sm animate-in fade-in slide-in-from-top-2">
                             <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
                             تم حفظ وتحديث الإعدادات بنجاح!
                         </div>
                     )}
 
                     {/* Tabs Navigation */}
-                    <div className="flex p-1 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-8 gap-1">
+                    <div className="flex flex-col sm:flex-row p-1 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 sm:mb-8 gap-1">
                         <button
                             onClick={() => setActiveTab('general')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                                 activeTab === 'general'
                                     ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm'
                                     : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/30'
                             }`}
                         >
-                            <Store className="w-4 h-4" />
+                            <Store className="w-4 h-4 shrink-0" />
                             بيانات المطعم والشعار
                         </button>
                         <button
                             onClick={() => setActiveTab('financial')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                                 activeTab === 'financial'
                                     ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm'
                                     : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/30'
                             }`}
                         >
-                            <CreditCard className="w-4 h-4" />
+                            <CreditCard className="w-4 h-4 shrink-0" />
                             الماليات والسجل التجاري
                         </button>
                         <button
                             onClick={() => setActiveTab('operational')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
                                 activeTab === 'operational'
                                     ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm'
                                     : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/30'
                             }`}
                         >
-                            <Activity className="w-4 h-4" />
+                            <Activity className="w-4 h-4 shrink-0" />
                             التشغيل والفواتير
                         </button>
                     </div>

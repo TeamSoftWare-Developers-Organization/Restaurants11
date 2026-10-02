@@ -345,7 +345,7 @@ export default function POSPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-[#f4f6fb] dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100 transition-colors duration-200 overflow-x-hidden">
+        <div className="flex flex-col lg:flex-row bg-[#f4f6fb] dark:bg-slate-950 min-h-screen w-full min-w-0 text-slate-800 dark:text-slate-100 transition-colors duration-200 overflow-x-hidden">
             <style jsx global>{`
                 @media print {
                     @page {

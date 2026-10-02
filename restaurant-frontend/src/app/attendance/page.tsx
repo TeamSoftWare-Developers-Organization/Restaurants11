@@ -94,10 +94,10 @@ export default function AttendancePage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300 overflow-x-hidden min-w-0 w-full" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen transition-colors duration-300 overflow-x-hidden min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 min-w-0 w-full mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-4 md:p-6 lg:p-8 transition-all duration-300 overflow-x-hidden`}>
+            <main className={`flex-1 min-w-0 w-full mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 transition-all duration-300 overflow-x-hidden`}>
                 
                 {/* 1. Header */}
                 <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
@@ -278,7 +278,7 @@ export default function AttendancePage() {
                         </div>
 
                         <div className="overflow-x-auto text-xs scrollbar-thin">
-                            <table className="w-full text-right" dir="rtl">
+                            <table className="w-full min-w-[500px] text-right" dir="rtl">
                                 <thead>
                                     <tr className="bg-gray-50/50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-800/40">
                                         <th className="p-3.5 font-black text-gray-500 dark:text-gray-400">الموظف</th>
