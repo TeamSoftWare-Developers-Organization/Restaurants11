@@ -7,8 +7,19 @@ from typing import List, Optional, Any
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
-from .models import Ingredient, RecipeIngredient, Supplier, PurchaseInvoice, PurchaseInvoiceItem
+from .models import (
+    Ingredient,
+    RecipeIngredient,
+    Supplier,
+    PurchaseInvoice,
+    PurchaseInvoiceItem,
+    PurchaseReturn,
+    PurchaseReturnItem,
+    Stocktake,
+    StocktakeItem
+)
 from menu.models import MenuItem
 from menu.api import MenuItemOut # استيراد مخطط MenuItemOut
 
@@ -185,6 +196,22 @@ class PurchaseInvoiceIn(Schema):
     items: List[ItemIn]
     paid_amount: float = 0.0
 
+class ReturnItemIn(Schema):
+    ingredient_id: int
+    quantity: float
+    unit_price: float
+    reason: Optional[str] = None
+
+class PurchaseReturnIn(Schema):
+    supplier_id: int
+    invoice_id: Optional[int] = None
+    return_number: Optional[str] = None
+    refund_method: str = "SUPPLIER_BALANCE"
+    reason: Optional[str] = None
+    return_date: Optional[str] = None
+    items: List[ReturnItemIn]
+
+
 
 def handle_create_supplier(payload: SupplierIn):
     supplier = Supplier.objects.create(**payload.dict(exclude_unset=True))
@@ -294,6 +321,128 @@ def handle_list_purchase_invoices():
     return result
 
 
+def handle_create_purchase_return(payload: PurchaseReturnIn):
+    with transaction.atomic():
+        supplier = get_object_or_404(Supplier, id=payload.supplier_id)
+        invoice = None
+        if payload.invoice_id:
+            invoice = PurchaseInvoice.objects.filter(id=payload.invoice_id).first()
+
+        now_str = timezone.now().strftime("%Y%m%d%H%M%S")
+        ret_num = payload.return_number.strip() if payload.return_number and payload.return_number.strip() else f"RET-{now_str}"
+
+        ret_date = timezone.now().date()
+        if payload.return_date:
+            try:
+                ret_date = datetime.strptime(payload.return_date, "%Y-%m-%d").date()
+            except Exception:
+                ret_date = timezone.now().date()
+
+        norm_refund_method = 'CASH' if payload.refund_method in ['CASH', 'CASH_TREASURY'] else 'DEBT_REDUCTION'
+
+        return_obj = PurchaseReturn.objects.create(
+            return_number=ret_num,
+            supplier=supplier,
+            invoice=invoice,
+            refund_method=norm_refund_method,
+            reason=payload.reason or "تالف أو غير مطابق للمواصفات",
+            return_date=ret_date,
+            status='COMPLETED'
+        )
+
+        total_return_sum = 0.0
+
+        for item_data in payload.items:
+            ingredient = get_object_or_404(Ingredient, id=item_data.ingredient_id)
+            item_total = float(item_data.quantity) * float(item_data.unit_price)
+            total_return_sum += item_total
+
+            # 1. إنشاء عنصر فاتورة المرتجع
+            PurchaseReturnItem.objects.create(
+                purchase_return=return_obj,
+                ingredient=ingredient,
+                quantity=item_data.quantity,
+                unit_price=Decimal(str(round(item_data.unit_price, 2))),
+                total_price=Decimal(str(round(item_total, 2))),
+                reason=item_data.reason or ""
+            )
+
+            # 2. خصم الكمية المرتجعة من رصيد المخزون
+            new_stock = max(0.0, float(ingredient.current_stock) - float(item_data.quantity))
+            ingredient.current_stock = round(new_stock, 3)
+            ingredient.save()
+
+        # 3. تحديث إجمالي الفاتورة
+        return_obj.total_amount = Decimal(str(round(total_return_sum, 2)))
+        return_obj.save()
+
+        # 4. تسوية طريقة الاسترداد
+        if norm_refund_method == 'DEBT_REDUCTION':
+            # خصم من مستحقات المورد المتبقية
+            supplier.balance = Decimal(str(round(float(supplier.balance) - total_return_sum, 2)))
+            supplier.save()
+        elif norm_refund_method == 'CASH':
+            # تسجيل حركة استرجاع نقدي في الخزينة
+            try:
+                from payments.models import TreasuryTransaction
+                TreasuryTransaction.objects.create(
+                    amount=Decimal(str(round(total_return_sum, 2))),
+                    transaction_type='in',
+                    reference_type='refund',
+                    reference_id=return_obj.id,
+                    description=f"استرداد نقدي لمرتجع مشتريات #{return_obj.return_number} من المورد {supplier.name}"
+                )
+            except Exception:
+                pass
+
+        return {
+            "status": "success",
+            "return_id": return_obj.id,
+            "return_number": return_obj.return_number,
+            "total": total_return_sum
+        }
+
+
+def handle_list_purchase_returns():
+    returns = PurchaseReturn.objects.select_related('supplier', 'invoice').prefetch_related('items__ingredient').all().order_by('-id')
+    result = []
+    for ret in returns:
+        items = []
+        for item in ret.items.all():
+            items.append({
+                "id": item.id,
+                "ingredient_id": item.ingredient_id,
+                "ingredient_name": item.ingredient.name,
+                "unit": item.ingredient.unit,
+                "unit_display": item.ingredient.get_unit_display() if hasattr(item.ingredient, 'get_unit_display') else item.ingredient.unit,
+                "quantity": float(item.quantity),
+                "unit_price": float(item.unit_price),
+                "total_price": float(item.total_price),
+                "reason": item.reason or "",
+            })
+        result.append({
+            "id": ret.id,
+            "return_number": ret.return_number,
+            "supplier_id": ret.supplier_id,
+            "supplier_name": ret.supplier.name,
+            "supplier_company": ret.supplier.company_name or "",
+            "supplier_phone": ret.supplier.phone,
+            "invoice_id": ret.invoice_id,
+            "invoice_number": ret.invoice.invoice_number if ret.invoice else "",
+            "total_amount": float(ret.total_amount),
+            "refund_method": ret.refund_method,
+            "refund_method_display": dict(PurchaseReturn.REFUND_METHOD_CHOICES).get(ret.refund_method, ret.refund_method),
+            "reason": ret.reason or "",
+            "status": ret.status,
+            "status_display": dict(PurchaseReturn.STATUS_CHOICES).get(ret.status, ret.status),
+            "return_date": ret.return_date.strftime("%Y-%m-%d") if ret.return_date else "",
+            "created_at": ret.created_at.strftime("%Y-%m-%d %H:%M"),
+            "items_count": len(items),
+            "items": items,
+        })
+    return result
+
+
 purchases_router = Router(tags=["الموردين والمشتريات"])
 
 @purchases_router.post("/suppliers/")
@@ -312,6 +461,14 @@ def create_purchase_invoice(request, payload: PurchaseInvoiceIn):
 def list_purchase_invoices(request):
     return handle_list_purchase_invoices()
 
+@purchases_router.post("/purchases/returns/")
+def create_purchase_return(request, payload: PurchaseReturnIn):
+    return handle_create_purchase_return(payload)
+
+@purchases_router.get("/purchases/returns/")
+def list_purchase_returns(request):
+    return handle_list_purchase_returns()
+
 # دعم استدعاء نفس المسارات تحت /inventory أيضاً
 @inventory_router.post("/suppliers/")
 def inv_create_supplier(request, payload: SupplierIn):
@@ -328,4 +485,254 @@ def inv_create_purchase_invoice(request, payload: PurchaseInvoiceIn):
 @inventory_router.get("/purchases/")
 def inv_list_purchase_invoices(request):
     return handle_list_purchase_invoices()
+
+@inventory_router.post("/purchases/returns/")
+def inv_create_purchase_return(request, payload: PurchaseReturnIn):
+    return handle_create_purchase_return(payload)
+
+@inventory_router.get("/purchases/returns/")
+def inv_list_purchase_returns(request):
+    return handle_list_purchase_returns()
+
+
+# ==========================================
+# جرد المنتجات والمخزون والتسوية (Stocktaking)
+# ==========================================
+
+class StocktakeItemInput(Schema):
+    ingredient_id: int
+    actual_stock: float
+    notes: Optional[str] = None
+
+
+class CreateStocktakeInput(Schema):
+    reference_number: Optional[str] = None
+    performed_by: Optional[str] = "المدير"
+    notes: Optional[str] = None
+    items: List[StocktakeItemInput]
+    auto_reconcile: bool = True  # تسوية رصيد المخزون فورياً مع الجرد الفعلي
+
+
+def handle_get_items_for_stocktaking():
+    ingredients = Ingredient.objects.all().order_by('name')
+    result = []
+    for ing in ingredients:
+        cost = float(ing.cost_per_unit)
+        stock = float(ing.current_stock)
+        result.append({
+            "id": ing.id,
+            "name": ing.name,
+            "current_stock": stock,
+            "unit": ing.unit,
+            "unit_display": ing.get_unit_display() if hasattr(ing, 'get_unit_display') else ing.unit,
+            "cost_per_unit": cost,
+            "total_value": round(stock * cost, 2),
+            "reorder_level": float(ing.reorder_level),
+            "image": ing.image.url if ing.image else None,
+            "last_updated": ing.last_updated.strftime("%Y-%m-%d %H:%M") if ing.last_updated else "",
+        })
+    return result
+
+
+def handle_create_stocktake(payload: CreateStocktakeInput):
+    with transaction.atomic():
+        now = timezone.now()
+        ref_num = payload.reference_number
+        if not ref_num or not ref_num.strip():
+            ref_num = f"STK-{now.strftime('%Y%m%d%H%M%S')}"
+
+        status_val = 'APPLIED' if payload.auto_reconcile else 'DRAFT'
+        applied_at_val = now if payload.auto_reconcile else None
+
+        stocktake = Stocktake.objects.create(
+            reference_number=ref_num.strip(),
+            performed_by=payload.performed_by or "المدير",
+            status=status_val,
+            applied_at=applied_at_val,
+            notes=payload.notes or "",
+        )
+
+        total_sys_val = Decimal('0.00')
+        total_act_val = Decimal('0.00')
+        items_matched = 0
+        items_shortage = 0
+        items_surplus = 0
+
+        for item_data in payload.items:
+            ingredient = get_object_or_404(Ingredient, id=item_data.ingredient_id)
+            sys_qty = float(ingredient.current_stock)
+            act_qty = float(item_data.actual_stock)
+            diff = round(act_qty - sys_qty, 3)
+            unit_cost = ingredient.cost_per_unit
+            var_val = Decimal(str(round(diff * float(unit_cost), 2)))
+
+            if abs(diff) < 0.0001:
+                item_status = 'MATCHED'
+                items_matched += 1
+            elif diff < 0:
+                item_status = 'SHORTAGE'
+                items_shortage += 1
+            else:
+                item_status = 'SURPLUS'
+                items_surplus += 1
+
+            total_sys_val += Decimal(str(round(sys_qty * float(unit_cost), 2)))
+            total_act_val += Decimal(str(round(act_qty * float(unit_cost), 2)))
+
+            StocktakeItem.objects.create(
+                stocktake=stocktake,
+                ingredient=ingredient,
+                system_stock=sys_qty,
+                actual_stock=act_qty,
+                difference=diff,
+                unit_cost=unit_cost,
+                variance_value=var_val,
+                status=item_status,
+                notes=item_data.notes or "",
+            )
+
+            # عند التسوية التلقائية: يتم تعديل رصيد المادة الفعلي في قاعدة البيانات
+            if payload.auto_reconcile:
+                ingredient.current_stock = act_qty
+                ingredient.save()
+
+        stocktake.total_system_value = total_sys_val
+        stocktake.total_actual_value = total_act_val
+        stocktake.net_variance_value = total_act_val - total_sys_val
+        stocktake.total_items_counted = len(payload.items)
+        stocktake.items_matched = items_matched
+        stocktake.items_with_shortage = items_shortage
+        stocktake.items_with_surplus = items_surplus
+        stocktake.save()
+
+        return {
+            "status": "success",
+            "stocktake_id": stocktake.id,
+            "reference_number": stocktake.reference_number,
+            "total_items_counted": stocktake.total_items_counted,
+            "items_matched": stocktake.items_matched,
+            "items_with_shortage": stocktake.items_with_shortage,
+            "items_with_surplus": stocktake.items_with_surplus,
+            "net_variance_value": float(stocktake.net_variance_value),
+            "total_system_value": float(stocktake.total_system_value),
+            "total_actual_value": float(stocktake.total_actual_value),
+            "reconciled": payload.auto_reconcile,
+            "message": "تم اعتماد وتسوية الجرد وتحديث أرصدة المخزون بنجاح!" if payload.auto_reconcile else "تم حفظ مسودة الجرد بنجاح!"
+        }
+
+
+def handle_list_stocktakes():
+    stocktakes = Stocktake.objects.prefetch_related('items__ingredient').all().order_by('-id')
+    result = []
+    for st in stocktakes:
+        items = []
+        for it in st.items.all():
+            items.append({
+                "id": it.id,
+                "ingredient_id": it.ingredient_id,
+                "ingredient_name": it.ingredient.name,
+                "unit": it.ingredient.unit,
+                "unit_display": it.ingredient.get_unit_display() if hasattr(it.ingredient, 'get_unit_display') else it.ingredient.unit,
+                "system_stock": float(it.system_stock),
+                "actual_stock": float(it.actual_stock),
+                "difference": float(it.difference),
+                "unit_cost": float(it.unit_cost),
+                "variance_value": float(it.variance_value),
+                "status": it.status,
+                "status_display": dict(StocktakeItem.STATUS_CHOICES).get(it.status, it.status),
+                "notes": it.notes or "",
+            })
+        result.append({
+            "id": st.id,
+            "reference_number": st.reference_number,
+            "performed_by": st.performed_by,
+            "status": st.status,
+            "status_display": dict(Stocktake.STATUS_CHOICES).get(st.status, st.status),
+            "created_at": st.created_at.strftime("%Y-%m-%d %H:%M"),
+            "applied_at": st.applied_at.strftime("%Y-%m-%d %H:%M") if st.applied_at else "",
+            "notes": st.notes or "",
+            "total_system_value": float(st.total_system_value),
+            "total_actual_value": float(st.total_actual_value),
+            "net_variance_value": float(st.net_variance_value),
+            "total_items_counted": st.total_items_counted,
+            "items_with_shortage": st.items_with_shortage,
+            "items_with_surplus": st.items_with_surplus,
+            "items_matched": st.items_matched,
+            "items": items,
+        })
+    return result
+
+
+def handle_get_single_stocktake(stocktake_id: int):
+    st = get_object_or_404(Stocktake, id=stocktake_id)
+    items = []
+    for it in st.items.select_related('ingredient').all():
+        items.append({
+            "id": it.id,
+            "ingredient_id": it.ingredient_id,
+            "ingredient_name": it.ingredient.name,
+            "unit": it.ingredient.unit,
+            "unit_display": it.ingredient.get_unit_display() if hasattr(it.ingredient, 'get_unit_display') else it.ingredient.unit,
+            "system_stock": float(it.system_stock),
+            "actual_stock": float(it.actual_stock),
+            "difference": float(it.difference),
+            "unit_cost": float(it.unit_cost),
+            "variance_value": float(it.variance_value),
+            "status": it.status,
+            "status_display": dict(StocktakeItem.STATUS_CHOICES).get(it.status, it.status),
+            "notes": it.notes or "",
+        })
+    return {
+        "id": st.id,
+        "reference_number": st.reference_number,
+        "performed_by": st.performed_by,
+        "status": st.status,
+        "status_display": dict(Stocktake.STATUS_CHOICES).get(st.status, st.status),
+        "created_at": st.created_at.strftime("%Y-%m-%d %H:%M"),
+        "applied_at": st.applied_at.strftime("%Y-%m-%d %H:%M") if st.applied_at else "",
+        "notes": st.notes or "",
+        "total_system_value": float(st.total_system_value),
+        "total_actual_value": float(st.total_actual_value),
+        "net_variance_value": float(st.net_variance_value),
+        "total_items_counted": st.total_items_counted,
+        "items_with_shortage": st.items_with_shortage,
+        "items_with_surplus": st.items_with_surplus,
+        "items_matched": st.items_matched,
+        "items": items,
+    }
+
+
+# نقاط نهاية الجرد والتسوية في موجه المخزون
+@inventory_router.get("/stocktaking/items/")
+def get_stocktaking_items(request):
+    """
+    جلب كافة الأصناف والمواد في المخزون لبدء الجرد الفعلي.
+    """
+    return handle_get_items_for_stocktaking()
+
+
+@inventory_router.post("/stocktaking/reconcile/")
+def reconcile_stocktaking(request, payload: CreateStocktakeInput):
+    """
+    اعتماد جلسة الجرد، وحساب الفروقات والعجز، وتسوية أرصدة المخزون في النظام فورياً.
+    """
+    return handle_create_stocktake(payload)
+
+
+@inventory_router.get("/stocktaking/history/")
+def get_stocktaking_history(request):
+    """
+    جلب سجل وأرشيف جلسات الجرد السابقة مع الفروقات والإحصائيات.
+    """
+    return handle_list_stocktakes()
+
+
+@inventory_router.get("/stocktaking/history/{stocktake_id}/")
+def get_stocktaking_detail(request, stocktake_id: int):
+    """
+    جلب تفاصيل إذن جرد محدد ببنوده وتفاصيل الفروقات.
+    """
+    return handle_get_single_stocktake(stocktake_id)
+
+
 

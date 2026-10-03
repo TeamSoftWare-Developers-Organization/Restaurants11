@@ -28,6 +28,7 @@ import {
     CookingPot,
     ShoppingCart,
     Fingerprint,
+    RotateCcw,
     X
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -42,6 +43,7 @@ const links = [
     { label: 'المخزون', icon: Snowflake, href: '/inventory', color: 'amber', perm: 'inventory' },
     { label: 'دليل الموردين', icon: Building2, href: '/suppliers', color: 'blue', perm: 'inventory' },
     { label: 'فواتير المشتريات', icon: ShoppingCart, href: '/purchases', color: 'emerald', perm: 'inventory' },
+    { label: 'مرتجع المشتريات', icon: RotateCcw, href: '/purchases/returns', color: 'rose', perm: 'inventory' },
     { label: 'قائمة الطعام', icon: ChefHat, href: '/menu', color: 'violet', perm: 'menu' },
     { label: 'وصفات الطعام', icon: CookingPot, href: '/recipes', color: 'amber', perm: 'recipes' },
     { label: 'الطلبات', icon: Truck, href: '/orders', color: 'rose', perm: 'orders' },

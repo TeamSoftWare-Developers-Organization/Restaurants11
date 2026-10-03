@@ -24,7 +24,8 @@ import {
   ChevronDown,
   X,
   Package,
-  Layers
+  Layers,
+  RotateCcw
 } from "lucide-react";
 
 interface PurchaseItem {
@@ -139,13 +140,20 @@ export default function PurchasesPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
             <Link
               href="/suppliers"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2.5 rounded-xl font-bold text-xs transition active:scale-95"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-3.5 sm:px-4 py-2.5 rounded-xl font-bold text-xs transition active:scale-95"
             >
               <Building2 className="w-4 h-4 text-blue-500" />
               دليل الموردين
+            </Link>
+            <Link
+              href="/purchases/returns"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/40 px-3.5 sm:px-4 py-2.5 rounded-xl font-bold text-xs transition active:scale-95"
+            >
+              <RotateCcw className="w-4 h-4 text-rose-500" />
+              مرتجع الشراء
             </Link>
             <Link
               href="/purchases/new"
