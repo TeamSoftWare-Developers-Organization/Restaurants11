@@ -29,6 +29,8 @@ import {
     ShoppingCart,
     Fingerprint,
     RotateCcw,
+    ClipboardCheck,
+    Scale,
     X
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -41,6 +43,7 @@ const links = [
     { label: 'الموظفون والصلاحيات', icon: User, href: '/employees', color: 'blue', perm: 'employees' },
     { label: 'حضور وبصمة الموظفين', icon: Fingerprint, href: '/attendance', color: 'cyan' },
     { label: 'المخزون', icon: Snowflake, href: '/inventory', color: 'amber', perm: 'inventory' },
+    { label: 'جرد المنتجات', icon: ClipboardCheck, href: '/stocktaking', color: 'orange', perm: 'inventory' },
     { label: 'دليل الموردين', icon: Building2, href: '/suppliers', color: 'blue', perm: 'inventory' },
     { label: 'فواتير المشتريات', icon: ShoppingCart, href: '/purchases', color: 'emerald', perm: 'inventory' },
     { label: 'مرتجع المشتريات', icon: RotateCcw, href: '/purchases/returns', color: 'rose', perm: 'inventory' },
@@ -53,6 +56,7 @@ const links = [
     { label: 'الخزينة', icon: Wallet, href: '/treasury', color: 'indigo', perm: 'treasury' },
     { label: 'المصروفات', icon: ReceiptText, href: '/expenses', color: 'rose', perm: 'expenses' },
     { label: 'المرتبات', icon: Banknote, href: '/salaries', color: 'emerald', perm: 'salaries' },
+    { label: 'حساب الزكاة', icon: Scale, href: '/zakat', color: 'amber', perm: 'treasury' },
     { label: 'الإعدادات', icon: Settings, href: '/settings', color: 'slate', perm: 'settings' }
 ];
 

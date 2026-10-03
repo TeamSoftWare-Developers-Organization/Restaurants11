@@ -513,12 +513,21 @@ class CreateStocktakeInput(Schema):
     auto_reconcile: bool = True  # تسوية رصيد المخزون فورياً مع الجرد الفعلي
 
 
-def handle_get_items_for_stocktaking():
+def handle_get_items_for_stocktaking(request=None):
     ingredients = Ingredient.objects.all().order_by('name')
     result = []
     for ing in ingredients:
         cost = float(ing.cost_per_unit)
-        stock = float(ing.current_stock)
+        stock = round(float(ing.current_stock), 3)
+        img_url = None
+        if ing.image:
+            try:
+                img_url = ing.image.url
+                if request and not img_url.startswith(('http://', 'https://')):
+                    img_url = request.build_absolute_uri(img_url)
+            except Exception:
+                img_url = None
+
         result.append({
             "id": ing.id,
             "name": ing.name,
@@ -528,7 +537,7 @@ def handle_get_items_for_stocktaking():
             "cost_per_unit": cost,
             "total_value": round(stock * cost, 2),
             "reorder_level": float(ing.reorder_level),
-            "image": ing.image.url if ing.image else None,
+            "image": img_url,
             "last_updated": ing.last_updated.strftime("%Y-%m-%d %H:%M") if ing.last_updated else "",
         })
     return result
@@ -708,7 +717,7 @@ def get_stocktaking_items(request):
     """
     جلب كافة الأصناف والمواد في المخزون لبدء الجرد الفعلي.
     """
-    return handle_get_items_for_stocktaking()
+    return handle_get_items_for_stocktaking(request)
 
 
 @inventory_router.post("/stocktaking/reconcile/")
