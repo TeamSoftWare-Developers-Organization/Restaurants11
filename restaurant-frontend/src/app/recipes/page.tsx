@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { menuService, MenuItem, isLiquidOrDrink } from '@/services/menuService';
 import { inventoryService, Ingredient, RecipeIngredient } from '@/services/inventoryService';
 import { getFullUrl } from '@/lib/api';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 export default function RecipesPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -144,14 +145,25 @@ export default function RecipesPage() {
             setNewQuantity('');
         } catch (err: any) {
             console.error('Failed to add ingredient to recipe', err);
-            alert(err?.response?.data?.message || 'حدث خطأ أثناء إضافة المكون إلى الوصفة.');
+            await alertDialog({
+                title: 'خطأ في إضافة المكون',
+                message: err?.response?.data?.message || 'حدث خطأ أثناء إضافة المكون إلى الوصفة.',
+                variant: 'error',
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleRemoveIngredient = async (id: number) => {
-        if (!confirm('هل تريد بالتأكيد إزالة هذا المكون من وصفة الوجبة؟')) return;
+        const confirmed = await confirmDialog({
+            title: 'إزالة المكون من الوصفة',
+            message: 'هل تريد بالتأكيد إزالة هذا المكون من وصفة الوجبة؟',
+            confirmText: 'نعم، إزالة المكون',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (!confirmed) return;
         try {
             await inventoryService.removeIngredientFromRecipe(id);
             if (selectedMenuItem) {
@@ -162,6 +174,11 @@ export default function RecipesPage() {
             }
         } catch (err) {
             console.error('Failed to remove ingredient', err);
+            await alertDialog({
+                title: 'فشل الإزالة',
+                message: 'حدث خطأ أثناء إزالة المكون، يرجى المحاولة مرة أخرى.',
+                variant: 'error',
+            });
         }
     };
 

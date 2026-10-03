@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { reservationService, Table } from '@/services/reservationService';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 export default function TablesPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -265,12 +266,24 @@ export default function TablesPage() {
     );
 
     async function handleDelete(id: number) {
-        if (confirm('هل أنت متأكد من حذف هذه الطاولة؟')) {
+        const confirmed = await confirmDialog({
+            title: 'حذف الطاولة',
+            message: 'هل أنت متأكد من حذف هذه الطاولة؟',
+            confirmText: 'نعم، حذف الطاولة',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (confirmed) {
             try {
                 await reservationService.deleteTable(id);
                 fetchTables();
             } catch (err) {
                 console.error('Delete failed', err);
+                await alertDialog({
+                    title: 'فشل الحذف',
+                    message: 'حدث خطأ أثناء محاولة حذف الطاولة، يرجى المحاولة مرة أخرى.',
+                    variant: 'error',
+                });
             }
         }
     }

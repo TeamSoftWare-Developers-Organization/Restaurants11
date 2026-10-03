@@ -38,6 +38,7 @@ import { reservationService, Table } from '@/services/reservationService';
 import { treasuryService } from '@/services/treasuryService';
 import { getFullUrl } from '@/lib/api';
 import { useUIStore } from '@/store/uiStore';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 // Pastel color badges matching SimplePOS mockup
 const PASTEL_PALETTES = [
@@ -1045,9 +1046,13 @@ export default function POSPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if (items.length === 0 && !currentOrder) {
-                                                    alert('يرجى إضافة أصناف إلى السلة أولاً');
+                                                    await alertDialog({
+                                                        title: 'السلة فارغة',
+                                                        message: 'يرجى إضافة أصناف إلى السلة أولاً.',
+                                                        variant: 'warning',
+                                                    });
                                                     return;
                                                 }
                                                 setShowChargeModal(true);
@@ -1500,14 +1505,22 @@ export default function POSPage() {
     // Business Logic Handlers
     async function handleCheckout(method: 'cash' | 'card' | 'debt', cardProvider?: string, transactionId?: string, debtDetails?: string) {
         if (!activeShift) {
-            alert('يرجى فتح وردية أولاً قبل البدء في المبيعات.');
+            await alertDialog({
+                title: 'تنبيه الوردية',
+                message: 'يرجى فتح وردية أولاً قبل البدء في المبيعات.',
+                variant: 'warning',
+            });
             setShiftMode('open');
             setShowShiftModal(true);
             return;
         }
 
         if (items.length === 0 && !currentOrder) {
-            alert('يرجى إضافة أصناف إلى السلة أولاً');
+            await alertDialog({
+                title: 'السلة فارغة',
+                message: 'يرجى إضافة أصناف إلى السلة أولاً.',
+                variant: 'warning',
+            });
             return;
         }
 
@@ -1557,7 +1570,11 @@ export default function POSPage() {
                 setShiftMode('open');
                 setShowShiftModal(true);
             }
-            alert(`فشل إتمام العملية: ${msg}`);
+            await alertDialog({
+                title: 'فشل إتمام العملية',
+                message: `فشل إتمام العملية: ${msg}`,
+                variant: 'error',
+            });
         } finally {
             setIsProcessingCheckout(false);
         }
@@ -1565,7 +1582,11 @@ export default function POSPage() {
 
     async function handlePrintInvoice() {
         if (!activeShift) {
-            alert('يرجى فتح وردية أولاً قبل البدء في المبيعات.');
+            await alertDialog({
+                title: 'تنبيه الوردية',
+                message: 'يرجى فتح وردية أولاً قبل البدء في المبيعات.',
+                variant: 'warning',
+            });
             setShiftMode('open');
             setShowShiftModal(true);
             return;
@@ -1605,20 +1626,32 @@ export default function POSPage() {
                 setShiftMode('open');
                 setShowShiftModal(true);
             }
-            alert(`حدث خطأ أثناء إصدار الفاتورة: ${msg}`);
+            await alertDialog({
+                title: 'خطأ في إصدار الفاتورة',
+                message: `حدث خطأ أثناء إصدار الفاتورة: ${msg}`,
+                variant: 'error',
+            });
         }
     }
 
     async function handleHoldOrder() {
         if (!activeShift) {
-            alert('يرجى فتح وردية أولاً قبل البدء في المبيعات وحفظ الطلبات المعلقة.');
+            await alertDialog({
+                title: 'تنبيه الوردية',
+                message: 'يرجى فتح وردية أولاً قبل البدء في المبيعات وحفظ الطلبات المعلقة.',
+                variant: 'warning',
+            });
             setShiftMode('open');
             setShowShiftModal(true);
             return;
         }
 
         if (items.length === 0) {
-            alert('يرجى إضافة أصناف إلى السلة أولاً لوضع الطلب في الانتظار (طلب معلق)');
+            await alertDialog({
+                title: 'السلة فارغة',
+                message: 'يرجى إضافة أصناف إلى السلة أولاً لوضع الطلب في الانتظار (طلب معلق).',
+                variant: 'warning',
+            });
             return;
         }
 
@@ -1642,7 +1675,11 @@ export default function POSPage() {
             setCurrentOrder(null);
             setInvoiceIssued(false);
             await fetchActiveOrders();
-            alert(`تم حفظ الطلب رقم #${created.id} كطلب معلق بنجاح!`);
+            await alertDialog({
+                title: 'تم حفظ الطلب',
+                message: `تم حفظ الطلب رقم #${created.id} كطلب معلق بنجاح!`,
+                variant: 'success',
+            });
         } catch (err: any) {
             console.error('Failed to hold order', err);
             const msg = err?.response?.data?.message || err?.message || 'حدث خطأ أثناء تعليق الطلب';
@@ -1650,20 +1687,35 @@ export default function POSPage() {
                 setShiftMode('open');
                 setShowShiftModal(true);
             }
-            alert(`فشل حفظ الطلب المعلق: ${msg}`);
+            await alertDialog({
+                title: 'فشل حفظ الطلب',
+                message: `فشل حفظ الطلب المعلق: ${msg}`,
+                variant: 'error',
+            });
         } finally {
             setIsProcessingHold(false);
         }
     }
 
     async function handleCancelActiveOrder(orderId: number) {
-        if (!confirm(`هل أنت متأكد من رغبتك في إلغاء الطلب المعلق رقم #${orderId}؟`)) return;
+        const confirmed = await confirmDialog({
+            title: 'إلغاء الطلب المعلق',
+            message: `هل أنت متأكد من رغبتك في إلغاء الطلب المعلق رقم #${orderId}؟`,
+            confirmText: 'نعم، إلغاء الطلب',
+            cancelText: 'تراجع',
+            variant: 'danger',
+        });
+        if (!confirmed) return;
         try {
             await orderService.updateOrder(orderId, { status: 'cancelled' });
             await fetchActiveOrders();
         } catch (err: any) {
             console.error('Failed to cancel active order', err);
-            alert('فشل إلغاء الطلب المعلق');
+            await alertDialog({
+                title: 'خطأ',
+                message: 'فشل إلغاء الطلب المعلق، يرجى المحاولة مرة أخرى.',
+                variant: 'error',
+            });
         }
     }
 }

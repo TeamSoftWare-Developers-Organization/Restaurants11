@@ -30,6 +30,7 @@ import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { employeeService, Employee, AVAILABLE_PERMISSIONS, UserPermissions } from '@/services/employeeService';
 import { attendanceService } from '@/services/attendanceService';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 export default function EmployeesPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -135,12 +136,24 @@ export default function EmployeesPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
+        const confirmed = await confirmDialog({
+            title: 'حذف الموظف',
+            message: 'هل أنت متأكد من حذف هذا الموظف؟ لا يمكن التراجع عن هذا الإجراء.',
+            confirmText: 'نعم، حذف الموظف',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (confirmed) {
             try {
                 await employeeService.deleteEmployee(id);
                 fetchEmployees();
             } catch (err) {
                 console.error('Delete failed', err);
+                await alertDialog({
+                    title: 'خطأ في الحذف',
+                    message: 'حدث خطأ أثناء محاولة حذف الموظف، يرجى المحاولة مرة أخرى.',
+                    variant: 'error',
+                });
             }
         }
     };
@@ -179,7 +192,11 @@ export default function EmployeesPage() {
             fetchEmployees();
         } catch (err) {
             console.error('Failed to update permissions', err);
-            alert('حدث خطأ أثناء حفظ الصلاحيات');
+            await alertDialog({
+                title: 'خطأ في الحفظ',
+                message: 'حدث خطأ أثناء حفظ الصلاحيات',
+                variant: 'error',
+            });
         } finally {
             setIsSavingPerms(false);
         }

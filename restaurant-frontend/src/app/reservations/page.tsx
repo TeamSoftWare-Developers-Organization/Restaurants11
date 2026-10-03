@@ -30,6 +30,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { reservationService, Reservation, Table } from '@/services/reservationService';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 const STATUS_OPTIONS = [
     {
@@ -189,7 +190,11 @@ export default function ReservationsPage() {
             fetchData();
         } catch (err) {
             console.error('Save failed', err);
-            alert('حدث خطأ أثناء حفظ الحجز. يرجى التحقق من صحة المدخلات.');
+            await alertDialog({
+                title: 'خطأ في الحفظ',
+                message: 'حدث خطأ أثناء حفظ الحجز. يرجى التحقق من صحة المدخلات.',
+                variant: 'error',
+            });
         }
     };
 
@@ -215,20 +220,35 @@ export default function ReservationsPage() {
             setTableFormData({ table_number: '', capacity: 4, status: 'available', location: '' });
         } catch (err) {
             console.error('Failed to create table', err);
-            alert('فشل إضافة الطاولة. قد يكون رقم الطاولة مكرراً.');
+            await alertDialog({
+                title: 'خطأ في إضافة الطاولة',
+                message: 'فشل إضافة الطاولة. قد يكون رقم الطاولة مكرراً.',
+                variant: 'error',
+            });
         } finally {
             setIsCreatingTable(false);
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (confirm('هل أنت متأكد من حذف هذا الحجز؟')) {
+        const confirmed = await confirmDialog({
+            title: 'حذف الحجز',
+            message: 'هل أنت متأكد من حذف هذا الحجز؟',
+            confirmText: 'نعم، حذف الحجز',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (confirmed) {
             try {
                 await reservationService.deleteReservation(id);
                 setReservationsData(prev => prev.filter(r => r.id !== id));
             } catch (err) {
                 console.error('Delete failed', err);
-                alert('فشل حذف الحجز');
+                await alertDialog({
+                    title: 'فشل الحذف',
+                    message: 'حدث خطأ أثناء محاولة حذف الحجز.',
+                    variant: 'error',
+                });
             }
         }
     };
@@ -239,7 +259,11 @@ export default function ReservationsPage() {
             setReservationsData(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
         } catch (err) {
             console.error('Failed to update status', err);
-            alert('فشل تحديث حالة الحجز');
+            await alertDialog({
+                title: 'خطأ في التحديث',
+                message: 'فشل تحديث حالة الحجز، يرجى المحاولة مرة أخرى.',
+                variant: 'error',
+            });
         }
     };
 

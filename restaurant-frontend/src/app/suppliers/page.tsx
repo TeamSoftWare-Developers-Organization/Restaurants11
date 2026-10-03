@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
 import { Building2, Plus, ShoppingCart, Search } from "lucide-react";
 import Link from "next/link";
+import { alertDialog } from "@/store/modalStore";
 
 interface Supplier {
   id: number;
@@ -59,7 +60,11 @@ export default function SuppliersPage() {
       loadSuppliers();
     } catch (error) {
       console.error("Failed to create supplier", error);
-      alert("حدث خطأ أثناء حفظ بيانات المورد");
+      await alertDialog({
+        title: "خطأ في الحفظ",
+        message: "حدث خطأ أثناء حفظ بيانات المورد، يرجى المحاولة مرة أخرى.",
+        variant: "error",
+      });
     }
   };
 

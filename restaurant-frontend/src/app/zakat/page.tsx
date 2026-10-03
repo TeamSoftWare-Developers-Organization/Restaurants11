@@ -36,6 +36,7 @@ import {
   ZakatCalculation,
   CreateZakatInput
 } from "@/services/zakatService";
+import { confirmDialog, alertDialog } from "@/store/modalStore";
 
 export default function ZakatPage() {
   const { isSidebarCollapsed } = useUIStore();
@@ -268,7 +269,11 @@ export default function ZakatPage() {
       setDisbursementModalCalc(null);
     } catch (err) {
       console.error("Failed to record disbursement", err);
-      alert("فشل في تسجيل دفعة الزكاة.");
+      await alertDialog({
+        title: "خطأ في التسجيل",
+        message: "فشل في تسجيل دفعة الزكاة. يرجى التحقق من الاتصال والمحاولة مرة أخرى.",
+        variant: "error",
+      });
     } finally {
       setIsSubmittingDisb(false);
     }
@@ -276,13 +281,24 @@ export default function ZakatPage() {
 
   // Delete Calculation
   const handleDeleteCalculation = async (id: number) => {
-    if (!confirm("هل أنت متأكد من حذف هذا السجل لحسبة الزكاة؟")) return;
+    const confirmed = await confirmDialog({
+      title: "حذف حسبة الزكاة",
+      message: "هل أنت متأكد من حذف هذا السجل لحسبة الزكاة؟",
+      confirmText: "نعم، حذف السجل",
+      cancelText: "إلغاء",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     try {
       await zakatService.deleteCalculation(id);
       setCalculations(calculations.filter((c) => c.id !== id));
     } catch (err) {
       console.error("Failed to delete zakat calculation", err);
-      alert("فشل في حذف السجل.");
+      await alertDialog({
+        title: "خطأ في الحذف",
+        message: "فشل في حذف السجل. يرجى المحاولة مرة أخرى.",
+        variant: "error",
+      });
     }
   };
 

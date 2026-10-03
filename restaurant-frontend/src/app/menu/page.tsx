@@ -20,6 +20,7 @@ import { menuService, MenuItem, Category, isLiquidOrDrink } from '@/services/men
 import { inventoryService, Ingredient, RecipeIngredient } from '@/services/inventoryService';
 import { ChefHat } from 'lucide-react';
 import { getFullUrl } from '@/lib/api';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 export default function MenuPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -169,12 +170,24 @@ export default function MenuPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (confirm('هل أنت متأكد من حذف هذا الصنف؟')) {
+        const confirmed = await confirmDialog({
+            title: 'حذف صنف من القائمة',
+            message: 'هل أنت متأكد من حذف هذا الصنف؟ سيتم حذفه من قائمة الوجبات.',
+            confirmText: 'نعم، حذف الصنف',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (confirmed) {
             try {
                 await menuService.deleteMenuItem(id);
                 fetchData();
             } catch (err) {
                 console.error('Delete failed', err);
+                await alertDialog({
+                    title: 'فشل الحذف',
+                    message: 'حدث خطأ أثناء محاولة حذف هذا الصنف، يرجى المحاولة مرة أخرى.',
+                    variant: 'error',
+                });
             }
         }
     };

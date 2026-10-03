@@ -37,6 +37,7 @@ import {
     StocktakeSession,
     StocktakeHistoryItem
 } from '@/services/inventoryService';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 interface AuditRowState {
     ingredient_id: number;
@@ -187,14 +188,28 @@ export default function StocktakingPage() {
         );
     };
 
-    const handleMatchAllToSystem = () => {
-        if (confirm('هل تريد ضبط جميع الكميات الفعلية لتطابق الرصيد الدفتري المسجل؟')) {
+    const handleMatchAllToSystem = async () => {
+        const confirmed = await confirmDialog({
+            title: 'مطابقة جميع الكميات',
+            message: 'هل تريد ضبط جميع الكميات الفعلية لتطابق الرصيد الدفتري المسجل؟',
+            confirmText: 'نعم، مطابقة الكل',
+            cancelText: 'إلغاء',
+            variant: 'warning',
+        });
+        if (confirmed) {
             setAuditItems((prev) => prev.map((row) => ({ ...row, actual_stock: typeof row.system_stock === 'number' ? Number(row.system_stock.toFixed(2)) : row.system_stock })));
         }
     };
 
-    const handleResetAllToZero = () => {
-        if (confirm('هل أنت متأكد من تصفير جميع الكميات المحصورة للبدء من الصفر؟')) {
+    const handleResetAllToZero = async () => {
+        const confirmed = await confirmDialog({
+            title: 'تصفير الكميات المحصورة',
+            message: 'هل أنت متأكد من تصفير جميع الكميات المحصورة للبدء من الصفر؟',
+            confirmText: 'نعم، تصفير الكل',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (confirmed) {
             setAuditItems((prev) => prev.map((row) => ({ ...row, actual_stock: 0 })));
         }
     };
@@ -290,7 +305,11 @@ export default function StocktakingPage() {
             setSubmitSuccess(result);
         } catch (err: any) {
             console.error('Reconciliation failed', err);
-            alert(err.response?.data?.message || 'فشل اعتماد وتسوية الجرد. يرجى المحاولة مرة أخرى.');
+            await alertDialog({
+                title: 'فشل اعتماد وتسوية الجرد',
+                message: err.response?.data?.message || 'فشل اعتماد وتسوية الجرد. يرجى المحاولة مرة أخرى.',
+                variant: 'error',
+            });
         } finally {
             setIsSubmitting(false);
         }

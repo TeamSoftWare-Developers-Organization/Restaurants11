@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
 import { ShoppingCart, Plus, Trash2, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { alertDialog } from "@/store/modalStore";
 
 interface Ingredient {
   id: number;
@@ -98,7 +99,11 @@ export default function NewPurchasePage() {
         })),
       });
 
-      alert("تم حفظ الفاتورة وترحيل المواد للمخزن وتحديث متوسط التكلفة بنجاح!");
+      await alertDialog({
+        title: "تم الحفظ بنجاح",
+        message: "تم حفظ الفاتورة وترحيل المواد للمخزن وتحديث متوسط التكلفة بنجاح!",
+        variant: "success",
+      });
       router.push("/inventory");
     } catch (err: any) {
       console.error(err);

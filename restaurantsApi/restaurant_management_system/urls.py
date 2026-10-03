@@ -15,6 +15,7 @@ from menu.api import menu_router
 from inventory.api import inventory_router, purchases_router
 from reservations.api import reservations_router
 from payments.api import payments_router
+from payments.shifts_api import shifts_router
 from core.api import core_router
 from core.zakat_api import zakat_router
 
@@ -37,6 +38,7 @@ api.add_router("/menu", menu_router)
 api.add_router("/inventory", inventory_router)
 api.add_router("/reservations", reservations_router)
 api.add_router("/payments", payments_router)
+api.add_router("/shifts", shifts_router)
 api.add_router("/settings", core_router)
 api.add_router("/zakat", zakat_router)
 

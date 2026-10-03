@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useSettingsStore } from '@/store/settingsStore';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 import { useUIStore } from '@/store/uiStore';
 import { RestaurantSettings } from '@/services/settingsService';
 
@@ -114,7 +115,14 @@ export default function SettingsPage() {
     };
 
     const handleRemoveLogo = async () => {
-        if (!confirm('هل أنت متأكد من رغبتك في حذف شعار المطعم؟')) return;
+        const confirmed = await confirmDialog({
+            title: 'حذف شعار المطعم',
+            message: 'هل أنت متأكد من رغبتك في حذف شعار المطعم؟',
+            confirmText: 'نعم، حذف الشعار',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (!confirmed) return;
 
         try {
             setUploadingLogo(true);

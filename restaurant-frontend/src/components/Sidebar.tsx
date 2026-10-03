@@ -31,6 +31,7 @@ import {
     RotateCcw,
     ClipboardCheck,
     Scale,
+    Clock,
     X
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -42,6 +43,7 @@ const links = [
     { label: 'نقطة البيع', icon: ShoppingBag, href: '/pos', color: 'emerald', perm: 'pos' },
     { label: 'الموظفون والصلاحيات', icon: User, href: '/employees', color: 'blue', perm: 'employees' },
     { label: 'حضور وبصمة الموظفين', icon: Fingerprint, href: '/attendance', color: 'cyan' },
+    { label: 'تخصيص الورديات', icon: Clock, href: '/shifts', color: 'amber', perm: 'employees' },
     { label: 'المخزون', icon: Snowflake, href: '/inventory', color: 'amber', perm: 'inventory' },
     { label: 'جرد المنتجات', icon: ClipboardCheck, href: '/stocktaking', color: 'orange', perm: 'inventory' },
     { label: 'دليل الموردين', icon: Building2, href: '/suppliers', color: 'blue', perm: 'inventory' },
