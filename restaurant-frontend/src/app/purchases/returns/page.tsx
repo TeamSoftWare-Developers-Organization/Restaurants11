@@ -30,6 +30,7 @@ import {
   CreditCard,
   Wallet
 } from "lucide-react";
+import PurchaseReturnDocument from "@/components/invoices/PurchaseReturnDocument";
 import {
   purchaseReturnService,
   PurchaseReturn,
@@ -816,119 +817,14 @@ export default function PurchaseReturnsPage() {
               </div>
 
               {/* Printable Voucher Content */}
-              <div id="printable-return-voucher" className="flex-1 overflow-y-auto p-6 sm:p-8 bg-white text-gray-900 text-right">
-                {/* Voucher Header with Restaurant Branding */}
-                <div className="flex items-start justify-between border-b pb-6 mb-6">
-                  <div>
-                    {settings?.logo ? (
-                      <img
-                        src={getFullLogoUrl(settings.logo)}
-                        alt="Restaurant Logo"
-                        className="h-16 w-auto object-contain mb-2"
-                      />
-                    ) : (
-                      <h2 className="text-2xl font-black text-gray-900">{settings?.name || "مطعمنا"}</h2>
-                    )}
-                    <p className="text-xs text-gray-500 font-bold">{settings?.address || ""}</p>
-                    {settings?.phone && <p className="text-xs text-gray-500 font-bold">هاتف: {settings.phone}</p>}
-                    {settings?.tax_number && <p className="text-xs text-gray-500 font-bold">الرقم الضريبي: {settings.tax_number}</p>}
-                  </div>
-
-                  <div className="text-left">
-                    <span className="inline-block px-3 py-1 bg-rose-100 text-rose-700 text-xs font-black rounded-lg mb-2">
-                      سند مرتجع مشتريات (إشعار خصم)
-                    </span>
-                    <h3 className="text-lg font-black text-gray-900 tabular-nums">{selectedReturn.return_number}</h3>
-                    <p className="text-xs text-gray-500 font-bold mt-1">تاريخ السند: {selectedReturn.return_date || selectedReturn.created_at}</p>
-                    {selectedReturn.invoice_number && (
-                      <p className="text-xs text-gray-600 font-bold mt-0.5">مرجع الفاتورة: #{selectedReturn.invoice_number}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Supplier & Refund Details */}
-                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 text-xs">
-                  <div>
-                    <span className="text-gray-400 font-bold block mb-1">بيانات المورد المستلم:</span>
-                    <span className="font-black text-gray-900 text-sm block">{selectedReturn.supplier_name}</span>
-                    {selectedReturn.supplier_company && (
-                      <span className="text-gray-500 block">{selectedReturn.supplier_company}</span>
-                    )}
-                    {selectedReturn.supplier_phone && (
-                      <span className="text-gray-500 block">هاتف: {selectedReturn.supplier_phone}</span>
-                    )}
-                  </div>
-
-                  <div>
-                    <span className="text-gray-400 font-bold block mb-1">طريقة التسوية المالية:</span>
-                    <span className="font-black text-gray-900 text-sm block">
-                      {selectedReturn.refund_method === "CASH"
-                        ? "استرداد نقدي فوري (إيداع بالخزينة)"
-                        : "خصم من رصيد ومستحقات المورد (آجل)"}
-                    </span>
-                    {selectedReturn.reason && (
-                      <span className="text-gray-500 block mt-1">سبب الإرجاع: {selectedReturn.reason}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Items Table */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden mb-6 text-xs">
-                  <table className="w-full text-right">
-                    <thead className="bg-gray-100 border-b border-gray-200 text-gray-600">
-                      <tr>
-                        <th className="p-3">#</th>
-                        <th className="p-3">المادة الخام</th>
-                        <th className="p-3 text-center">الكمية</th>
-                        <th className="p-3 text-center">سعر الوحدة</th>
-                        <th className="p-3 text-left">الإجمالي</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {selectedReturn.items.map((it, idx) => (
-                        <tr key={idx}>
-                          <td className="p-3 font-bold">{idx + 1}</td>
-                          <td className="p-3">
-                            <span className="font-bold text-gray-900 block">{it.ingredient_name || "مادة خام"}</span>
-                            {it.reason && <span className="text-[10px] text-gray-400 block">{it.reason}</span>}
-                          </td>
-                          <td className="p-3 text-center font-bold tabular-nums">
-                            {it.quantity} {it.unit_display || it.unit || ""}
-                          </td>
-                          <td className="p-3 text-center font-bold tabular-nums">
-                            {Number(it.unit_price).toFixed(2)} د.ل
-                          </td>
-                          <td className="p-3 text-left font-black tabular-nums">
-                            {(Number(it.quantity) * Number(it.unit_price)).toFixed(2)} د.ل
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50 font-black border-t border-gray-200">
-                      <tr>
-                        <td colSpan={4} className="p-3 text-left text-sm">
-                          إجمالي قيمة المرتجع المسترد:
-                        </td>
-                        <td className="p-3 text-left text-sm text-rose-600 tabular-nums">
-                          {Number(selectedReturn.total_amount).toFixed(2)} د.ل
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-
-                {/* Signatures */}
-                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-gray-200 text-center text-xs text-gray-600 mt-8">
-                  <div>
-                    <p className="font-bold mb-10">توقيع المسؤول / أمين المخزن</p>
-                    <div className="border-b border-gray-300 w-48 mx-auto" />
-                  </div>
-                  <div>
-                    <p className="font-bold mb-10">توقيع واستلام المورد</p>
-                    <div className="border-b border-gray-300 w-48 mx-auto" />
-                  </div>
-                </div>
+              <div id="printable-return-voucher" className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white text-gray-900 text-right">
+                <PurchaseReturnDocument
+                  settings={settings}
+                  returnData={selectedReturn}
+                  isPrintPreview={false}
+                />
               </div>
+
             </div>
           </div>
         )}

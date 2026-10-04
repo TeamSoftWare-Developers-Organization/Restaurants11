@@ -24,13 +24,19 @@ import {
     FileCheck2,
     Hash,
     Sparkles,
-    Link as LinkIcon
+    Link as LinkIcon,
+    Printer,
+    QrCode,
+    Receipt,
+    RotateCcw as RotateCcwIcon,
+    Layers
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useSettingsStore } from '@/store/settingsStore';
 import { confirmDialog, alertDialog } from '@/store/modalStore';
 import { useUIStore } from '@/store/uiStore';
 import { RestaurantSettings } from '@/services/settingsService';
+import InvoiceLivePreview from '@/components/invoices/InvoiceLivePreview';
 
 export default function SettingsPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -48,7 +54,7 @@ export default function SettingsPage() {
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [activeTab, setActiveTab] = useState<'general' | 'financial' | 'operational'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'financial' | 'invoices' | 'operational'>('general');
 
     const [localSettings, setLocalSettings] = useState<RestaurantSettings | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -165,7 +171,7 @@ export default function SettingsPage() {
             <Sidebar />
 
             <main className={`flex-1 min-w-0 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-3.5 sm:p-6 lg:p-8 transition-all duration-300`}>
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                         <div>
@@ -174,14 +180,14 @@ export default function SettingsPage() {
                                 الإعدادات العامة
                             </h1>
                             <p className="text-gray-500 dark:text-gray-400 font-medium text-xs sm:text-sm mt-1">
-                                تخصيص هوية وشعار المطعم، بيانات المالك، والخيارات المالية والتشغيلية
+                                تخصيص هوية وشعار المطعم، البيانات المالية، قوالب وتصاميم الفواتير، والخيارات التشغيلية
                             </p>
                         </div>
 
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-2xl font-bold text-sm sm:text-base shadow-lg shadow-indigo-600/20 transition-all transform active:scale-95 w-full sm:w-auto shrink-0"
+                            className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-2xl font-bold text-sm sm:text-base shadow-lg shadow-indigo-600/20 transition-all transform active:scale-95 w-full sm:w-auto shrink-0 cursor-pointer"
                         >
                             {saving ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                             {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
@@ -203,10 +209,11 @@ export default function SettingsPage() {
                     )}
 
                     {/* Tabs Navigation */}
-                    <div className="flex flex-col sm:flex-row p-1 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 sm:mb-8 gap-1">
+                    <div className="grid grid-cols-2 md:grid-cols-4 p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 sm:mb-8 gap-1.5">
                         <button
+                            type="button"
                             onClick={() => setActiveTab('general')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                            className={`flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                                 activeTab === 'general'
                                     ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm'
                                     : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/30'
@@ -216,8 +223,9 @@ export default function SettingsPage() {
                             بيانات المطعم والشعار
                         </button>
                         <button
+                            type="button"
                             onClick={() => setActiveTab('financial')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                            className={`flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                                 activeTab === 'financial'
                                     ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm'
                                     : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/30'
@@ -227,15 +235,28 @@ export default function SettingsPage() {
                             الماليات والسجل التجاري
                         </button>
                         <button
+                            type="button"
+                            onClick={() => setActiveTab('invoices')}
+                            className={`flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                                activeTab === 'invoices'
+                                    ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm'
+                                    : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/30'
+                            }`}
+                        >
+                            <Printer className="w-4 h-4 shrink-0 text-amber-500" />
+                            تصاميم الفواتير والطباعة 🌟
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setActiveTab('operational')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                            className={`flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                                 activeTab === 'operational'
                                     ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm'
                                     : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/30'
                             }`}
                         >
-                            <Activity className="w-4 h-4 shrink-0" />
-                            التشغيل والفواتير
+                            <Globe className="w-4 h-4 shrink-0" />
+                            التشغيل والتوصيل
                         </button>
                     </div>
 
@@ -508,24 +529,277 @@ export default function SettingsPage() {
                             </div>
                         )}
 
+                        {/* Invoices & Printing Tab 🌟 */}
+                        {activeTab === 'invoices' && (
+                            <div className="space-y-6 animate-in fade-in duration-500">
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                                    {/* Left (or Right in RTL): Configuration Controls */}
+                                    <div className="lg:col-span-5 space-y-6">
+                                        {/* 1. Sales Invoice Configuration */}
+                                        <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-4">
+                                            <div className="flex items-center gap-2.5 pb-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center">
+                                                    <Receipt className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-black text-sm text-gray-900 dark:text-white">فاتورة المبيعات (الكاشير و POS)</h3>
+                                                    <p className="text-[11px] text-gray-400 font-medium">تخصيص القالب والطباعة للطلبات اليومية</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Template Choice */}
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    قالب طباعة المبيعات الافتراضي
+                                                </label>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {[
+                                                        { id: 'thermal_80mm', title: 'حراري 80mm (افتراضي)', desc: 'المعيار القياسي لطابعات إيصالات الكاشير' },
+                                                        { id: 'thermal_58mm', title: 'حراري 58mm (مدمج)', desc: 'مخصص لأجهزة نقاط البيع المحمولة POS' },
+                                                        { id: 'detailed_a4', title: 'رسمي ضريبي (A4/A5)', desc: 'فاتورة معتمدة للشركات، الحفلات والعملاء الآجل' },
+                                                    ].map((tmpl) => (
+                                                        <label
+                                                            key={tmpl.id}
+                                                            onClick={() => handleChange('sales_invoice_template', tmpl.id)}
+                                                            className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                                                                (localSettings?.sales_invoice_template || 'thermal_80mm') === tmpl.id
+                                                                    ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/30'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="radio"
+                                                                name="sales_template"
+                                                                checked={(localSettings?.sales_invoice_template || 'thermal_80mm') === tmpl.id}
+                                                                onChange={() => handleChange('sales_invoice_template', tmpl.id)}
+                                                                className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                                                            />
+                                                            <div>
+                                                                <span className="font-black text-xs text-gray-900 dark:text-white block">{tmpl.title}</span>
+                                                                <span className="text-[10px] text-gray-500 dark:text-gray-400 block">{tmpl.desc}</span>
+                                                            </div>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Toggles */}
+                                            <div className="pt-2 border-t border-gray-100 dark:border-gray-700 space-y-2.5">
+                                                <label className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
+                                                    <span>إظهار شعار المطعم بالإيصال</span>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={localSettings?.show_logo_sales !== false}
+                                                        onChange={(e) => handleChange('show_logo_sales', e.target.checked)}
+                                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                                    />
+                                                </label>
+
+                                                <label className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
+                                                    <span className="flex items-center gap-1.5">
+                                                        <span>رمز الاستجابة السريعة (ZATCA QR)</span>
+                                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-mono">TLV</span>
+                                                    </span>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={localSettings?.show_qr_code !== false}
+                                                        onChange={(e) => handleChange('show_qr_code', e.target.checked)}
+                                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                                    />
+                                                </label>
+
+                                                <label className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
+                                                    <span>طباعة تلقائية فور إتمام الدفع (POS)</span>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!!localSettings?.auto_print_on_checkout}
+                                                        onChange={(e) => handleChange('auto_print_on_checkout', e.target.checked)}
+                                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            {/* Footer & Terms */}
+                                            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    رسالة تذييل فاتورة المبيعات
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={localSettings?.invoice_footer_message || ''}
+                                                    onChange={(e) => handleChange('invoice_footer_message', e.target.value)}
+                                                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                    placeholder="مثال: شكراً لزيارتكم، نتمنى لكم يوماً سعيداً!"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    الشروط وسياسة الاسترجاع (أسفل الفاتورة)
+                                                </label>
+                                                <textarea
+                                                    value={localSettings?.sales_invoice_terms || ''}
+                                                    onChange={(e) => handleChange('sales_invoice_terms', e.target.value)}
+                                                    rows={2}
+                                                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                                                    placeholder="مثال: الأسعار تشمل ضريبة القيمة المضافة • البضاعة المباعة تستبدل خلال 24 ساعة"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* 2. Purchase Invoice Configuration */}
+                                        <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-4">
+                                            <div className="flex items-center gap-2.5 pb-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
+                                                    <Store className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-black text-sm text-gray-900 dark:text-white">فاتورة الشراء وتوريد المخزون</h3>
+                                                    <p className="text-[11px] text-gray-400 font-medium">سندات استلام المواد الخام من الموردين</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    قالب فاتورة الشراء
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[
+                                                        { id: 'classic_clean', title: 'كلاسيكي منظم', desc: 'تنسيق أبيض أنيق مع ترويسة هادئة' },
+                                                        { id: 'corporate_table', title: 'مؤسسي معتمد', desc: 'جدول أخضر زمردي مع مربعات التوقيع' },
+                                                    ].map((tmpl) => (
+                                                        <label
+                                                            key={tmpl.id}
+                                                            onClick={() => handleChange('purchase_invoice_template', tmpl.id)}
+                                                            className={`p-2.5 rounded-xl border flex flex-col gap-1 cursor-pointer transition-all ${
+                                                                (localSettings?.purchase_invoice_template || 'classic_clean') === tmpl.id
+                                                                    ? 'border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/30'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-black text-xs text-gray-900 dark:text-white">{tmpl.title}</span>
+                                                                <input
+                                                                    type="radio"
+                                                                    name="purchase_template"
+                                                                    checked={(localSettings?.purchase_invoice_template || 'classic_clean') === tmpl.id}
+                                                                    onChange={() => handleChange('purchase_invoice_template', tmpl.id)}
+                                                                    className="text-emerald-600 focus:ring-emerald-500"
+                                                                />
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-500">{tmpl.desc}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <label className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer pt-1">
+                                                <span>إظهار شعار المطعم في فواتير الشراء</span>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={localSettings?.show_logo_purchases !== false}
+                                                    onChange={(e) => handleChange('show_logo_purchases', e.target.checked)}
+                                                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                                                />
+                                            </label>
+
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    ملاحظات وشروط استلام المشتريات
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={localSettings?.purchase_invoice_terms || ''}
+                                                    onChange={(e) => handleChange('purchase_invoice_terms', e.target.value)}
+                                                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                    placeholder="مثال: تم فحص واستلام البضاعة بحالة جيدة ومطابقتها لأمر الشراء"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* 3. Purchase Return Configuration */}
+                                        <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-4">
+                                            <div className="flex items-center gap-2.5 pb-2 border-b border-gray-100 dark:border-gray-700">
+                                                <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center">
+                                                    <RotateCcwIcon className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-black text-sm text-gray-900 dark:text-white">سند إشعار مرتجع الشراء</h3>
+                                                    <p className="text-[11px] text-gray-400 font-medium">إرجاع المواد للموردين والخصم من الحساب</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    قالب سند المرتجع
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[
+                                                        { id: 'standard_voucher', title: 'سند إشعار قياسي', desc: 'سند رسمي معتمد لإشعار الخصم' },
+                                                        { id: 'detailed_voucher', title: 'سند مرتجع تفصيلي', desc: 'تفاصيل أسباب الإرجاع لكل صنف' },
+                                                    ].map((tmpl) => (
+                                                        <label
+                                                            key={tmpl.id}
+                                                            onClick={() => handleChange('purchase_return_template', tmpl.id)}
+                                                            className={`p-2.5 rounded-xl border flex flex-col gap-1 cursor-pointer transition-all ${
+                                                                (localSettings?.purchase_return_template || 'standard_voucher') === tmpl.id
+                                                                    ? 'border-rose-600 bg-rose-50/40 dark:bg-rose-950/30'
+                                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-black text-xs text-gray-900 dark:text-white">{tmpl.title}</span>
+                                                                <input
+                                                                    type="radio"
+                                                                    name="return_template"
+                                                                    checked={(localSettings?.purchase_return_template || 'standard_voucher') === tmpl.id}
+                                                                    onChange={() => handleChange('purchase_return_template', tmpl.id)}
+                                                                    className="text-rose-600 focus:ring-rose-500"
+                                                                />
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-500">{tmpl.desc}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <label className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer pt-1">
+                                                <span>إظهار شعار المطعم في سندات المرتجع</span>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={localSettings?.show_logo_returns !== false}
+                                                    onChange={(e) => handleChange('show_logo_returns', e.target.checked)}
+                                                    className="w-4 h-4 text-rose-600 rounded focus:ring-rose-500"
+                                                />
+                                            </label>
+
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                    شروط واعتماد سند المرتجع
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={localSettings?.purchase_return_terms || ''}
+                                                    onChange={(e) => handleChange('purchase_return_terms', e.target.value)}
+                                                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-semibold focus:ring-2 focus:ring-rose-500 outline-none"
+                                                    placeholder="مثال: يعتبر هذا السند إشعار خصم رسمي ومطابقة لحساب المورد"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right (or Left in RTL): Sticky Interactive Live Preview */}
+                                    <div className="lg:col-span-7 sticky top-4">
+                                        <InvoiceLivePreview settings={localSettings} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Operational Tab */}
                         {activeTab === 'operational' && (
                             <div className="space-y-6 animate-in fade-in duration-500">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                        <FileText className="w-4 h-4 text-amber-500" />
-                                        رسالة تذييل الفاتورة
-                                    </label>
-                                    <textarea
-                                        value={localSettings?.invoice_footer_message || ''}
-                                        onChange={(e) => handleChange('invoice_footer_message', e.target.value)}
-                                        rows={3}
-                                        className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-semibold resize-none"
-                                        placeholder="مثال: نشكركم لزيارتكم، نتمنى لكم يوماً سعيداً ونسعد برؤيتكم دائماً!"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-md">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-md">
                                     <div className="flex items-center gap-4">
                                         <div
                                             className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
@@ -581,6 +855,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         )}
+
                     </form>
                 </div>
             </main>

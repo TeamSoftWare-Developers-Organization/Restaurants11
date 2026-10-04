@@ -25,6 +25,19 @@ class RestaurantSettings(models.Model):
     is_delivery_enabled = models.BooleanField(default=True)
     default_delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
 
+    # Invoice & Printing Templates
+    sales_invoice_template = models.CharField(max_length=50, default="thermal_80mm", verbose_name="قالب فاتورة المبيعات")
+    purchase_invoice_template = models.CharField(max_length=50, default="classic_clean", verbose_name="قالب فاتورة المشتريات")
+    purchase_return_template = models.CharField(max_length=50, default="standard_voucher", verbose_name="قالب سند مرتجع الشراء")
+    auto_print_on_checkout = models.BooleanField(default=False, verbose_name="طباعة تلقائية فور الدفع")
+    show_logo_sales = models.BooleanField(default=True, verbose_name="إظهار الشعار في فواتير المبيعات")
+    show_logo_purchases = models.BooleanField(default=True, verbose_name="إظهار الشعار في فواتير المشتريات")
+    show_logo_returns = models.BooleanField(default=True, verbose_name="إظهار الشعار في سندات المرتجع")
+    show_qr_code = models.BooleanField(default=True, verbose_name="إظهار رمز الاستجابة السريعة QR Code")
+    sales_invoice_terms = models.TextField(null=True, blank=True, default="الأسعار تشمل ضريبة القيمة المضافة إن وجدت • البضاعة المباعة تستبدل خلال 24 ساعة", verbose_name="شروط وسياسة فاتورة المبيعات")
+    purchase_invoice_terms = models.TextField(null=True, blank=True, default="تم فحص واستلام البضاعة بحالة جيدة ومطابقتها لأمر الشراء", verbose_name="ملاحظات وشروط فاتورة الشراء")
+    purchase_return_terms = models.TextField(null=True, blank=True, default="يعتبر هذا السند إشعار خصم رسمي معتمد لتسوية حساب المورد", verbose_name="شروط سند مرتجع المشتريات")
+
     def save(self, *args, **kwargs):
         if not self.pk and RestaurantSettings.objects.exists():
             raise ValidationError("There can be only one RestaurantSettings instance")

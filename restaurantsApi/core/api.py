@@ -22,6 +22,17 @@ class RestaurantSettingsIn(Schema):
     invoice_footer_message: Optional[str] = None
     is_delivery_enabled: bool = True
     default_delivery_fee: float = 0.0
+    sales_invoice_template: str = "thermal_80mm"
+    purchase_invoice_template: str = "classic_clean"
+    purchase_return_template: str = "standard_voucher"
+    auto_print_on_checkout: bool = False
+    show_logo_sales: bool = True
+    show_logo_purchases: bool = True
+    show_logo_returns: bool = True
+    show_qr_code: bool = True
+    sales_invoice_terms: Optional[str] = None
+    purchase_invoice_terms: Optional[str] = None
+    purchase_return_terms: Optional[str] = None
 
 class RestaurantSettingsOut(RestaurantSettingsIn):
     logo: Optional[str] = None

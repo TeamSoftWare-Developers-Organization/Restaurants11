@@ -38,7 +38,9 @@ import { reservationService, Table } from '@/services/reservationService';
 import { treasuryService } from '@/services/treasuryService';
 import { getFullUrl } from '@/lib/api';
 import { useUIStore } from '@/store/uiStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { confirmDialog, alertDialog } from '@/store/modalStore';
+import SalesInvoiceDocument from '@/components/invoices/SalesInvoiceDocument';
 
 // Pastel color badges matching SimplePOS mockup
 const PASTEL_PALETTES = [
@@ -136,6 +138,7 @@ function getCategoryColor(catName?: string) {
 export default function POSPage() {
     const { isSidebarCollapsed } = useUIStore();
     const { isLoggedIn, user, activeShift, setActiveShift } = useAuthStore();
+    const { settings } = useSettingsStore();
     const { items, addItem, removeItem, updateQuantity, updateItemNotes, clearCart, setCartItems, getTotals } = useCartStore();
     const router = useRouter();
     const isOrderLoadedManually = useRef(false);
@@ -1437,48 +1440,30 @@ export default function POSPage() {
                 </div>
             </Modal>
 
-            {/* HIDDEN PRINTABLE RECEIPT */}
-            <div id="printable-receipt" style={{ display: 'none' }}>
-                <div className="text-center mb-4 border-b pb-4" style={{ borderColor: '#eee' }}>
-                    <h1 className="text-xl font-bold">نظام إدارة المطعم</h1>
-                    <p className="text-sm font-bold opacity-70">فاتورة مبيعات</p>
-                    <div className="flex justify-between text-[10px] mt-4 font-bold">
-                        <span>رقم الطلب: #{lastOrder?.id || '---'}</span>
-                        <span>التاريخ: {new Date().toLocaleDateString('en-GB')}</span>
-                    </div>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                    {items.map((item) => (
-                        <div key={item.id} className="text-xs font-bold py-1 border-b border-gray-100">
-                            <div className="flex justify-between">
-                                <span>{item.name} x {item.quantity}</span>
-                                <span>{(item.price * item.quantity).toFixed(2)} د.ل</span>
-                            </div>
-                            {item.notes && (
-                                <div className="text-[10px] text-gray-600 font-normal pr-1">
-                                    * ملاحظة: {item.notes}
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="border-t pt-2 space-y-1" style={{ borderColor: '#eee' }}>
-                    <div className="flex justify-between text-xs font-bold">
-                        <span>المجموع الفرعي:</span>
-                        <span>{subtotal.toFixed(2)} د.ل</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold pt-1 border-t mt-1" style={{ borderColor: '#eee' }}>
-                        <span>الإجمالي التام:</span>
-                        <span>{total.toFixed(2)} د.ل</span>
-                    </div>
-                </div>
-
-                <div className="mt-8 text-center text-[10px] font-bold border-t pt-4" style={{ borderColor: '#eee' }}>
-                    <p>شكراً لزيارتكم!</p>
-                    <p className="mt-1 opacity-50">نظام إدارة المطاعم الذكي</p>
-                </div>
+            {/* DYNAMIC PRINTABLE RECEIPT */}
+            <div id="printable-receipt" className="hidden print:block">
+                <SalesInvoiceDocument
+                    settings={settings}
+                    invoiceData={{
+                        orderId: lastOrder?.id || currentOrder?.id || '---',
+                        orderDate: (lastOrder as any)?.created_at || (currentOrder as any)?.created_at || new Date().toISOString(),
+                        orderType: orderType,
+                        tableNumber: selectedTableId ? `طاولة ${tables.find(t => t.id === selectedTableId)?.table_number || ''}` : undefined,
+                        items: items.map(it => ({
+                            id: it.id,
+                            name: it.name,
+                            quantity: it.quantity,
+                            price: it.price,
+                            notes: it.notes,
+                        })),
+                        subtotal: subtotal,
+                        taxRate: settings?.tax_rate || 0,
+                        taxAmount: settings?.tax_rate ? (subtotal * settings.tax_rate) / 100 : 0,
+                        total: total,
+                        paymentMethod: 'cash',
+                        cardProvider: undefined,
+                    }}
+                />
             </div>
 
             <ShiftModal
@@ -1559,6 +1544,11 @@ export default function POSPage() {
             await orderService.updateOrder(orderToPay.id, { status: 'completed' });
 
             setShowSuccessModal(true);
+            if (settings?.auto_print_on_checkout) {
+                setTimeout(() => {
+                    window.print();
+                }, 400);
+            }
             clearCart();
             setCurrentOrder(null);
             setInvoiceIssued(false);

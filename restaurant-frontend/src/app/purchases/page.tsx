@@ -5,8 +5,10 @@ import api from "@/services/api";
 import { Sidebar } from "@/components";
 import { useUIStore } from "@/store/uiStore";
 import { useAuthStore } from "@/store/authStore";
+import { useSettingsStore } from "@/store/settingsStore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PurchaseInvoiceDocument from "@/components/invoices/PurchaseInvoiceDocument";
 import {
   FileText,
   Plus,
@@ -61,6 +63,7 @@ interface PurchaseInvoice {
 export default function PurchasesPage() {
   const { isSidebarCollapsed } = useUIStore();
   const { isLoggedIn } = useAuthStore();
+  const { settings } = useSettingsStore();
   const router = useRouter();
 
   const [isClient, setIsClient] = useState(false);
@@ -391,7 +394,7 @@ export default function PurchasesPage() {
 
         {/* Modal تفاصيل ومعاينة الفاتورة للطباعة */}
         {selectedInvoice && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200 no-print">
             <div className="bg-white dark:bg-[#131b2e] border border-gray-100 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
               {/* Header Modal */}
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-slate-800">
@@ -501,6 +504,16 @@ export default function PurchasesPage() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Printable Purchase Invoice Document */}
+        {selectedInvoice && (
+          <div id="printable-purchase-invoice" className="hidden print:block">
+            <PurchaseInvoiceDocument
+              settings={settings}
+              invoiceData={selectedInvoice}
+            />
           </div>
         )}
       </main>
