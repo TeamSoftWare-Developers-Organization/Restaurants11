@@ -20,6 +20,7 @@ import { menuService, MenuItem, Category, isLiquidOrDrink } from '@/services/men
 import { inventoryService, Ingredient, RecipeIngredient } from '@/services/inventoryService';
 import { ChefHat } from 'lucide-react';
 import { getFullUrl } from '@/lib/api';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 export default function MenuPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -169,12 +170,24 @@ export default function MenuPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (confirm('هل أنت متأكد من حذف هذا الصنف؟')) {
+        const confirmed = await confirmDialog({
+            title: 'حذف صنف من القائمة',
+            message: 'هل أنت متأكد من حذف هذا الصنف؟ سيتم حذفه من قائمة الوجبات.',
+            confirmText: 'نعم، حذف الصنف',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (confirmed) {
             try {
                 await menuService.deleteMenuItem(id);
                 fetchData();
             } catch (err) {
                 console.error('Delete failed', err);
+                await alertDialog({
+                    title: 'فشل الحذف',
+                    message: 'حدث خطأ أثناء محاولة حذف هذا الصنف، يرجى المحاولة مرة أخرى.',
+                    variant: 'error',
+                });
             }
         }
     };
@@ -265,31 +278,31 @@ export default function MenuPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen transition-colors duration-300 min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 ${isSidebarCollapsed ? 'lg:pr-20' : 'lg:pr-80'} min-h-screen p-6 lg:p-8 transition-all duration-300`}>
+            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300`}>
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-600/20">
-                            <ChefHat className="text-white w-5 h-5" />
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                    <div className="flex items-center gap-3.5 sm:gap-4">
+                        <div className="w-10 sm:w-11 h-10 sm:h-11 bg-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-600/20 shrink-0">
+                            <ChefHat className="text-white w-5 sm:w-6 h-5 sm:h-6" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">قائمة الطعام</h1>
-                            <p className="text-gray-400 dark:text-gray-500 text-[13px] font-bold opacity-70">إدارة الأصناف والأسعار</p>
+                            <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">قائمة الطعام</h1>
+                            <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-[13px] font-bold opacity-70">إدارة الأصناف والأسعار</p>
                         </div>
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="group flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-xl shadow-lg shadow-violet-600/15 active:scale-95 transition-all font-black text-xs"
+                        className="group flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-violet-600/15 active:scale-95 transition-all font-black text-xs w-full sm:w-auto cursor-pointer"
                     >
                         <Plus className="w-4 h-4" />
                         إضافة صنف
                     </button>
                 </header>
 
-                <section className="bg-card dark:bg-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/40 overflow-hidden">
+                <section className="bg-card dark:bg-card rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800/40 overflow-hidden">
                     {/* Filter and Search Bar */}
                     <div className="p-6 border-b border-gray-50 dark:border-gray-800/30 flex flex-col md:flex-row items-center justify-between gap-4">
                         {/* Type Tabs: All / Food / Drinks */}
@@ -342,7 +355,7 @@ export default function MenuPage() {
                     </div>
 
                     <div className="overflow-x-auto text-sm">
-                        <table className="w-full text-right" dir="rtl">
+                        <table className="w-full min-w-[650px] text-right" dir="rtl">
                             <thead>
                                 <tr className="bg-gray-50/30 dark:bg-gray-900/20 border-b border-gray-50 dark:border-gray-800/40">
                                     <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">الصنف والنوع</th>

@@ -19,12 +19,18 @@ import {
     X,
     Lock,
     Key,
-    RotateCcw
+    RotateCcw,
+    Fingerprint,
+    Upload,
+    CheckCircle2,
+    AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { employeeService, Employee, AVAILABLE_PERMISSIONS, UserPermissions } from '@/services/employeeService';
+import { attendanceService } from '@/services/attendanceService';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 export default function EmployeesPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -56,6 +62,14 @@ export default function EmployeesPage() {
     const [tempPermissions, setTempPermissions] = useState<UserPermissions>({});
     const [isSavingPerms, setIsSavingPerms] = useState(false);
 
+    // Fingerprint Enrollment Modal
+    const [selectedEmpForFingerprint, setSelectedEmpForFingerprint] = useState<Employee | null>(null);
+    const [isFingerprintModalOpen, setIsFingerprintModalOpen] = useState(false);
+    const [isEnrollingFingerprint, setIsEnrollingFingerprint] = useState(false);
+    const [enrollMsg, setEnrollMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [enrollPreviewUrl, setEnrollPreviewUrl] = useState<string | null>(null);
+    const [enrollFile, setEnrollFile] = useState<File | null>(null);
+
     useEffect(() => {
         setIsClient(true);
         if (!isLoggedIn) {
@@ -80,11 +94,12 @@ export default function EmployeesPage() {
     const handleOpenModal = (item?: Employee) => {
         if (item) {
             setEditingItem(item);
+            const cleanPhone = item.phone_number && !item.phone_number.includes('@') ? item.phone_number : '';
             setFormData({
                 first_name: item.first_name,
                 last_name: item.last_name,
                 role: item.role,
-                phone_number: item.phone_number || '',
+                phone_number: cleanPhone,
                 username: item.username,
                 password: '' // Don't show password
             });
@@ -121,12 +136,24 @@ export default function EmployeesPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
+        const confirmed = await confirmDialog({
+            title: 'حذف الموظف',
+            message: 'هل أنت متأكد من حذف هذا الموظف؟ لا يمكن التراجع عن هذا الإجراء.',
+            confirmText: 'نعم، حذف الموظف',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (confirmed) {
             try {
                 await employeeService.deleteEmployee(id);
                 fetchEmployees();
             } catch (err) {
                 console.error('Delete failed', err);
+                await alertDialog({
+                    title: 'خطأ في الحذف',
+                    message: 'حدث خطأ أثناء محاولة حذف الموظف، يرجى المحاولة مرة أخرى.',
+                    variant: 'error',
+                });
             }
         }
     };
@@ -165,9 +192,48 @@ export default function EmployeesPage() {
             fetchEmployees();
         } catch (err) {
             console.error('Failed to update permissions', err);
-            alert('حدث خطأ أثناء حفظ الصلاحيات');
+            await alertDialog({
+                title: 'خطأ في الحفظ',
+                message: 'حدث خطأ أثناء حفظ الصلاحيات',
+                variant: 'error',
+            });
         } finally {
             setIsSavingPerms(false);
+        }
+    };
+
+    // Fingerprint Modal Handlers
+    const handleOpenFingerprintModal = (emp: Employee) => {
+        setSelectedEmpForFingerprint(emp);
+        setEnrollMsg(null);
+        setEnrollPreviewUrl(null);
+        setEnrollFile(null);
+        setIsFingerprintModalOpen(true);
+    };
+
+    const handleEnrollFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setEnrollFile(file);
+            setEnrollPreviewUrl(URL.createObjectURL(file));
+            setEnrollMsg(null);
+        }
+    };
+
+    const handleEnrollFingerprint = async () => {
+        if (!selectedEmpForFingerprint || !enrollFile) return;
+        try {
+            setIsEnrollingFingerprint(true);
+            setEnrollMsg(null);
+            const res = await attendanceService.enrollFingerprint(selectedEmpForFingerprint.id, enrollFile);
+            setEnrollMsg({ type: 'success', text: res.message || 'تم تسجيل البصمة بنجاح عبر TensorFlow!' });
+            fetchEmployees();
+        } catch (err: any) {
+            console.error('Enrollment error:', err);
+            const errorText = err.response?.data?.detail || err.message || 'فشل تسجيل بصمة الإصبع';
+            setEnrollMsg({ type: 'error', text: errorText });
+        } finally {
+            setIsEnrollingFingerprint(false);
         }
     };
 
@@ -201,58 +267,58 @@ export default function EmployeesPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen transition-colors duration-300 overflow-x-hidden min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 ${isSidebarCollapsed ? 'lg:pr-20' : 'lg:pr-64'} min-h-screen p-4 md:p-8 transition-all duration-300`}>
+            <main className={`flex-1 min-w-0 w-full mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 transition-all duration-300 overflow-x-hidden`}>
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/10 border border-blue-500/20">
-                            <Users className="w-6 h-6" />
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3.5 sm:gap-4">
+                        <div className="w-10 sm:w-12 h-10 sm:h-12 bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/10 border border-blue-500/20 shrink-0">
+                            <Users className="w-5 sm:w-6 h-5 sm:h-6" />
                         </div>
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">
                                 إدارة المستخدمين والصلاحيات
                             </h1>
-                            <p className="text-gray-400 dark:text-gray-500 text-xs md:text-sm font-bold opacity-80">
+                            <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm font-bold opacity-80">
                                 تعيين حسابات فريق العمل وتحديد صلاحيات الوصول لكل شاشة في النظام
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         {/* Tab Switcher */}
-                        <div className="bg-gray-100 dark:bg-gray-800/60 p-1 rounded-xl flex items-center gap-1 border border-gray-200/50 dark:border-gray-700/40">
+                        <div className="bg-gray-100 dark:bg-gray-800/60 p-1 rounded-xl flex items-center gap-1 border border-gray-200/50 dark:border-gray-700/40 flex-1 sm:flex-none">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('list')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                                     activeTab === 'list'
                                         ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-xs'
                                         : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                             >
                                 <Users className="w-3.5 h-3.5" />
-                                قائمة المستخدمين
+                                <span>قائمة المستخدمين</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('permissions')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                                     activeTab === 'permissions'
                                         ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-xs'
                                         : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                             >
                                 <Shield className="w-3.5 h-3.5" />
-                                مصفوفة الصلاحيات
+                                <span>مصفوفة الصلاحيات</span>
                             </button>
                         </div>
 
                         <button
                             onClick={() => handleOpenModal()}
-                            className="group flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl shadow-lg shadow-blue-600/15 active:scale-95 transition-all font-black text-xs"
+                            className="flex-1 sm:flex-none group flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl shadow-lg shadow-blue-600/15 active:scale-95 transition-all font-black text-xs cursor-pointer"
                         >
                             <Plus className="w-4 h-4" />
                             مستخدم جديد
@@ -281,21 +347,22 @@ export default function EmployeesPage() {
                         </div>
 
                         <div className="overflow-x-auto text-sm">
-                            <table className="w-full text-right" dir="rtl">
+                            <table className="w-full min-w-[700px] text-right" dir="rtl">
                                 <thead>
                                     <tr className="bg-gray-50/40 dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-800/40">
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">المستخدم</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الدور الوظيفي</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الهاتف</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الصلاحيات الممنوحة</th>
+                                        <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest text-center">بصمة الإصبع</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest text-center">الإجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50 dark:divide-gray-800/30">
                                     {isLoading ? (
-                                        <tr><td colSpan={5} className="p-8 text-center text-gray-400 font-bold italic">جاري التحميل...</td></tr>
+                                        <tr><td colSpan={6} className="p-8 text-center text-gray-400 font-bold italic">جاري التحميل...</td></tr>
                                     ) : filteredEmployees.length === 0 ? (
-                                        <tr><td colSpan={5} className="p-8 text-center text-gray-400 font-bold">لا يوجد مستخدمون مطابقون.</td></tr>
+                                        <tr><td colSpan={6} className="p-8 text-center text-gray-400 font-bold">لا يوجد مستخدمون مطابقون.</td></tr>
                                     ) : filteredEmployees.map((employee) => {
                                         const grantedCount = Object.values(employee.permissions || {}).filter(Boolean).length;
 
@@ -327,8 +394,29 @@ export default function EmployeesPage() {
                                                         <span>{grantedCount} من {AVAILABLE_PERMISSIONS.length} أقسام</span>
                                                     </button>
                                                 </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenFingerprintModal(employee)}
+                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-black border transition-all ${
+                                                            employee.has_fingerprint
+                                                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-100/70'
+                                                                : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40 hover:bg-amber-100/70'
+                                                        }`}
+                                                    >
+                                                        <Fingerprint className="w-3.5 h-3.5" />
+                                                        <span>{employee.has_fingerprint ? 'بصمة مسجلة' : 'تسجيل بصمة'}</span>
+                                                    </button>
+                                                </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center items-center gap-2">
+                                                        <button
+                                                            onClick={() => handleOpenFingerprintModal(employee)}
+                                                            title={employee.has_fingerprint ? "تحديث البصمة" : "تسجيل بصمة"}
+                                                            className="p-2 bg-purple-50/60 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 rounded-xl hover:scale-105 transition-all border border-purple-100 dark:border-purple-900/30"
+                                                        >
+                                                            <Fingerprint className="w-4 h-4" />
+                                                        </button>
                                                         <button
                                                             onClick={() => handleOpenPermissionsModal(employee)}
                                                             title="تعديل الصلاحيات"
@@ -376,28 +464,32 @@ export default function EmployeesPage() {
                             </div>
                         </div>
 
-                        <div className="bg-card dark:bg-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/40 overflow-x-auto">
+                        <div className="bg-card dark:bg-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/40 overflow-x-auto w-full max-w-full scrollbar-thin">
                             <table className="w-full text-right text-xs" dir="rtl">
                                 <thead>
                                     <tr className="bg-gray-50/50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-800">
-                                        <th className="p-4 font-black text-gray-700 dark:text-gray-300 min-w-[160px]">المستخدم</th>
-                                        <th className="p-4 font-black text-gray-700 dark:text-gray-300 min-w-[100px]">الدور</th>
+                                        <th className="p-3.5 font-black text-gray-700 dark:text-gray-300 min-w-[135px] sticky right-0 z-20 bg-gray-50 dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+                                            المستخدم
+                                        </th>
+                                        <th className="p-3.5 font-black text-gray-700 dark:text-gray-300 min-w-[90px] sticky right-[135px] z-20 bg-gray-50 dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+                                            الدور
+                                        </th>
                                         {AVAILABLE_PERMISSIONS.map(p => (
-                                            <th key={p.key} className="p-3 text-center font-black text-gray-500 dark:text-gray-400 min-w-[90px] whitespace-nowrap">
+                                            <th key={p.key} className="p-2.5 text-center font-bold text-gray-500 dark:text-gray-400 min-w-[72px] max-w-[85px] text-[10.5px] leading-tight">
                                                 {p.label}
                                             </th>
                                         ))}
-                                        <th className="p-4 text-center font-black text-gray-700 dark:text-gray-300 min-w-[80px]">تعديل</th>
+                                        <th className="p-3 text-center font-black text-gray-700 dark:text-gray-300 min-w-[60px]">تعديل</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50 dark:divide-gray-800/30">
                                     {employeesData.map(emp => (
                                         <tr key={emp.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-900/20">
-                                            <td className="p-4">
-                                                <div className="font-black text-gray-900 dark:text-gray-100">{emp.first_name} {emp.last_name}</div>
-                                                <div className="text-[10px] text-gray-400 font-bold">@{emp.username}</div>
+                                            <td className="p-3.5 sticky right-0 z-10 bg-card border-l border-gray-50 dark:border-gray-800/40 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
+                                                <div className="font-black text-gray-900 dark:text-gray-100 truncate max-w-[125px]">{emp.first_name} {emp.last_name}</div>
+                                                <div className="text-[10px] text-gray-400 font-bold truncate max-w-[125px]">@{emp.username}</div>
                                             </td>
-                                            <td className="p-4">
+                                            <td className="p-3.5 sticky right-[135px] z-10 bg-card border-l border-gray-50 dark:border-gray-800/40 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
                                                 <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${getRoleBadgeStyle(emp.role)}`}>
                                                     {getRoleName(emp.role)}
                                                 </span>
@@ -405,20 +497,20 @@ export default function EmployeesPage() {
                                             {AVAILABLE_PERMISSIONS.map(p => {
                                                 const hasPerm = emp.role === 'manager' || !!(emp.permissions && emp.permissions[p.key]);
                                                 return (
-                                                    <td key={p.key} className="p-3 text-center">
+                                                    <td key={p.key} className="p-2 text-center">
                                                         {hasPerm ? (
-                                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800/40">
-                                                                <Check className="w-3.5 h-3.5" />
+                                                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800/40">
+                                                                <Check className="w-3 h-3" />
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-800/40 text-gray-300 dark:text-gray-600">
-                                                                <X className="w-3.5 h-3.5" />
+                                                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-50 dark:bg-gray-800/40 text-gray-300 dark:text-gray-600">
+                                                                <X className="w-3 h-3" />
                                                             </span>
                                                         )}
                                                     </td>
                                                 );
                                             })}
-                                            <td className="p-4 text-center">
+                                            <td className="p-3 text-center">
                                                 <button
                                                     onClick={() => handleOpenPermissionsModal(emp)}
                                                     className="p-1.5 bg-blue-50 dark:bg-blue-950/30 text-blue-600 hover:bg-blue-100 rounded-lg transition-all"
@@ -527,13 +619,95 @@ export default function EmployeesPage() {
                 </div>
             </Modal>
 
+            {/* Fingerprint Enrollment Modal */}
+            <Modal
+                isOpen={isFingerprintModalOpen}
+                onClose={() => setIsFingerprintModalOpen(false)}
+                title={`تسجيل بصمة الإصبع - ${selectedEmpForFingerprint ? selectedEmpForFingerprint.first_name + ' ' + selectedEmpForFingerprint.last_name : ''}`}
+            >
+                <div className="space-y-4" dir="rtl">
+                    <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl text-xs text-blue-700 dark:text-blue-300">
+                        <p className="font-bold flex items-center gap-2">
+                            <Fingerprint className="w-4 h-4 text-blue-600" />
+                            تسجيل البصمة الرقمية للتعرف الآلي (TensorFlow CNN)
+                        </p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                            قم برفع صورة بصمة الإصبع الخام (من الماسح الضوئي أو ملف). سيقوم النموذج باستخراج مصفوفة الميزات (128-d Vector) وحفظها لمطابقة الحضور والانصراف بدقة.
+                        </p>
+                    </div>
+
+                    {/* Upload / Scanner input */}
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500 rounded-2xl p-6 transition-all bg-gray-50/40 dark:bg-gray-900/30">
+                        {enrollPreviewUrl ? (
+                            <div className="relative group flex flex-col items-center">
+                                <img
+                                    src={enrollPreviewUrl}
+                                    alt="Fingerprint Preview"
+                                    className="w-36 h-36 object-contain rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm bg-black/5"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => { setEnrollFile(null); setEnrollPreviewUrl(null); }}
+                                    className="mt-2 text-xs font-bold text-rose-500 hover:underline"
+                                >
+                                    إلغاء واختيار صورة أخرى
+                                </button>
+                            </div>
+                        ) : (
+                            <label className="flex flex-col items-center cursor-pointer">
+                                <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 mb-2">
+                                    <Upload className="w-6 h-6" />
+                                </div>
+                                <span className="text-xs font-black text-gray-800 dark:text-gray-200">اختر صورة البصمة من الماسح أو الجهاز</span>
+                                <span className="text-[10px] text-gray-400 font-bold mt-1">PNG, JPG, BMP مدعومة</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleEnrollFileChange}
+                                    className="hidden"
+                                />
+                            </label>
+                        )}
+                    </div>
+
+                    {/* Status Messages */}
+                    {enrollMsg && (
+                        <div className={`p-3 rounded-xl flex items-center gap-2 text-xs font-bold ${
+                            enrollMsg.type === 'success'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
+                                : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40'
+                        }`}>
+                            {enrollMsg.type === 'success' ? (
+                                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                            ) : (
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                            )}
+                            <span>{enrollMsg.text}</span>
+                        </div>
+                    )}
+
+                    {/* Submit */}
+                    <div className="pt-2">
+                        <button
+                            type="button"
+                            disabled={!enrollFile || isEnrollingFingerprint}
+                            onClick={handleEnrollFingerprint}
+                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                        >
+                            <Fingerprint className="w-4 h-4" />
+                            {isEnrollingFingerprint ? 'جاري استخراج وتحليل البصمة عبر TensorFlow...' : 'حفظ وتسجيل البصمة'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Employee Add/Edit Modal */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 title={editingItem ? 'تعديل بيانات موظف' : 'إضافة موظف جديد'}
             >
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الاسم الأول</label>
@@ -541,6 +715,7 @@ export default function EmployeesPage() {
                                 type="text"
                                 value={formData.first_name}
                                 onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                autoComplete="given-name"
                                 className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                                 required
                             />
@@ -551,6 +726,7 @@ export default function EmployeesPage() {
                                 type="text"
                                 value={formData.last_name}
                                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                autoComplete="family-name"
                                 className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                                 required
                             />
@@ -563,6 +739,7 @@ export default function EmployeesPage() {
                                 type="text"
                                 value={formData.username}
                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                autoComplete="username"
                                 className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                                 required
                             />
@@ -583,13 +760,14 @@ export default function EmployeesPage() {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">رقم الهاتف</label>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">رقم الهاتف (اختياري)</label>
                         <input
-                            type="text"
+                            type="tel"
                             value={formData.phone_number}
                             onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                            autoComplete="tel"
                             className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
-                            placeholder="050XXXXXXXX"
+                            placeholder="09XXXXXXXX (اختياري)"
                         />
                     </div>
                     <div className="space-y-1">
@@ -598,6 +776,7 @@ export default function EmployeesPage() {
                             type="password"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            autoComplete="new-password"
                             className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                             required={!editingItem}
                         />

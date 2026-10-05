@@ -1,29 +1,57 @@
-from ninja import Router, Schema
+from ninja import Router, Schema, File, UploadedFile
 from typing import Optional
 from .models import RestaurantSettings
 from ninja_jwt.authentication import JWTAuth
+import os
 
 core_router = Router(tags=["الإعدادات العامة"])
 
-class RestaurantSettingsSchema(Schema):
+class RestaurantSettingsIn(Schema):
     name: str
+    owner_name: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
-    currency: str
-    tax_rate: float
+    secondary_phone: Optional[str] = None
+    email: Optional[str] = None
+    tax_number: Optional[str] = None
+    commercial_record: Optional[str] = None
+    bio: Optional[str] = None
+    website: Optional[str] = None
+    currency: str = "د.ل"
+    tax_rate: float = 0.0
     invoice_footer_message: Optional[str] = None
-    is_delivery_enabled: bool
-    default_delivery_fee: float
+    is_delivery_enabled: bool = True
+    default_delivery_fee: float = 0.0
+    sales_invoice_template: str = "thermal_80mm"
+    purchase_invoice_template: str = "classic_clean"
+    purchase_return_template: str = "standard_voucher"
+    auto_print_on_checkout: bool = False
+    show_logo_sales: bool = True
+    show_logo_purchases: bool = True
+    show_logo_returns: bool = True
+    show_qr_code: bool = True
+    sales_invoice_terms: Optional[str] = None
+    purchase_invoice_terms: Optional[str] = None
+    purchase_return_terms: Optional[str] = None
 
-@core_router.get("/", response=RestaurantSettingsSchema)
+class RestaurantSettingsOut(RestaurantSettingsIn):
+    logo: Optional[str] = None
+
+    @staticmethod
+    def resolve_logo(obj):
+        if obj.logo and hasattr(obj.logo, 'url'):
+            return obj.logo.url
+        return None
+
+@core_router.get("/", response=RestaurantSettingsOut)
 def get_settings(request):
     """
     جلب إعدادات المطعم.
     """
     return RestaurantSettings.load()
 
-@core_router.put("/", response=RestaurantSettingsSchema, auth=JWTAuth())
-def update_settings(request, data: RestaurantSettingsSchema):
+@core_router.put("/", response=RestaurantSettingsOut, auth=JWTAuth())
+def update_settings(request, data: RestaurantSettingsIn):
     """
     تحديث إعدادات المطعم (يتطلب صلاحيات).
     """
@@ -31,4 +59,36 @@ def update_settings(request, data: RestaurantSettingsSchema):
     for attr, value in data.dict().items():
         setattr(settings, attr, value)
     settings.save()
+    return settings
+
+@core_router.post("/logo/", response=RestaurantSettingsOut, auth=JWTAuth())
+def upload_logo(request, file: UploadedFile = File(...)):
+    """
+    رفع شعار المطعم.
+    """
+    settings = RestaurantSettings.load()
+    if settings.logo:
+        try:
+            if os.path.isfile(settings.logo.path):
+                os.remove(settings.logo.path)
+        except Exception:
+            pass
+    settings.logo = file
+    settings.save()
+    return settings
+
+@core_router.delete("/logo/", response=RestaurantSettingsOut, auth=JWTAuth())
+def delete_logo(request):
+    """
+    حذف شعار المطعم.
+    """
+    settings = RestaurantSettings.load()
+    if settings.logo:
+        try:
+            if os.path.isfile(settings.logo.path):
+                os.remove(settings.logo.path)
+        except Exception:
+            pass
+        settings.logo = None
+        settings.save()
     return settings

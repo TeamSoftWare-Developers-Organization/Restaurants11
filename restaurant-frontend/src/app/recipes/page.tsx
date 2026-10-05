@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { menuService, MenuItem, isLiquidOrDrink } from '@/services/menuService';
 import { inventoryService, Ingredient, RecipeIngredient } from '@/services/inventoryService';
 import { getFullUrl } from '@/lib/api';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
 
 export default function RecipesPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -144,14 +145,25 @@ export default function RecipesPage() {
             setNewQuantity('');
         } catch (err: any) {
             console.error('Failed to add ingredient to recipe', err);
-            alert(err?.response?.data?.message || 'حدث خطأ أثناء إضافة المكون إلى الوصفة.');
+            await alertDialog({
+                title: 'خطأ في إضافة المكون',
+                message: err?.response?.data?.message || 'حدث خطأ أثناء إضافة المكون إلى الوصفة.',
+                variant: 'error',
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleRemoveIngredient = async (id: number) => {
-        if (!confirm('هل تريد بالتأكيد إزالة هذا المكون من وصفة الوجبة؟')) return;
+        const confirmed = await confirmDialog({
+            title: 'إزالة المكون من الوصفة',
+            message: 'هل تريد بالتأكيد إزالة هذا المكون من وصفة الوجبة؟',
+            confirmText: 'نعم، إزالة المكون',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (!confirmed) return;
         try {
             await inventoryService.removeIngredientFromRecipe(id);
             if (selectedMenuItem) {
@@ -162,6 +174,11 @@ export default function RecipesPage() {
             }
         } catch (err) {
             console.error('Failed to remove ingredient', err);
+            await alertDialog({
+                title: 'فشل الإزالة',
+                message: 'حدث خطأ أثناء إزالة المكون، يرجى المحاولة مرة أخرى.',
+                variant: 'error',
+            });
         }
     };
 
@@ -194,21 +211,21 @@ export default function RecipesPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen transition-colors duration-300 min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 ${isSidebarCollapsed ? 'lg:pr-20' : 'lg:pr-64'} min-h-screen p-4 md:p-8 transition-all duration-300`}>
+            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300`}>
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/10 border border-amber-500/20">
-                            <CookingPot className="w-6 h-6" />
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3.5 sm:gap-4">
+                        <div className="w-10 sm:w-12 h-10 sm:h-12 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/10 border border-amber-500/20 shrink-0">
+                            <CookingPot className="w-5 sm:w-6 h-5 sm:h-6" />
                         </div>
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">
                                 تحضير وصفات الطعام
                             </h1>
-                            <p className="text-gray-400 dark:text-gray-500 text-xs md:text-sm font-bold opacity-80">
+                            <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm font-bold opacity-80">
                                 ربط مكونات المخزون بالوجبات وحساب تكلفة التحضير وهامش الربح
                             </p>
                         </div>
@@ -216,7 +233,7 @@ export default function RecipesPage() {
 
                     <button
                         onClick={() => router.push('/menu')}
-                        className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-xl font-black text-xs transition-all self-start md:self-auto"
+                        className="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-xl font-black text-xs transition-all w-full sm:w-auto cursor-pointer"
                     >
                         <Utensils className="w-4 h-4 text-violet-500" />
                         إدارة قائمة الطعام
@@ -227,7 +244,7 @@ export default function RecipesPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     
                     {/* Left Column: Menu Items Selection List (4 cols) */}
-                    <div className="lg:col-span-4 bg-card dark:bg-card rounded-2xl border border-gray-100 dark:border-gray-800/40 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-180px)]">
+                    <div className="lg:col-span-4 bg-card dark:bg-card rounded-2xl border border-gray-100 dark:border-gray-800/40 shadow-xs overflow-hidden flex flex-col h-[320px] sm:h-[420px] lg:h-[calc(100vh-180px)]">
                         <div className="p-4 border-b border-gray-100 dark:border-gray-800/40 bg-gray-50/50 dark:bg-gray-900/30">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-xs font-black text-gray-900 dark:text-white flex items-center gap-2">

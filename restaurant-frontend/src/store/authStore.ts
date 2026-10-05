@@ -30,7 +30,7 @@ interface AuthState {
     isLoading: boolean;
     error: string | null;
     activeShift: Shift | null;
-    login: (email: string, password?: string) => Promise<boolean>;
+    login: (username: string, password?: string) => Promise<boolean>;
     logout: () => void;
     checkAuth: () => Promise<void>;
     hasPermission: (key: string) => boolean;
@@ -46,10 +46,14 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
             activeShift: null,
-            login: async (email: string, password?: string) => {
+            login: async (username: string, password?: string) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await api.post('/auth/login/', { email, password });
+                    const response = await api.post('/auth/login/', { 
+                        username: username.trim(),
+                        email: username.trim(),
+                        password 
+                    });
                     const { access } = response.data;
 
                     set({ token: access, isLoggedIn: true });
@@ -73,7 +77,7 @@ export const useAuthStore = create<AuthState>()(
                 } catch (err: any) {
                     set({
                         isLoading: false,
-                        error: err.response?.data?.message || 'فشل تسجيل الدخول'
+                        error: err.response?.data?.message || 'بيانات الدخول غير صحيحة. يرجى التأكد من اسم المستخدم وكلمة المرور.'
                     });
                     return false;
                 }

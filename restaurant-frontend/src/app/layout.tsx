@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "نظام شامل لإدارة المطاعم، الموظفين، المخزون، والطلبات",
 };
 
-import { ThemeProvider } from "@/components";
+import { ThemeProvider, GlobalModals } from "@/components";
 import { SettingsInitializer } from "@/components/SettingsInitializer";
 
 export default function RootLayout({
@@ -27,6 +27,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <SettingsInitializer />
           {children}
+          <GlobalModals />
         </ThemeProvider>
       </body>
     </html>

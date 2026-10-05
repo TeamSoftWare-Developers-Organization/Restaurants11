@@ -1,8 +1,9 @@
 # employees/api.py
 
-from ninja import Router, Schema
+from ninja import Router, Schema, File, UploadedFile
 from typing import List, Optional
 from .models import Employee
+from .services.fingerprint_ml import extract_fingerprint_embedding
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db import transaction
@@ -34,6 +35,7 @@ class EmployeeOut(Schema):
     hire_date: str # يمكن تحويله إلى str لسهولة العرض في API
     username: str
     permissions: Optional[dict] = None
+    has_fingerprint: bool = False
 
     @staticmethod
     def resolve_first_name(obj):
@@ -53,6 +55,10 @@ class EmployeeOut(Schema):
     @staticmethod
     def resolve_permissions(obj):
         return obj.get_effective_permissions()
+
+    @staticmethod
+    def resolve_has_fingerprint(obj):
+        return bool(obj.fingerprint_vector)
 
     @staticmethod
     def resolve_hire_date(obj):
@@ -152,3 +158,24 @@ def delete_employee(request, employee_id: int):
     else:
         employee.delete()
     return {"success": True}
+
+@employee_router.post("/{employee_id}/enroll-fingerprint/", response={200: dict, 400: dict})
+def enroll_fingerprint(request, employee_id: int, file: UploadedFile = File(...)):
+    """
+    تسجيل أو تحديث بصمة الموظف بواسطة استخراج ميزات TensorFlow وحفظ المتجه.
+    """
+    employee = get_object_or_404(Employee, id=employee_id)
+    try:
+        image_bytes = file.read()
+        vector = extract_fingerprint_embedding(image_bytes)
+        employee.fingerprint_vector = vector
+        employee.save(update_fields=['fingerprint_vector'])
+        return 200, {
+            "success": True,
+            "message": f"تم تسجيل بصمة الموظف {employee.name} بنجاح عبر نموذج الذكاء الاصطناعي.",
+            "employee_id": employee.id,
+            "employee_name": employee.name,
+            "vector_size": len(vector)
+        }
+    except Exception as e:
+        return 400, {"message": f"فشل استخراج البصمة: {str(e)}"}

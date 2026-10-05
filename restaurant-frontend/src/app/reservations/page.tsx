@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Sidebar, Modal } from '@/components';
 import {
     BadgeCheck,
@@ -17,12 +18,58 @@ import {
     Utensils,
     CheckCircle2,
     ChevronDown,
-    FileText
+    FileText,
+    Home,
+    TreePine,
+    ExternalLink,
+    RefreshCw,
+    Check,
+    XCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { reservationService, Reservation, Table } from '@/services/reservationService';
+import { confirmDialog, alertDialog } from '@/store/modalStore';
+
+const STATUS_OPTIONS = [
+    {
+        value: 'confirmed',
+        label: 'مؤكد',
+        description: 'تم تأكيد الحضور مع العميل',
+        icon: CheckCircle2,
+        dotColor: 'bg-emerald-500',
+        colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30',
+        badgeClass: 'bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-300/80 dark:border-emerald-800/60 hover:bg-emerald-500/20'
+    },
+    {
+        value: 'pending',
+        label: 'قيد الانتظار',
+        description: 'بانتظار التأكيد أو وصول الضيوف',
+        icon: Clock,
+        dotColor: 'bg-amber-500',
+        colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/30',
+        badgeClass: 'bg-amber-500/10 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-300/80 dark:border-amber-800/60 hover:bg-amber-500/20'
+    },
+    {
+        value: 'completed',
+        label: 'حاضر / جالس',
+        description: 'العميل استلم الطاولة وبدء الجلوس',
+        icon: Users,
+        dotColor: 'bg-sky-500',
+        colorClass: 'text-sky-500 bg-sky-500/10 border-sky-500/30',
+        badgeClass: 'bg-sky-500/10 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border-sky-300/80 dark:border-sky-800/60 hover:bg-sky-500/20'
+    },
+    {
+        value: 'cancelled',
+        label: 'ملغي',
+        description: 'تم إلغاء الحجز من العميل أو الإدارة',
+        icon: XCircle,
+        dotColor: 'bg-rose-500',
+        colorClass: 'text-rose-500 bg-rose-500/10 border-rose-500/30',
+        badgeClass: 'bg-rose-500/10 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-300/80 dark:border-rose-800/60 hover:bg-rose-500/20'
+    }
+];
 
 export default function ReservationsPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -37,9 +84,13 @@ export default function ReservationsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'today' | 'upcoming' | 'confirmed' | 'pending' | 'completed'>('today');
 
-    // Modal & Form State
+    // Quick Status Dropdown Popover
+    const [openStatusDropdownId, setOpenStatusDropdownId] = useState<number | null>(null);
+
+    // Modal & Form State for Reservation
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Reservation | null>(null);
+    const [reservationType, setReservationType] = useState<'internal' | 'external'>('internal');
     const [formData, setFormData] = useState<Partial<Reservation>>({
         customer_name: '',
         customer_phone: '',
@@ -48,6 +99,16 @@ export default function ReservationsPage() {
         status: 'confirmed',
         table_id: undefined,
         notes: ''
+    });
+
+    // Quick Add Table Modal State
+    const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+    const [isCreatingTable, setIsCreatingTable] = useState(false);
+    const [tableFormData, setTableFormData] = useState<Partial<Table>>({
+        table_number: '',
+        capacity: 4,
+        status: 'available',
+        location: ''
     });
 
     useEffect(() => {
@@ -80,6 +141,8 @@ export default function ReservationsPage() {
             setEditingItem(item);
             const date = new Date(item.reservation_time);
             const formattedTime = date.toISOString().slice(0, 16);
+            const isExt = !item.table || (item.notes && item.notes.startsWith('[حجز خارجي]'));
+            setReservationType(isExt ? 'external' : 'internal');
 
             setFormData({
                 customer_name: item.customer_name,
@@ -87,11 +150,12 @@ export default function ReservationsPage() {
                 reservation_time: formattedTime,
                 number_of_guests: item.number_of_guests,
                 status: item.status,
-                table_id: item.table?.id,
+                table_id: isExt ? undefined : item.table?.id,
                 notes: item.notes || ''
             });
         } else {
             setEditingItem(null);
+            setReservationType('internal');
             const defaultTime = new Date(Date.now() + 3600 * 1000).toISOString().slice(0, 16);
             setFormData({
                 customer_name: '',
@@ -109,27 +173,82 @@ export default function ReservationsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const submitData = {
+                ...formData,
+                table_id: reservationType === 'internal' ? formData.table_id : null,
+                notes: reservationType === 'external' 
+                    ? (formData.notes?.includes('[حجز خارجي]') ? formData.notes : `[حجز خارجي] ${formData.notes || ''}`.trim())
+                    : (formData.notes?.replace('[حجز خارجي]', '').trim() || '')
+            };
+
             if (editingItem) {
-                await reservationService.updateReservation(editingItem.id, formData);
+                await reservationService.updateReservation(editingItem.id, submitData);
             } else {
-                await reservationService.createReservation(formData);
+                await reservationService.createReservation(submitData);
             }
             setIsModalOpen(false);
             fetchData();
         } catch (err) {
             console.error('Save failed', err);
-            alert('حدث خطأ أثناء حفظ الحجز. يرجى التحقق من صحة المدخلات.');
+            await alertDialog({
+                title: 'خطأ في الحفظ',
+                message: 'حدث خطأ أثناء حفظ الحجز. يرجى التحقق من صحة المدخلات.',
+                variant: 'error',
+            });
+        }
+    };
+
+    const handleRefreshTables = async () => {
+        try {
+            const data = await reservationService.getTables();
+            setTables(data);
+        } catch (err) {
+            console.error('Failed to refresh tables', err);
+        }
+    };
+
+    const handleCreateTable = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!tableFormData.table_number) return;
+        try {
+            setIsCreatingTable(true);
+            const newTable = await reservationService.createTable(tableFormData);
+            const updatedTables = await reservationService.getTables();
+            setTables(updatedTables);
+            setFormData(prev => ({ ...prev, table_id: newTable.id }));
+            setIsTableModalOpen(false);
+            setTableFormData({ table_number: '', capacity: 4, status: 'available', location: '' });
+        } catch (err) {
+            console.error('Failed to create table', err);
+            await alertDialog({
+                title: 'خطأ في إضافة الطاولة',
+                message: 'فشل إضافة الطاولة. قد يكون رقم الطاولة مكرراً.',
+                variant: 'error',
+            });
+        } finally {
+            setIsCreatingTable(false);
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (confirm('هل أنت متأكد من حذف هذا الحجز؟')) {
+        const confirmed = await confirmDialog({
+            title: 'حذف الحجز',
+            message: 'هل أنت متأكد من حذف هذا الحجز؟',
+            confirmText: 'نعم، حذف الحجز',
+            cancelText: 'إلغاء',
+            variant: 'danger',
+        });
+        if (confirmed) {
             try {
                 await reservationService.deleteReservation(id);
                 setReservationsData(prev => prev.filter(r => r.id !== id));
             } catch (err) {
                 console.error('Delete failed', err);
-                alert('فشل حذف الحجز');
+                await alertDialog({
+                    title: 'فشل الحذف',
+                    message: 'حدث خطأ أثناء محاولة حذف الحجز.',
+                    variant: 'error',
+                });
             }
         }
     };
@@ -140,7 +259,11 @@ export default function ReservationsPage() {
             setReservationsData(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
         } catch (err) {
             console.error('Failed to update status', err);
-            alert('فشل تحديث حالة الحجز');
+            await alertDialog({
+                title: 'خطأ في التحديث',
+                message: 'فشل تحديث حالة الحجز، يرجى المحاولة مرة أخرى.',
+                variant: 'error',
+            });
         }
     };
 
@@ -203,28 +326,28 @@ export default function ReservationsPage() {
     if (!isClient || !isLoggedIn) return null;
 
     return (
-        <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen transition-colors duration-300 min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 ${isSidebarCollapsed ? 'lg:pr-20' : 'lg:pr-80'} min-h-screen p-6 lg:p-8 transition-all duration-300`}>
+            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300`}>
                 {/* Header */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-sky-600 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-600/20">
-                            <BadgeCheck className="text-white w-6 h-6" />
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3.5 sm:gap-4">
+                        <div className="w-10 sm:w-12 h-10 sm:h-12 bg-sky-600 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-600/20 shrink-0">
+                            <BadgeCheck className="text-white w-5 sm:w-6 h-5 sm:h-6" />
                         </div>
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-none mb-1">
                                 الحجوزات وإدارة الطاولات
                             </h1>
-                            <p className="text-gray-400 dark:text-gray-500 text-[13px] font-bold opacity-80">
+                            <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-[13px] font-bold opacity-80">
                                 متابعة حجوزات الضيوف وتسكينهم المباشر في نقطة البيع
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="group flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-sky-600/20 active:scale-95 transition-all font-black text-xs"
+                        className="group flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-sky-600/20 active:scale-95 transition-all font-black text-xs w-full sm:w-auto cursor-pointer"
                     >
                         <Plus className="w-4 h-4" />
                         حجز طاولة جديد
@@ -355,8 +478,8 @@ export default function ReservationsPage() {
                     </div>
 
                     {/* Table View */}
-                    <div className="overflow-x-auto text-sm">
-                        <table className="w-full text-right" dir="rtl">
+                    <div className="overflow-x-auto text-sm min-h-[380px] pb-28">
+                        <table className="w-full min-w-[780px] text-right" dir="rtl">
                             <thead>
                                 <tr className="bg-gray-50/30 dark:bg-gray-900/20 border-b border-gray-50 dark:border-gray-800/40">
                                     <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">العميل ومعلومات الاتصال</th>
@@ -408,7 +531,7 @@ export default function ReservationsPage() {
                                                 )}
                                             </td>
 
-                                            {/* Table Info */}
+                                            {/* Table Info / Reservation Type */}
                                             <td className="px-6 py-4">
                                                 {res.table ? (
                                                     <div>
@@ -426,8 +549,13 @@ export default function ReservationsPage() {
                                                             )}
                                                         </div>
                                                     </div>
+                                                ) : res.notes?.includes('[حجز خارجي]') ? (
+                                                    <span className="inline-flex items-center gap-1.5 font-black text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-lg text-xs border border-purple-200/50 dark:border-purple-900/30">
+                                                        <TreePine className="w-3 h-3" />
+                                                        حجز خارجي (سفري / مناسبة)
+                                                    </span>
                                                 ) : (
-                                                    <span className="text-xs text-gray-400 italic">غير محددة</span>
+                                                    <span className="text-xs text-gray-400 italic">بدون طاولة محددة</span>
                                                 )}
                                             </td>
 
@@ -460,26 +588,95 @@ export default function ReservationsPage() {
 
                                             {/* Status with Quick Dropdown */}
                                             <td className="px-6 py-4">
-                                                <div className="relative inline-block">
-                                                    <select
-                                                        value={res.status}
-                                                        onChange={(e) => handleQuickStatusChange(res.id, e.target.value)}
-                                                        className={`text-xs font-black rounded-lg px-2.5 py-1.5 outline-none cursor-pointer border transition-all appearance-none pr-3 pl-6 ${
-                                                            res.status === 'confirmed'
-                                                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800/50'
-                                                                : res.status === 'completed'
-                                                                ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border-sky-300 dark:border-sky-800/50'
-                                                                : res.status === 'cancelled'
-                                                                ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-300 dark:border-rose-800/50'
-                                                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/50'
+                                                <div className="relative inline-block text-right">
+                                                    {/* Trigger Button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setOpenStatusDropdownId(openStatusDropdownId === res.id ? null : res.id);
+                                                        }}
+                                                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black border transition-all shadow-xs hover:shadow active:scale-95 cursor-pointer ${
+                                                            STATUS_OPTIONS.find(o => o.value === res.status)?.badgeClass ||
+                                                            'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'
                                                         }`}
                                                     >
-                                                        <option value="confirmed">مؤكد</option>
-                                                        <option value="pending">قيد الانتظار</option>
-                                                        <option value="completed">حاضر / جالس</option>
-                                                        <option value="cancelled">ملغي</option>
-                                                    </select>
-                                                    <ChevronDown className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                                                        <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                                            STATUS_OPTIONS.find(o => o.value === res.status)?.dotColor || 'bg-gray-400'
+                                                        } ${res.status === 'confirmed' ? 'animate-pulse' : ''}`} />
+                                                        <span className="leading-none">
+                                                            {STATUS_OPTIONS.find(o => o.value === res.status)?.label || res.status}
+                                                        </span>
+                                                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 opacity-60 ${
+                                                            openStatusDropdownId === res.id ? 'rotate-180 text-sky-500 opacity-100' : ''
+                                                        }`} />
+                                                    </button>
+
+                                                    {/* Dropdown Popover */}
+                                                    {openStatusDropdownId === res.id && (
+                                                        <>
+                                                            {/* Backdrop overlay to close when clicking outside */}
+                                                            <div
+                                                                className="fixed inset-0 z-40 bg-black/5 dark:bg-black/20 backdrop-blur-[1px] cursor-default"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenStatusDropdownId(null);
+                                                                }}
+                                                            />
+
+                                                            <div
+                                                                className="absolute right-0 top-full mt-2 w-64 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-200/90 dark:border-gray-800/90 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/50 z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150 text-right"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <div className="px-3 py-2 text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-800/60 mb-1 flex items-center justify-between">
+                                                                    <span>تحديث حالة الحجز</span>
+                                                                    <span className="text-[9px] text-sky-500 font-bold">تغيير فوري</span>
+                                                                </div>
+
+                                                                {STATUS_OPTIONS.map((opt) => {
+                                                                    const Icon = opt.icon;
+                                                                    const isSelected = res.status === opt.value;
+                                                                    return (
+                                                                        <button
+                                                                            key={opt.value}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                handleQuickStatusChange(res.id, opt.value);
+                                                                                setOpenStatusDropdownId(null);
+                                                                            }}
+                                                                            className={`w-full flex items-center justify-between p-2 rounded-xl text-right transition-all group cursor-pointer ${
+                                                                                isSelected
+                                                                                    ? 'bg-gray-100/90 dark:bg-gray-800/90 shadow-xs border border-gray-200/60 dark:border-gray-700/60'
+                                                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/40 border border-transparent'
+                                                                            }`}
+                                                                        >
+                                                                            <div className="flex items-center gap-2.5">
+                                                                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 transition-transform group-hover:scale-105 ${opt.colorClass}`}>
+                                                                                    <Icon className="w-3.5 h-3.5" />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <div className={`text-xs font-black ${
+                                                                                        isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                                                                                    }`}>
+                                                                                        {opt.label}
+                                                                                    </div>
+                                                                                    <div className="text-[10px] text-gray-400 dark:text-gray-500 font-medium leading-tight">
+                                                                                        {opt.description}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {isSelected && (
+                                                                                <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                                                                    <Check className="w-3 h-3 stroke-[3]" />
+                                                                                </div>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
 
@@ -573,22 +770,106 @@ export default function ReservationsPage() {
                             required
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الطاولة</label>
-                            <select
-                                value={formData.table_id || ''}
-                                onChange={(e) => setFormData({ ...formData, table_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                    {/* Reservation Type: Internal vs External */}
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">
+                            نوع الحجز
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setReservationType('internal');
+                                    if (!formData.table_id && tables.length > 0) {
+                                        setFormData(prev => ({ ...prev, table_id: tables[0].id }));
+                                    }
+                                }}
+                                className={`flex items-center justify-center gap-2 h-11 rounded-xl text-xs font-black border transition-all ${
+                                    reservationType === 'internal'
+                                        ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-500 text-sky-700 dark:text-sky-300 shadow-sm ring-2 ring-sky-500/20'
+                                        : 'bg-gray-50/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
                             >
-                                <option value="">لم تحدد طاولة بعد</option>
-                                {tables.map(table => (
-                                    <option key={table.id} value={table.id}>
-                                        طاولة {table.table_number} (سعة: {table.capacity} أشخاص)
-                                    </option>
-                                ))}
-                            </select>
+                                <Home className="w-4 h-4" />
+                                <span>حجز داخلي (طاولة)</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setReservationType('external');
+                                    setFormData(prev => ({ ...prev, table_id: undefined }));
+                                }}
+                                className={`flex items-center justify-center gap-2 h-11 rounded-xl text-xs font-black border transition-all ${
+                                    reservationType === 'external'
+                                        ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-700 dark:text-purple-300 shadow-sm ring-2 ring-purple-500/20'
+                                        : 'bg-gray-50/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                <TreePine className="w-4 h-4" />
+                                <span>حجز خارجي (بدون طاولة)</span>
+                            </button>
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Table Select - Only shown when reservationType is 'internal' */}
+                        {reservationType === 'internal' ? (
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الطاولة</label>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsTableModalOpen(true)}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-[10px] font-black border border-sky-200/60 dark:border-sky-800/60 transition-colors"
+                                            title="إضافة طاولة جديدة مباشرة"
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                            <span>طاولة جديدة</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleRefreshTables}
+                                            className="p-1 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                            title="تحديث قائمة الطاولات"
+                                        >
+                                            <RefreshCw className="w-3 h-3" />
+                                        </button>
+                                        <Link
+                                            href="/tables"
+                                            onClick={() => setIsModalOpen(false)}
+                                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-gray-500 hover:text-sky-600 dark:text-gray-400 dark:hover:text-sky-400 text-[10px] font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                            title="الانتقال إلى صفحة الطاولات"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            <span>صفحة الطاولات</span>
+                                        </Link>
+                                    </div>
+                                </div>
+                                <select
+                                    value={formData.table_id || ''}
+                                    onChange={(e) => setFormData({ ...formData, table_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                                    className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                                    required={reservationType === 'internal'}
+                                >
+                                    <option value="">اختر طاولة للزبون...</option>
+                                    {tables.map(table => (
+                                        <option key={table.id} value={table.id}>
+                                            طاولة {table.table_number} (سعة: {table.capacity} أشخاص) {table.location ? `- ${table.location}` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <div className="space-y-1 flex flex-col justify-center bg-purple-50/40 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-900/30 rounded-xl px-3 py-2">
+                                <span className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest">نوع الحجز</span>
+                                <span className="text-xs font-bold text-purple-600 dark:text-purple-300">
+                                    حجز خارجي — لا يتطلب حجز طاولة في الصالة
+                                </span>
+                            </div>
+                        )}
+
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الحالة</label>
                             <select
@@ -620,6 +901,97 @@ export default function ReservationsPage() {
                         <Save className="w-4 h-4" />
                         {editingItem ? 'حفظ تعديلات الحجز' : 'تأكيد وحفظ الحجز'}
                     </button>
+                </form>
+            </Modal>
+
+            {/* Quick Add Table Modal */}
+            <Modal
+                isOpen={isTableModalOpen}
+                onClose={() => setIsTableModalOpen(false)}
+                title="إضافة طاولة جديدة"
+            >
+                <form onSubmit={handleCreateTable} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">رقم / اسم الطاولة</label>
+                            <input
+                                type="text"
+                                required
+                                value={tableFormData.table_number || ''}
+                                onChange={(e) => setTableFormData({ ...tableFormData, table_number: e.target.value })}
+                                placeholder="مثال: T12 أو VIP-2"
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">السعة (عدد الأشخاص)</label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={50}
+                                required
+                                value={tableFormData.capacity || 4}
+                                onChange={(e) => setTableFormData({ ...tableFormData, capacity: parseInt(e.target.value) || 1 })}
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الموقع / القسم</label>
+                            <input
+                                type="text"
+                                value={tableFormData.location || ''}
+                                onChange={(e) => setTableFormData({ ...tableFormData, location: e.target.value })}
+                                placeholder="مثال: الصالة الرئيسية، التراس، الطابق الثاني"
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الحالة</label>
+                            <select
+                                value={tableFormData.status || 'available'}
+                                onChange={(e) => setTableFormData({ ...tableFormData, status: e.target.value })}
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-600/10"
+                            >
+                                <option value="available">متاحة</option>
+                                <option value="reserved">محجوزة</option>
+                                <option value="occupied">مشغولة</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between gap-3">
+                        <Link
+                            href="/tables"
+                            onClick={() => {
+                                setIsTableModalOpen(false);
+                                setIsModalOpen(false);
+                            }}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-sky-600 transition-colors"
+                        >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>الانتقال إلى صفحة الطاولات الكاملة</span>
+                        </Link>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsTableModalOpen(false)}
+                                className="px-4 h-10 rounded-xl border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                إلغاء
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isCreatingTable}
+                                className="px-5 h-10 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black shadow-md shadow-sky-600/20 flex items-center gap-2 transition-all disabled:opacity-50"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                {isCreatingTable ? 'جاري الإضافة...' : 'إضافة واختيار الطاولة'}
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </Modal>
         </div>

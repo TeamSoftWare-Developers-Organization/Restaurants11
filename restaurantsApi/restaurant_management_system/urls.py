@@ -8,13 +8,16 @@ from django.http import HttpResponse
 from ninja import NinjaAPI 
 # استيراد الـ routers من تطبيقاتنا
 from employees.api import employee_router
+from employees.attendance_api import attendance_router
 from auth.api import auth_router
 from orders.api import order_router
 from menu.api import menu_router
-from inventory.api import inventory_router
+from inventory.api import inventory_router, purchases_router
 from reservations.api import reservations_router
 from payments.api import payments_router
+from payments.shifts_api import shifts_router
 from core.api import core_router
+from core.zakat_api import zakat_router
 
 from ninja_extra import NinjaExtraAPI
 from ninja_jwt.controller import NinjaJWTDefaultController
@@ -26,14 +29,18 @@ api = NinjaExtraAPI(title="Restaurant Management System API",
 
 # Registering controllers/routers
 api.register_controllers(NinjaJWTDefaultController) # المسار سيكون /api/token/
+api.add_router("", purchases_router)
 api.add_router("/employees", employee_router)
+api.add_router("/attendance", attendance_router)
 api.add_router("/auth", auth_router)
 api.add_router("/orders", order_router)
 api.add_router("/menu", menu_router)
 api.add_router("/inventory", inventory_router)
 api.add_router("/reservations", reservations_router)
 api.add_router("/payments", payments_router)
+api.add_router("/shifts", shifts_router)
 api.add_router("/settings", core_router)
+api.add_router("/zakat", zakat_router)
 
 # مثال:
 # @api.get("/hello")

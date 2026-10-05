@@ -65,26 +65,28 @@ export default function Dashboard() {
   if (!isClient || !isLoggedIn) return null;
 
   return (
-    <div className="flex bg-background dark:bg-background min-h-screen transition-colors duration-300" dir="rtl">
+    <div className="flex flex-col lg:flex-row bg-background dark:bg-background min-h-screen transition-colors duration-300 min-w-0 w-full" dir="rtl">
       <Sidebar />
 
-      <main className={`flex-1 ${isSidebarCollapsed ? 'lg:pr-20' : 'lg:pr-80'} min-h-screen p-6 lg:p-8 transition-all duration-300`}>
-        {/* Header - Comfortable */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+      <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300`}>
+        {/* Header - Comfortable & Responsive */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+          <div className="flex items-center gap-3.5 sm:gap-4">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 shrink-0">
               <BarChart3 className="text-white w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">نظرة عامة</h1>
-              <p className="text-gray-400 dark:text-gray-500 text-[13px] font-bold opacity-70">أداء اليوم، مرحباً بك {user?.first_name || 'أدمن'}</p>
+              <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">نظرة عامة</h1>
+              <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-[13px] font-bold opacity-70">أداء اليوم، مرحباً بك {user?.first_name || 'أدمن'}</p>
             </div>
           </div>
-          <div className="flex gap-3">
-            <button className="bg-card dark:bg-card text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-800/40 px-5 py-2 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-all font-bold text-xs">التقارير</button>
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+            <button className="flex-1 sm:flex-none bg-card dark:bg-card text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-800/40 px-4 sm:px-5 py-2 rounded-xl shadow-xs hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-all font-bold text-xs">
+              التقارير
+            </button>
             <button
               onClick={() => router.push('/pos')}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl shadow-lg shadow-indigo-600/15 transition-all font-black text-xs flex items-center gap-2"
+              className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-4 sm:px-5 py-2 rounded-xl shadow-lg shadow-indigo-600/15 transition-all font-black text-xs flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
               طلب سريع
@@ -92,15 +94,15 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Stats Grid - High Density but comfortable */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Stats Grid - Responsive Grid */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {stats.map((stat, idx) => {
             const Icon = stat.icon;
             return (
-              <div key={idx} className="bg-card dark:bg-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/40 group relative overflow-hidden transition-all hover:shadow-md hover:scale-[1.02]">
-                <div className="flex flex-col gap-4 relative z-10">
+              <div key={idx} className="bg-card dark:bg-card p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800/40 group relative overflow-hidden transition-all hover:shadow-md hover:scale-[1.01]">
+                <div className="flex flex-col gap-3.5 sm:gap-4 relative z-10">
                   <div className="flex justify-between items-start">
-                    <div className={`w-10 h-10 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                    <div className={`w-10 h-10 rounded-xl ${stat.bgColor} flex items-center justify-center shrink-0`}>
                       <Icon className={`w-5 h-5 ${stat.iconColor}`} />
                     </div>
                     {stat.trend !== '0%' && (
@@ -111,7 +113,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-gray-400 dark:text-gray-500 font-bold mb-1 text-[11px] uppercase tracking-widest">{stat.label}</p>
-                    <h3 className="text-2xl font-black text-gray-900 dark:text-white tabular-nums">
+                    <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tabular-nums">
                       {stat.value}
                       {stat.unit && <span className="text-xs font-bold text-gray-400 mr-1 italic">{stat.unit}</span>}
                     </h3>
@@ -122,15 +124,15 @@ export default function Dashboard() {
           })}
         </section>
 
-        {/* Content - Two Column Comfortable */}
+        {/* Content - Two Column Responsive */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <section className="lg:col-span-2 bg-card dark:bg-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/40 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-50 dark:border-gray-800/40 flex items-center justify-between">
-              <h2 className="text-base font-black text-gray-900 dark:text-white">آخر الطلبات</h2>
+          <section className="lg:col-span-2 bg-card dark:bg-card rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800/40 overflow-hidden">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-50 dark:border-gray-800/40 flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white">آخر الطلبات</h2>
               <button onClick={() => router.push('/orders')} className="text-indigo-600 text-xs font-bold hover:underline">المزيد</button>
             </div>
             <div className="overflow-x-auto text-sm">
-              <table className="w-full text-right">
+              <table className="w-full min-w-[500px] text-right">
                 <thead>
                   <tr className="bg-gray-50/30 dark:bg-gray-900/20 border-b border-gray-50 dark:border-gray-800/40">
                     <th className="px-6 py-3 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">الطلب</th>

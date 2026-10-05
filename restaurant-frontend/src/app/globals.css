@@ -41,3 +41,17 @@ body {
 .dark ::-webkit-scrollbar-thumb {
   background: #334155;
 }
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+  .no-print, header, aside, nav {
+    display: none !important;
+  }
+  @page {
+    margin: 4mm;
+  }
+}

@@ -28,7 +28,7 @@ class TableOut(BaseTableOut):
 class TableIn(Schema):
     table_number: str
     capacity: int
-    status: Optional[str] = 'available'
+    status: str = 'available'
     location: Optional[str] = None
     current_order_id: Optional[int] = None # المفتاح الخارجي للطلب الحالي
 
@@ -56,7 +56,7 @@ def create_table(request, table_data: TableIn):
     table = Table.objects.create(
         table_number=table_data.table_number,
         capacity=table_data.capacity,
-        status=table_data.status,
+        status=table_data.status or 'available',
         location=table_data.location,
         current_order=order
     )
@@ -74,7 +74,8 @@ def update_table(request, table_id: int, table_data: TableIn):
     
     table.table_number = table_data.table_number
     table.capacity = table_data.capacity
-    table.status = table_data.status
+    if table_data.status:
+        table.status = table_data.status
     table.location = table_data.location
     table.current_order = order
     table.save()
@@ -97,7 +98,7 @@ class ReservationIn(Schema):
     customer_phone: str
     reservation_time: datetime
     number_of_guests: int
-    status: Optional[str] = 'pending'
+    status: str = 'pending'
     notes: Optional[str] = None
 
 class ReservationOut(Schema):
@@ -137,7 +138,7 @@ def create_reservation(request, reservation_data: ReservationIn):
         customer_phone=reservation_data.customer_phone,
         reservation_time=reservation_data.reservation_time,
         number_of_guests=reservation_data.number_of_guests,
-        status=reservation_data.status,
+        status=reservation_data.status or 'pending',
         notes=reservation_data.notes
     )
     return reservation
@@ -157,7 +158,8 @@ def update_reservation(request, reservation_id: int, reservation_data: Reservati
     reservation.customer_phone = reservation_data.customer_phone
     reservation.reservation_time = reservation_data.reservation_time
     reservation.number_of_guests = reservation_data.number_of_guests
-    reservation.status = reservation_data.status
+    if reservation_data.status:
+        reservation.status = reservation_data.status
     reservation.notes = reservation_data.notes
     reservation.save()
     return reservation
