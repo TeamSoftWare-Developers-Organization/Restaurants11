@@ -17,6 +17,8 @@ class MenuItem(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True) # وصف طويل اختياري
     price = models.DecimalField(max_digits=10, decimal_places=2) # سعر الصنف (مثال: 12.99)
+    # حقل الباركود المضاف حديثاً (تمت إزالة unique=True لمنع حدوث خطأ عند ترك خانة الباركود فارغة لأكثر من صنف)
+    barcode = models.CharField(max_length=100, blank=True, null=True)
     # مفتاح خارجي يربط الصنف بفئته
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')
     is_available = models.BooleanField(default=True) # هل الصنف متاح حالياً للطلب؟

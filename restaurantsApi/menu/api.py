@@ -99,6 +99,7 @@ class MenuItemIn(Schema):
     category_id: Optional[int] = None # المفتاح الخارجي للفئة
     is_available: bool = True
     image_url: Optional[str] = None
+    barcode: Optional[str] = None # <-- تمت الإضافة هنا
 
 class MenuItemOut(Schema):
     id: int
@@ -108,6 +109,7 @@ class MenuItemOut(Schema):
     category: Optional[CategoryOut] = None # هنا نعيد كائن الفئة بالكامل
     is_available: bool
     image_url: Optional[str] = None
+    barcode: Optional[str] = None # <-- تمت الإضافة هنا أيضاً
 
 # 4. تعريف نقاط نهاية API لـ MenuItem
 
@@ -137,7 +139,8 @@ def create_menu_item(request, item_data: MenuItemIn):
         price=item_data.price,
         category=category,
         is_available=item_data.is_available,
-        image_url=item_data.image_url
+        image_url=item_data.image_url,
+        barcode=item_data.barcode # <-- تمت الإضافة هنا لحفظ الباركود
     )
     return item
 
@@ -164,7 +167,7 @@ def update_menu_item(request, item_id: int, item_data: MenuItemIn):
         except Category.DoesNotExist:
             item.category = None # أو رفع خطأ
     
-    # تحديث باقي الحقول
+    # تحديث باقي الحقول (سيشمل barcode تلقائياً)
     for attr, value in item_data.dict(exclude_unset=True).items():
         if attr != 'category_id': # نتجنب تحديث category_id مباشرة
             setattr(item, attr, value)
