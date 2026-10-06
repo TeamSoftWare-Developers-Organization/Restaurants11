@@ -39,12 +39,13 @@ export default function MenuPage() {
     // Modal & Form State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-    const [formData, setFormData] = useState<Partial<MenuItem>>({
+    const [formData, setFormData] = useState<Partial<MenuItem> & { barcode?: string }>({
         name: '',
         price: 0,
         description: '',
         category_id: undefined,
-        is_available: true
+        is_available: true,
+        barcode: ''
     });
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -106,7 +107,8 @@ export default function MenuPage() {
                 description: item.description,
                 category_id: (item.category as any)?.id,
                 is_available: item.is_available,
-                image_url: item.image_url
+                image_url: item.image_url,
+                barcode: (item as any).barcode || ''
             });
         } else {
             setEditingItem(null);
@@ -116,7 +118,8 @@ export default function MenuPage() {
                 description: '',
                 category_id: categories[0]?.id,
                 is_available: true,
-                image_url: ''
+                image_url: '',
+                barcode: ''
             });
         }
         setImageFile(null);
@@ -514,6 +517,19 @@ export default function MenuPage() {
                             />
                         </div>
                     </div>
+
+                    {/* حقل الباركود المضاف حديثاً */}
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الباركود (Barcode)</label>
+                        <input
+                            type="text"
+                            value={formData.barcode || ''}
+                            onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                            placeholder="أدخل أو امسح الباركود هنا..."
+                            className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-violet-600/10"
+                        />
+                    </div>
+
                     <div className="space-y-1">
                         <div className="flex items-center justify-between mr-1">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">الفئة</label>

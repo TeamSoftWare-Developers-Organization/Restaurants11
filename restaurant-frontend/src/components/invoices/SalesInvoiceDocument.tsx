@@ -2,8 +2,27 @@
 
 import React from 'react';
 import { RestaurantSettings } from '@/services/settingsService';
-import { generateZatcaBase64TLV } from '@/lib/zatcaTLV';
 import InvoiceQRCode from './InvoiceQRCode';
+
+function generateZatcaBase64TLV(
+    sellerName: string,
+    vatNumber: string,
+    timestamp: string,
+    total: number,
+    taxAmount: number
+): string {
+    const fields = [sellerName, vatNumber, timestamp, total.toFixed(2), taxAmount.toFixed(2)];
+    const bytes: number[] = [];
+
+    fields.forEach((value, index) => {
+        const encoded = new TextEncoder().encode(value);
+        bytes.push(index + 1, encoded.length, ...encoded);
+    });
+
+    let binary = '';
+    bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+    return btoa(binary);
+}
 
 export interface SalesInvoiceItem {
     id: number | string;
