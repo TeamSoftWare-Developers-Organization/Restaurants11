@@ -6,3 +6,4 @@ export { ExpenseModal } from './ExpenseModal';
 export { default as DeleteConfirmModal } from './DeleteConfirmModal';
 export { default as GlobalModals } from './GlobalModals';
 export { ThemeProvider } from './ThemeProvider';
+export { default as AppLayout } from './AppLayout';

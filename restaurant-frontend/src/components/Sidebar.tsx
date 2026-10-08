@@ -128,6 +128,10 @@ export default function Sidebar({ className }: SidebarProps) {
     };
     const logoUrl = getFullLogoUrl(settings?.logo);
 
+    if (pathname === '/login') {
+        return null;
+    }
+
     return (
         <aside
             className={`fixed inset-y-0 right-0 ${
