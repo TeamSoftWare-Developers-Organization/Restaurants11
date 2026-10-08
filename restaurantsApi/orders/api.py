@@ -237,3 +237,41 @@ def delete_order_item(request, order_item_id: int):
     order_item.delete()
     order.calculate_total() # إعادة حساب إجمالي الطلب الرئيسي
     return {"success": True}
+
+
+# ===================================================
+# خوارزمية محرك التوصيات الذكية (Market Basket Analysis)
+# ===================================================
+from ml_services.recommender import SmartRecommenderService
+
+class RecommendationRequest(Schema):
+    item_ids: List[int] = []
+
+class RecommendedItemOut(Schema):
+    id: int
+    name: str
+    price: float
+    category_id: Optional[int] = None
+    image_url: Optional[str] = None
+
+@order_router.post("/ai/recommendations/", response=List[RecommendedItemOut])
+def get_cart_recommendations_orders(request, payload: RecommendationRequest):
+    """
+    استقبال معرّفات الأصناف في السلة وإرجاع الاقتراحات الذكية الأكثر ملاءمة
+    """
+    recommended_items = SmartRecommenderService.get_recommendations(
+        current_cart_item_ids=payload.item_ids,
+        top_n=4
+    )
+    return [
+        {
+            "id": item.id,
+            "name": item.name,
+            "price": float(item.price),
+            "category_id": getattr(item, 'category_id', None),
+            "image_url": getattr(item, 'image_url', None) or (
+                item.image.url if getattr(item, 'image', None) else None
+            )
+        }
+        for item in recommended_items
+    ]

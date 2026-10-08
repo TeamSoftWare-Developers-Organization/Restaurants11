@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
-// @ts-expect-error Next.js loads this global stylesheet as a side effect.
 import "./globals.css";
 
 const cairo = Cairo({

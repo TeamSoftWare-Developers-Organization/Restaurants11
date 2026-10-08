@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Sidebar, Modal, ShiftModal, ExpenseModal } from '@/components';
+import AIRecommendations from '@/components/pos/AIRecommendations';
 import {
     ShoppingBag,
     Search,
@@ -482,6 +483,11 @@ export default function POSPage() {
                             </div>
                         </div>
                     )}
+
+                    {/* شريط الاقتراحات الذكية التكميلية (AI Market Basket Recommendations) */}
+                    <div className="mt-4">
+                        <AIRecommendations />
+                    </div>
                 </section>
 
                 {/* قسم السلة الجانبي (يظهر حسب التبويب في الموبايل ودائماً في الشاشات الكبيرة) */}
@@ -712,6 +718,11 @@ export default function POSPage() {
                                 );
                             })
                         )}
+
+                        {/* اقتراحات ذكية تكميلية داخل السلة */}
+                        <div className="pt-2">
+                            <AIRecommendations compact={true} />
+                        </div>
                     </div>
 
                     <div className="p-3.5 bg-gray-50/60 dark:bg-gray-800/30 border-t border-gray-100 dark:border-gray-800/60 space-y-3">
