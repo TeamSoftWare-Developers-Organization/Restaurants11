@@ -286,7 +286,7 @@ export default function POSPage() {
             
             <Sidebar className="no-print" />
 
-            <main className={`flex-1 ${isSidebarCollapsed ? 'lg:pr-20' : 'lg:pr-64'} min-h-screen flex flex-col xl:flex-row gap-4 p-3 md:p-6 transition-all duration-300`}>
+            <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen flex flex-col xl:flex-row gap-5 p-4 md:p-6 transition-all duration-300 min-w-0 w-full`}>
                 
                 {/* شريط التبديل العلوي للشاشات الصغيرة (Responsive Mobile Tabs) */}
                 <div className="xl:hidden flex items-center bg-white dark:bg-[#111827] p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm sticky top-3 z-20">

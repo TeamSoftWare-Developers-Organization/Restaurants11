@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "نظام شامل لإدارة المطاعم، الموظفين، المخزون، والطلبات",
 };
 
-import { ThemeProvider, GlobalModals, AppLayout } from "@/components";
+import { ThemeProvider, GlobalModals } from "@/components";
 import { SettingsInitializer } from "@/components/SettingsInitializer";
 
 export default function RootLayout({
@@ -26,9 +26,7 @@ export default function RootLayout({
       <body className={`${cairo.variable} antialiased font-cairo`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <SettingsInitializer />
-          <AppLayout>
-            {children}
-          </AppLayout>
+          {children}
           <GlobalModals />
         </ThemeProvider>
       </body>
