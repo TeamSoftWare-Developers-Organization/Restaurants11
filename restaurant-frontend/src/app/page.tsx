@@ -14,6 +14,7 @@ import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { orderService } from '@/services/orderService';
 import { employeeService } from '@/services/employeeService';
+import AIAnomalyWidget from '@/components/dashboard/AIAnomalyWidget';
 
 export default function Dashboard() {
   const { isLoggedIn, user } = useAuthStore();
@@ -93,6 +94,9 @@ export default function Dashboard() {
             </button>
           </div>
         </header>
+
+        {/* AI Financial Fraud & Anomaly Alerts */}
+        <AIAnomalyWidget />
 
         {/* Stats Grid - Responsive Grid */}
         <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">

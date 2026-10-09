@@ -276,5 +276,28 @@ def record_salary_payment(request, data: SalaryPaymentIn):
         reference_id=salary.id,
         description=f"صرف مرتب {employee.user.username} لشهر {data.month_covered}"
     )
-    
     return salary
+
+
+# ==========================================
+# محرك كشف التلاعب المالي والشذوذ (AI Fraud Detection)
+# ==========================================
+
+class ShiftRiskOut(Schema):
+    shift_id: int
+    cashier_name: str
+    risk_score: int
+    risk_status: str
+    flags: List[str]
+    cash_variance: float
+    total_orders: int
+    cancelled_orders: int
+
+
+@payments_router.get("/ai/cash-anomalies/", response=List[ShiftRiskOut])
+def list_cash_anomalies(request):
+    """
+    استرجاع تنبيهات الذكاء الاصطناعي الخاصة بالتلاعب المالي وعجز الخزينة
+    """
+    from ml_services.fraud_detector import FinancialAnomalyDetector
+    return FinancialAnomalyDetector.get_recent_anomalies(limit=15)
