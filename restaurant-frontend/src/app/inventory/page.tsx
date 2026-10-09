@@ -18,6 +18,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { inventoryService, Ingredient } from '@/services/inventoryService';
+import AIForecastCard from '@/components/inventory/AIForecastCard';
 
 export default function InventoryPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -175,6 +176,11 @@ export default function InventoryPage() {
                         صنف جديد
                     </button>
                 </header>
+
+                {/* AI Stock Forecast */}
+                <div className="mb-6">
+                    <AIForecastCard />
+                </div>
 
                 <section className="bg-card dark:bg-card rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800/40 overflow-hidden">
                     <div className="p-4 sm:p-6 border-b border-gray-50 dark:border-gray-800/30 flex flex-col sm:flex-row items-center justify-between gap-4">

@@ -744,4 +744,27 @@ def get_stocktaking_detail(request, stocktake_id: int):
     return handle_get_single_stocktake(stocktake_id)
 
 
+# ==========================================
+# محرك التنبؤ بالمخزون (AI Stock Forecasting)
+# ==========================================
+
+class StockForecastOut(Schema):
+    ingredient_id: int
+    name: str
+    unit: str
+    current_stock: float
+    daily_burn_rate: float
+    days_left: Optional[float] = None
+    risk_level: str
+    suggested_reorder_qty: float
+    cost_per_unit: float
+
+
+@inventory_router.get("/ai/stock-forecast/", response=List[StockForecastOut])
+def get_inventory_forecast(request):
+    """
+    تحليل المخزون بالذكاء الاصطناعي وإرجاع توقعات النفاد والكميات المقترحة
+    """
+    from ml_services.stock_forecaster import StockForecastingService
+    return StockForecastingService.analyze_stock_runway(lookback_days=7)
 
