@@ -21,6 +21,7 @@ import { inventoryService, Ingredient, RecipeIngredient } from '@/services/inven
 import { ChefHat } from 'lucide-react';
 import { getFullUrl } from '@/lib/api';
 import { confirmDialog, alertDialog } from '@/store/modalStore';
+import AIMenuMatrixWidget from '@/components/menu/AIMenuMatrixWidget';
 
 export default function MenuPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -304,6 +305,9 @@ export default function MenuPage() {
                         إضافة صنف
                     </button>
                 </header>
+
+                {/* AI Menu Engineering Matrix Widget */}
+                <AIMenuMatrixWidget />
 
                 <section className="bg-card dark:bg-card rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800/40 overflow-hidden">
                     {/* Filter and Search Bar */}

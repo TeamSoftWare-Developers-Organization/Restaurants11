@@ -183,3 +183,28 @@ def delete_menu_item(request, item_id: int):
     item = MenuItem.objects.get(id=item_id)
     item.delete()
     return {"success": True}
+
+
+# ===================================================
+# هندسة وتحسين قائمة الطعام بالذكاء الاصطناعي (Menu Engineering)
+# ===================================================
+from ml_services.menu_optimizer import MenuEngineeringService
+
+class MenuMatrixItemOut(Schema):
+    item_id: int
+    name: str
+    selling_price: float
+    item_cost: float
+    profit_margin: float
+    food_cost_percentage: float
+    sold_count: int
+    classification: str
+    badge: str
+    recommendation: str
+
+@menu_router.get("/ai/menu-matrix/", response=List[MenuMatrixItemOut])
+def get_menu_matrix_analysis(request):
+    """
+    استرجاع تحليل مصفوفة ربحية وشعبية أصناف قائمة الطعام بالذكاء الاصطناعي
+    """
+    return MenuEngineeringService.analyze_menu_matrix()
