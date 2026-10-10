@@ -172,3 +172,25 @@ def delete_reservation(request, reservation_id: int):
     reservation = get_object_or_404(Reservation, id=reservation_id)
     reservation.delete()
     return {"success": True}
+
+
+# ===================================================
+# محرك ذكاء الحجوزات ونسبة التخلف (AI No-Show Guard)
+# ===================================================
+from ml_services.reservation_ai import ReservationIntelligenceService
+
+class ReservationRiskOut(Schema):
+    reservation_id: int
+    guest_name: str
+    table_id: Optional[int] = None
+    no_show_probability: int
+    risk_level: str
+    risk_factors: List[str]
+    suggested_action: str
+
+@reservations_router.get("/ai/no-show-analysis/", response=List[ReservationRiskOut])
+def get_reservations_risk_analysis(request):
+    """
+    تحليل الحجوزات القادمة والتنبؤ بنسبة عدم الحضور بالذكاء الاصطناعي
+    """
+    return ReservationIntelligenceService.analyze_upcoming_reservations()

@@ -31,6 +31,7 @@ import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { reservationService, Reservation, Table } from '@/services/reservationService';
 import { confirmDialog, alertDialog } from '@/store/modalStore';
+import AIReservationRiskWidget from '@/components/reservations/AIReservationRiskWidget';
 
 const STATUS_OPTIONS = [
     {
@@ -353,6 +354,9 @@ export default function ReservationsPage() {
                         حجز طاولة جديد
                     </button>
                 </header>
+
+                {/* AI Reservation No-Show Risk Widget */}
+                <AIReservationRiskWidget />
 
                 {/* Practical Top Metric Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
