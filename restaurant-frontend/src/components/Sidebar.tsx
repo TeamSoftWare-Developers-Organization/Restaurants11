@@ -50,6 +50,7 @@ const links = [
     { label: 'قائمة الطعام', icon: ChefHat, href: '/menu', color: 'violet', perm: 'menu' },
     { label: 'وصفات الطعام', icon: CookingPot, href: '/recipes', color: 'amber', perm: 'recipes' },
     { label: 'الطلبات', icon: Truck, href: '/orders', color: 'rose', perm: 'orders' },
+    { label: 'شاشة المطبخ (KDS)', icon: ChefHat, href: '/kitchen', color: 'orange', perm: 'orders' },
     { label: 'الطاولات', icon: TableIcon, href: '/tables', color: 'cyan', perm: 'tables' },
     { label: 'الحجوزات', icon: BadgeCheck, href: '/reservations', color: 'sky', perm: 'reservations' },
     { label: 'المدفوعات', icon: Building2, href: '/payments', color: 'orange', perm: 'payments' },

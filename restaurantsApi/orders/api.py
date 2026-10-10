@@ -274,4 +274,46 @@ def get_cart_recommendations_orders(request, payload: RecommendationRequest):
             )
         }
         for item in recommended_items
-    ]
+    ]
+
+
+# ===================================================
+# شاشة المطبخ الذكية وجدولة الطهي المتزامن (AI KDS Dispatcher)
+# ===================================================
+from ml_services.kitchen_ai import KitchenIntelligenceService
+
+class KDSItemSchedule(Schema):
+    item_id: int
+    name: str
+    quantity: int
+    duration_minutes: float
+    fire_delay_minutes: float
+
+class KDSOrderOut(Schema):
+    order_id: int
+    order_number: str
+    table_number: Optional[str] = None
+    total_prep_time_minutes: float
+    estimated_ready_at: str
+    kitchen_load_factor: float
+    items: List[KDSItemSchedule]
+
+@order_router.get("/kitchen/ai/kds-queue/", response=List[KDSOrderOut])
+def get_kds_queue(request):
+    """
+    استرجاع طابور المطبخ مع الجدولة الزمنية وتوقيتات الطهي المتزامن بالذكاء الاصطناعي
+    """
+    return KitchenIntelligenceService.get_active_kds_queue()
+
+
+@order_router.post("/kitchen/ai/kds-queue/{order_id}/complete/")
+def complete_kds_order(request, order_id: int):
+    """
+    تحديث حالة الطلب إلى جاهز للتسليم (ready) عند اكتمال تحضيره في المطبخ
+    """
+    order = get_object_or_404(Order, id=order_id)
+    order.status = 'ready'
+    order.save()
+    return {"success": True, "order_id": order.id, "status": order.status}
+
+
