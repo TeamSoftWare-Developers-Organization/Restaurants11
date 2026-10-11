@@ -1755,6 +1755,146 @@ export default function ShiftsPage() {
                         </form>
                     </Modal>
 
+                    {/* Shift Reconciliation & Variance Modal (تفاصيل فرق الوردية والمطابقة النقدية) */}
+                    <Modal
+                        isOpen={isReconciliationModalOpen}
+                        onClose={() => setIsReconciliationModalOpen(false)}
+                        title="مطابقة رصيد الوردية وفرق الصندوق"
+                        size="md"
+                    >
+                        <div className="space-y-4" dir="rtl">
+                            {isLoadingReconciliation ? (
+                                <div className="p-10 flex flex-col items-center justify-center gap-3 text-xs text-gray-500 font-bold">
+                                    <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                    <span>جاري احتساب ومطابقة رصيد الوردية...</span>
+                                </div>
+                            ) : activeReconciliation ? (
+                                <div className="space-y-4">
+                                    {/* Shift Header Summary */}
+                                    <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs font-bold">
+                                        <div>
+                                            <span className="font-black text-gray-900 dark:text-white block text-sm">
+                                                {activeReconciliation.shift_name}
+                                            </span>
+                                            <span className="text-[11px] text-gray-400">
+                                                الكاشير: {activeReconciliation.cashier_name}
+                                            </span>
+                                        </div>
+                                        <div className="text-left">
+                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black ${
+                                                activeReconciliation.status === 'open'
+                                                    ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                                                    : 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
+                                            }`}>
+                                                {activeReconciliation.status === 'open' ? 'جلسة مفتوحة حالياً' : 'جلسة مغلقة ومحاسبة'}
+                                            </span>
+                                            <span className="block text-[10px] text-gray-400 mt-1">
+                                                {activeReconciliation.start_time}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Drawer Cash Breakdown Cards */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-black text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                                            <Wallet className="w-4 h-4 text-emerald-600" />
+                                            <span>تفاصيل حركة النقدية في الدرج (Cash Drawer)</span>
+                                        </h4>
+                                        <div className="grid grid-cols-3 gap-2 text-center">
+                                            <div className="p-3 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs">
+                                                <span className="text-[10px] text-gray-400 block font-bold mb-1">الرصيد الافتتاحي</span>
+                                                <span className="font-black text-gray-800 dark:text-gray-100 text-sm">
+                                                    {activeReconciliation.opening_balance.toFixed(2)} د.ل
+                                                </span>
+                                            </div>
+                                            <div className="p-3 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs">
+                                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-bold mb-1">+ المقبوض نقداً</span>
+                                                <span className="font-black text-emerald-700 dark:text-emerald-300 text-sm">
+                                                    +{activeReconciliation.total_cash_in.toFixed(2)} د.ل
+                                                </span>
+                                            </div>
+                                            <div className="p-3 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs">
+                                                <span className="text-[10px] text-rose-500 block font-bold mb-1">- المصروف نقداً</span>
+                                                <span className="font-black text-rose-600 dark:text-rose-400 text-sm">
+                                                    -{activeReconciliation.total_cash_out.toFixed(2)} د.ل
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Reconciliation & Variance Box */}
+                                    <div className="p-4 rounded-2xl bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 space-y-3">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="font-bold text-gray-600 dark:text-gray-300">الرصيد الدفتري المتوقع بالدرج:</span>
+                                            <span className="font-black text-gray-900 dark:text-white text-base">
+                                                {activeReconciliation.expected_drawer_cash.toFixed(2)} د.ل
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="font-bold text-gray-600 dark:text-gray-300">الرصيد الفعلي المعدود عند الإغلاق:</span>
+                                            <span className="font-black text-gray-900 dark:text-white text-base">
+                                                {activeReconciliation.actual_closing_balance !== null && activeReconciliation.actual_closing_balance !== undefined
+                                                    ? `${activeReconciliation.actual_closing_balance.toFixed(2)} د.ل`
+                                                    : 'لم يغلق بعد'}
+                                            </span>
+                                        </div>
+
+                                        <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between">
+                                            <span className="font-black text-xs text-gray-900 dark:text-white flex items-center gap-1.5">
+                                                <Scale className="w-4 h-4 text-emerald-600" />
+                                                <span>فرق إجمالي الوردية:</span>
+                                            </span>
+                                            <span className={`text-sm font-black px-3 py-1 rounded-xl ${
+                                                activeReconciliation.variance === null || activeReconciliation.variance === undefined
+                                                    ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-200'
+                                                    : Math.abs(activeReconciliation.variance) < 0.001
+                                                    ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200'
+                                                    : activeReconciliation.variance > 0
+                                                    ? 'bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-200'
+                                                    : 'bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200'
+                                            }`}>
+                                                {activeReconciliation.variance === null || activeReconciliation.variance === undefined
+                                                    ? 'الوردية لا تزال مفتوحة'
+                                                    : Math.abs(activeReconciliation.variance) < 0.001
+                                                    ? 'متطابق تماماً (0.00 د.ل)'
+                                                    : activeReconciliation.variance > 0
+                                                    ? `فائض نقدي (+${activeReconciliation.variance.toFixed(2)} د.ل)`
+                                                    : `عجز نقدي (${activeReconciliation.variance.toFixed(2)} د.ل)`}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Non-Cash Sales Summary */}
+                                    <div className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-800 text-xs space-y-1.5">
+                                        <div className="flex items-center justify-between font-bold text-gray-500">
+                                            <span>مبيعات البطاقات المصرفية (خارج الدرج):</span>
+                                            <span className="font-black text-gray-700 dark:text-gray-300">
+                                                {activeReconciliation.total_card_sales.toFixed(2)} د.ل
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between font-bold text-gray-500">
+                                            <span>إجمالي مبيعات الوردية (نقدي + بطاقات):</span>
+                                            <span className="font-black text-gray-900 dark:text-white">
+                                                {activeReconciliation.total_sales.toFixed(2)} د.ل
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsReconciliationModalOpen(false)}
+                                            className="px-5 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 text-xs transition-colors"
+                                        >
+                                            إغلاق
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                    </Modal>
+
                     {/* Floating Toast Notification (Modern replacement for browser alert popups) */}
                     {toast && (
                         <div
