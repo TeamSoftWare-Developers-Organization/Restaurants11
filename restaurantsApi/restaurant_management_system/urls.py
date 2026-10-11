@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.urls import path 
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse
+from django.shortcuts import redirect
 from ninja import NinjaAPI 
 # استيراد الـ routers من تطبيقاتنا
 from employees.api import employee_router
@@ -58,96 +58,8 @@ add_router_safe("/ai", ai_router)
 # def hello(request):
 #     return {"message": "Hello from Django Ninja!"}
 
-# دالة الصفحة الرئيسية
-def home(request):
-    html = """
-    <!DOCTYPE html>
-    <html dir="rtl" lang="ar">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>نظام إدارة المطاعم</title>
-        <style>
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                margin: 0;
-                padding: 20px;
-            }
-            .container {
-                background: white;
-                padding: 3rem;
-                border-radius: 20px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                text-align: center;
-                max-width: 600px;
-            }
-            h1 {
-                color: #667eea;
-                margin-bottom: 1rem;
-                font-size: 2.5rem;
-            }
-            p {
-                color: #666;
-                margin-bottom: 2rem;
-                font-size: 1.1rem;
-            }
-            .links {
-                display: flex;
-                gap: 1rem;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-            a {
-                display: inline-block;
-                padding: 15px 30px;
-                background: #667eea;
-                color: white;
-                text-decoration: none;
-                border-radius: 10px;
-                font-weight: bold;
-                transition: all 0.3s ease;
-            }
-            a:hover {
-                background: #764ba2;
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            }
-            .api-link {
-                background: #48bb78;
-            }
-            .api-link:hover {
-                background: #38a169;
-            }
-            .frontend-link {
-                background: #ed8936;
-            }
-            .frontend-link:hover {
-                background: #dd6b20;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>مرحباً بك في نظام إدارة المطاعم</h1>
-            <p>الخادم يعمل بنجاح! اختر أحد الخيارات التالية:</p>
-            <div class="links">
-                <a href="/admin/">لوحة الإدارة</a>
-                <a href="/api/docs" class="api-link">واجهة API</a>
-                <a href="http://localhost:3002" class="frontend-link">الواجهة الأمامية</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return HttpResponse(html)
-
 urlpatterns = [
-    path('', home, name='home'),  # الصفحة الرئيسية
+    path('', lambda request: redirect('/api/docs'), name='root_redirect'),
     path('admin/', admin.site.urls),
     path('api/', api.urls), # هذا هو المسار الذي سيستضيف جميع واجهات برمجة التطبيقات الخاصة بك
 ]
