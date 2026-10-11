@@ -2,13 +2,14 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.5-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react)](https://react.dev/)
+[![Bun](https://img.shields.io/badge/Bun-1.4+-black?logo=bun)](https://bun.sh/)
 [![Django Ninja](https://img.shields.io/badge/Django_Ninja-REST_API-092E20?logo=django)](https://django-ninja.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-Responsive-06B6D4?logo=tailwind-css)](https://tailwindcss.com/)
 [![TensorFlow](https://img.shields.io/badge/AI_Biometrics-TensorFlow_CNN-FF6F00?logo=tensorflow)](https://tensorflow.org/)
 [![ZATCA Compliant](https://img.shields.io/badge/E--Invoicing-ZATCA_Phase_2-008080)](https://zatca.gov.sa/)
 [![License](https://img.shields.io/badge/License-TeamSoftWare-orange.svg)](#license)
 
-A modern, cloud-ready, end-to-end Restaurant Enterprise Resource Planning (ERP) and Point of Sale (POS) system. Powered by **Artificial Intelligence (TensorFlow, OpenCV & Machine Learning)** for biometric attendance, hardware scanners, intelligent market basket analysis, stock depletion forecasting, and cashier fraud detection. Designed with high-performance reactive APIs built with **Django Ninja** and a responsive **Next.js (App Router, React 19 & Turbopack)** client.
+A modern, cloud-ready, end-to-end Restaurant Enterprise Resource Planning (ERP) and Point of Sale (POS) system. Powered by **Artificial Intelligence & Machine Learning** for biometric attendance, hardware scanners, intelligent market basket analysis, stock depletion forecasting, cashier fraud detection, kitchen synchronized firing (KDS), reservation no-show prediction, menu engineering matrices, and one-click automated procurement. Designed with high-performance reactive APIs built with **Django Ninja** and a responsive **Next.js (App Router, React 19 & Turbopack)** client powered by **Bun**.
 
 ---
 
@@ -45,44 +46,64 @@ A modern, cloud-ready, end-to-end Restaurant Enterprise Resource Planning (ERP) 
 - **🛡️ AI Financial Fraud & Cash Anomaly Detector:**
   - Automated risk scoring for cashier shifts evaluating cash variances, abnormal discount ratios, and excessive order cancellations.
   - Real-time audit dashboard alerting managers to potential register discrepancies.
+- **🍳 AI Kitchen Intelligence & Synchronized Dish Firing:**
+  - Dynamic preparation time estimation based on category base times and real-time kitchen backlog load.
+  - Synchronized firing scheduling (`sync_order_firing`) ensuring appetizers, main courses, and steaks finish simultaneously and leave the kitchen hot together.
+- **📅 AI Reservation No-Show Guard:**
+  - Mathematical risk model evaluating Lead Time, Party Size, Peak Hours, and Customer History:
+    $$P(\text{No-Show}) = \sigma\left(w_1 \cdot \text{LeadTime} + w_2 \cdot \text{PartySize} + w_3 \cdot \text{PeakHour} + w_4 \cdot \text{CustomerHistory}\right)$$
+  - Instant proactive risk scoring alerting staff to activate smart overbooking or prompt instant WhatsApp re-confirmation.
+- **📊 AI Menu Engineering Matrix (BCG Matrix Analysis):**
+  - Analyzes profitability and popularity by comparing true food cost against sales volume:
+    - **Stars (نجوم):** High Margin, High Volume (Promote & protect).
+    - **Puzzles (ألغاز):** High Margin, Low Volume (Feature prominently on POS).
+    - **Plowhorses (أحصنة عمل):** Low Margin, High Volume (Optimize cost or slight price increase).
+    - **Dogs (راكدة):** Low Margin, Low Volume (Recipe redesign or drop).
+- **👥 AI Smart Staff Rostering:**
+  - Forecasts labor requirements based on historical order volume trends across shifts to eliminate understaffing or overstaffing.
 
-#### 3. 🕒 Shift Customization & Overtime Management
+#### 3. ⚡ One-Click Auto Purchase Orders (Procurement Automation)
+- **Instant PO Generation:** Directly bridges stock depletion forecasts with the procurement engine. With a single click, generates a draft Purchase Order (`PO-AUTO-{timestamp}`, status `PENDING`) assigned to the default or selected supplier.
+- **Interactive Preview Modal:** Review low-stock ingredients, suggested reorder quantities, unit costs, and total budget before committing.
+- **One-Click Warehouse Receipt (`POST /purchases/{id}/receive/`):** Instantly posts draft purchase orders into inventory, increments stock, updates the weighted average unit cost, and adjusts supplier ledger balance.
+
+#### 4. 🕒 Shift Customization & Overtime Management
 - **Shift Scheduling & Allocation:** Create and configure shifts with custom working hours, roles, and shift templates.
 - **Extra Duties & Overtime Tracking:** Dedicated logging for additional tasks (أعمال إضافية), extra hours worked, and automated overtime compensation calculations.
 - **Cashier Counter Control:** Floating opening balance, mid-shift operational expenses logging, closing drawer count, and variance auditing.
 - **Responsive Modals & Toast System:** Modern, mobile-responsive dialogs with keyboard accessibility (Escape key, outside click), smooth animations, and custom non-blocking Toast alerts.
 
-#### 4. 📦 Inventory, Stocktaking & Procurement
+#### 5. 📦 Inventory, Stocktaking & Procurement
 - **Real-Time Stock Audit (جرد المنتجات والمخزون):** Periodic physical count entry, automated variance calculation between actual and system stock, and one-click reconciliation.
 - **Product & Ingredient Catalog:** Multi-unit conversion support (grams, milliliters, kilograms, pieces) with product image upload and thumbnail previews.
 - **Suppliers & Purchase Invoices (فواتير المشتريات):** Register supplier bills, track credit/debit balances, and manage purchase returns.
 - **Weighted Average Costing Engine (متوسط التكلفة المرجح):** On receiving goods (`RECEIVED`), unit costs are dynamically re-evaluated atomically:
   $$\text{New Cost} = \frac{(\text{Current Qty} \times \text{Current Cost}) + (\text{New Qty} \times \text{Invoice Price})}{\text{Current Qty} + \text{New Qty}}$$
 
-#### 5. 🍲 Dynamic Recipe Costing & Profit Margin Pricing
+#### 6. 🍲 Dynamic Recipe Costing & Profit Margin Pricing
 - **Recipe Assembly:** Direct binding of menu meals to inventory raw ingredients.
 - **Live Recipe Cost:** Automatic recalculation of meal production cost whenever ingredient procurement prices change.
 - **Margin Estimator:** Pre-configured and custom profit margins (+30%, +50%, +100%) with instant price update application.
 - **Automated Stock Depletion:** Selling a meal through POS automatically deducts raw ingredient portions from stock.
 
-#### 6. 🧾 E-Invoicing & ZATCA Phase 2 Compliance
+#### 7. 🧾 E-Invoicing & ZATCA Phase 2 Compliance
 - **Customizable Invoices:** Visual templates for Sales Invoices, Purchase Invoices, and Return Invoices with live preview.
 - **ZATCA TLV QR Codes:** Base64-encoded TLV (Tag-Length-Value) QR code generation complying with electronic billing regulations (Seller Name, VAT Registration, Timestamp, Invoice Total, VAT Total).
 - **A4 & Thermal 80mm Layouts:** Print-ready formatting for thermal roll printers and standard office A4 sheets.
 
-#### 7. 🪑 Floorplan, Tables & Reservation Management
+#### 8. 🪑 Floorplan, Tables & Reservation Management
 - **Visual Dining Area:** Real-time visual status of dining tables (Available, Busy, Reserved).
 - **Reservation Scheduling:** Advance table booking with customer details, guest count, and direct conversion to POS orders.
 
-#### 8. 💰 Treasury, Expenses, Cashflows & Payroll
+#### 9. 💰 Treasury, Expenses, Cashflows & Payroll
 - **Treasury Ledger:** Complete audit trail of cash drawers, safe transfers, bank deposits, and daily collections.
 - **Operational Expense Registry:** Categorized expenses (utilities, cleaning, maintenance, emergency repairs).
 - **Payroll & Advance Loans (السلف والمرتبات):** Employee salary profiles, advances deductions, and net monthly payout logging.
 
-#### 9. 🔐 Role-Based Access Control (RBAC) & Full Responsiveness
+#### 10. 🔐 Role-Based Access Control (RBAC) & Theme Support
 - **Granular Permissions:** Strict role segregation (Admin, Cashier, Waiter, Kitchen Chef, Inventory Manager).
 - **Dynamic Adaptive Sidebar:** Automatically filters inaccessible pages and expands smoothly across all screen widths.
-- **Mobile First & Dark Mode:** Optimized layouts for smartphones, tablets, and widescreen touch terminals.
+- **Flawless Light & Dark Modes:** Carefully styled for both day and night operational environments across all views.
 
 ---
 
@@ -90,15 +111,16 @@ A modern, cloud-ready, end-to-end Restaurant Enterprise Resource Planning (ERP) 
 
 ### Frontend Architecture
 - **Framework:** [Next.js](https://nextjs.org/) 16.x (App Router, Turbopack, React 19)
+- **Package Manager:** [Bun](https://bun.sh/) (Fast runtime & package manager)
 - **Language:** TypeScript
-- **Styling:** Tailwind CSS (Modern Grid/Flexbox, Dark Mode variables)
+- **Styling:** Tailwind CSS (Modern Grid/Flexbox, Dark & Light Mode tokens)
 - **State Management:** Zustand with selective persistent storage
 - **Icons:** Lucide React
 - **HTTP Client:** Axios with automated JWT refresh interceptors
 
 ### Backend & AI Architecture
 - **Framework:** [Django](https://www.djangoproject.com/) 5.x / 6.x
-- **API Engine:** [Django Ninja](https://django-ninja.dev/) & Ninja Extra (High-speed typed OpenAPI/Swagger)
+- **API Engine:** [Django Ninja](https://django-ninja.dev/) (High-speed typed OpenAPI/Swagger)
 - **Authentication:** Django Ninja JWT (JSON Web Tokens)
 - **AI & Computer Vision:** OpenCV (`opencv-python-headless`), TensorFlow / Keras, NumPy, Scikit-learn
 - **Hardware Integration:** `pyzkfp` (ZKTeco USB SDK), `pyserial` (UART/COM)
@@ -136,22 +158,22 @@ python manage.py runserver 127.0.0.1:8000
 
 ---
 
-### 2. Next.js Frontend Setup
+### 2. Next.js Frontend Setup (with Bun)
 ```bash
 # Navigate to the frontend directory
 cd restaurant-frontend
 
-# Install dependencies
-npm install
+# Install dependencies using Bun
+bun install
 
-# Start development server (Default Port 3005)
-npm run dev
+# Start development server on port 3005
+bun run dev
 
 # Or build for production
-npm run build
-npm start
+bun run build
+bun run start
 ```
-- **Web Application URL:** `http://localhost:3005/` (or configured port)
+- **Web Application URL:** `http://localhost:3005/`
 
 ---
 
@@ -184,7 +206,7 @@ python employees/services/hardware_scanner_bridge.py --mode test --image path/to
 
 ## 🇸🇦 نظام إدارة المطاعم المتكامل الذكي (باللغة العربية)
 
-نظام سحابي متكامل ومتقدم لإدارة المنشآت والمطاعم ونقاط البيع السريعة، مدعوم بأحدث خوارزميات **الذكاء الاصطناعي (AI)** لتحليل البيانات، كشف الاحتيال، التنبؤ بالمخزون، والبصمة البيومترية المادية، ومبني بأعلى معايير السرعة والأداء باستخدام **Next.js 16 (App Router & React 19)** و **Django Ninja**.
+نظام سحابي متكامل ومتقدم لإدارة المنشآت والمطاعم ونقاط البيع السريعة، مدعوم بأحدث خوارزميات **الذكاء الاصطناعي (AI)** لتحليل البيانات، كشف الاحتيال، التنبؤ بالمخزون، توليد أوامر الشراء المؤتمتة، جدولة نزول الأطباق بالتزامن في المطبخ، حماية الحجوزات، وهندسة المنيو، ومبني بأعلى معايير السرعة والأداء باستخدام **Next.js 16 (App Router & React 19)**، حزمة **Bun**، و **Django Ninja**.
 
 ---
 
@@ -211,43 +233,58 @@ python employees/services/hardware_scanner_bridge.py --mode test --image path/to
   - استنتاج الوجبات المترابطة آلياً وعرضها في كرت تفاعلي بشاشة الكاشير لزيادة متوسط قيمة الفاتورة.
 - **🛡️ كشف التلاعب المالي وعجز الخزينة (AI Fraud Detection):**
   - تقييم ذكي لمخاطر الورديات بناءً على الفروقات النقدية، نسب الخصومات غير الطبيعية، ومعدل إلغاء الطلبات المشبوه.
+- **🍳 ذكاء المطبخ والجدولة المتزامنة للأطباق (Synchronized Firing KDS):**
+  - تقدير وقت التحضير الفعلي لكل صنف بناءً على نوع الطبق وحمولة المطبخ الحالية (Kitchen Backlog Load).
+  - جدولة وقت بدء الطهي لكل صنف في الفاتورة الواحدة لتنتهي جميع الأطباق وتخرج ساخنة في اللحظة نفسها.
+- **📅 حارس الحجوزات الذكي (AI No-Show Guard):**
+  - حساب احتمالية تخلف الضيوف عن الحضور لحظياً بناءً على فترة الحجز المسبقة، عدد الأفراد، وأوقات الذروة.
+  - اقتراح تفعيل الحجز المزدوج الذكي (Overbooking) أو طلب التأكيد الفوري لتفادي بقاء الطاولات فارغة.
+- **📊 مصفوفة هندسة المنيو والربحية (AI Menu Engineering Matrix):**
+  - تقسيم جميع أطباق القائمة آلياً وفق مصفوفة بوسطن الرباعية (BCG): **نجوم (Stars)**، **ألغاز (Puzzles)**، **أحصنة عمل (Plowhorses)**، و**أصناف راكدة (Dogs)** بناءً على هامش الربح وشعبية المبيعات.
+- **👥 الجدولة الذكية للكوادر (AI Staff Rostering):**
+  - التنبؤ بعدد الموظفين المطلوب في كل وردية بناءً على حمولة الطلبات المتوقعة.
 
-#### 3. 🕒 إدارة وتخصيص الورديات والعمل الإضافي (Shifts & Overtime)
+#### 3. ⚡ الأتمتة التلقائية لأوامر الشراء (One-Click Auto Purchase Orders)
+- **توليد مسودة أمر الشراء بنقرة واحدة:** ربط تنبيهات المخزون مباشرة بنظام المشتريات لتوليد فاتورة شراء مسودة (`PO-AUTO-{timestamp}`) بالكميات المقترحة وتوجيهها للمورد الافتراضي.
+- **نافذة المعاينة والتحكم:** مراجعة المواد الموشكة على النفاد، الرصيد الحالي، والكميات المقترحة مع إمكانية تعديل الكمية قبل الاعتماد.
+- **الاستلام والترحيل الفوري للمخزن (`POST /purchases/{id}/receive/`):** اعتماد الفاتورة وترحيل الكميات فورياً للمخزون، وتحديث متوسط التكلفة وحساب المورد بنقرة واحدة.
+
+#### 4. 🕒 إدارة وتخصيص الورديات والعمل الإضافي (Shifts & Overtime)
 - **جدولة الورديات:** إنشاء قوالب الورديات وتعيين الموظفين ومواعيد العمل بدقة.
 - **الأعمال الإضافية وحساب تكلفة الأوفر تايم:** تسجيل المهام الإضافية (Extra Duties)، ساعات العمل الإضافي، وحساب التكلفة المستحقة آلياً.
 - **إدارة عهدة الكاشير:** تسجيل الرصيد الافتتاحي (Float)، تسجيل مصاريف الوردية التشغيلية، والرصيد الختامي ومطابقة العجز والفائض.
 - **نوافذ منبثقة متجاوبة ونظام إشعارات مخصص:** نوافذ مودال (Modal) عصرية متجاوبة مع الهواتف، تدعم زر Escape والإغلاق الذكي، واستبدال رسائل التنبيه الافتراضية بنظام Toast Notifications مريح.
 
-#### 4. 📦 المخزون، الجرد، والمشتريات
+#### 5. 📦 المخزون، الجرد، والمشتريات
 - **جرد المنتجات والمخزون الحي:** واجهة متخصصة لإجراء الجرد الفعلي للمنتجات، مقارنة الرصيد الدفتري بالفعلي، واحتساب الفروقات والتسوية بنقرة واحدة.
 - **دليل المواد والمنتجات:** دعم وحدات القياس المتعددة (جرام، مليلتر، كجم، قطعة) ورفع صور المنتجات ومعاينتها.
 - **الموردين وفواتير الشراء:** تسجيل فواتير التوريد، متابعة ديون ومستحقات الموردين، وإصدار مرتجعات الشراء.
 - **محرك متوسط التكلفة المرجح (Weighted Average Cost):** إعادة احتساب تكلفة الوحدة تلقائياً داخل معاملات ذرية آمنة (Atomic Transactions) فور استلام البضاعة.
 
-#### 5. 🍲 هندسة الوصفات وتكاليف الوجبات وهوامش الربح
+#### 6. 🍲 هندسة الوصفات وتكاليف الوجبات وهوامش الربح
 - **ربط الوجبات بالمكونات:** ربط كل طبق بالمواد الخام المستخدمة بدقة.
 - **حساب التكلفة اللحظي:** تحديث تلقائي لتكلفة الوجبة فور تغير أسعار شراء المكونات من الموردين.
 - **محدد هامش الربح الذكي:** اقتراح هوامش ربح (+30%، +50%، +100%) وتحديث أسعار البيع بنقرة واحدة.
 - **الخصم التلقائي للمخزون:** خصم نسب المكونات من المستودع تلقائياً عند تنفيذ الطلب في الكاشير.
 
-#### 6. 🧾 الفوترة الإلكترونية وتوافق ZATCA المرحلة الثانية
+#### 7. 🧾 الفوترة الإلكترونية وتوافق ZATCA المرحلة الثانية
 - **نماذج فواتير قابلة للتخصيص:** تصاميم عصرية لفواتير المبيعات، المشتريات، والمرتجعات مع معاينة حية ومباشرة.
 - **توليد رمز الاستجابة السريعة (ZATCA TLV Base64 QR Code):** تشفير بيانات الفاتورة وفق المعايير الرسمية (اسم المورد، الرقم الضريبي، الطابع الزمني، الإجمالي، والضريبة).
 - **خيارات الطباعة:** دعم مقاسات الورق A4 وإيصالات الرول الحراري 80mm.
 
-#### 7. 🪑 إدارة الصالة، الطاولات والحجوزات
+#### 8. 🪑 إدارة الصالة، الطاولات والحجوزات
 - **خريطة الصالة التفاعلية:** متابعة لحظية لحالة الطاولات (متاحة، مشغولة، محجوزة).
 - **جدول الحجوزات:** تسجيل مواعيد وصول الزبائن وتخصيص الطاولات وربطها بالطلب.
 
-#### 8. 💰 الخزينة، المصروفات، والرواتب
+#### 9. 💰 الخزينة، المصروفات، والرواتب
 - **حركة الخزينة العامة:** رصد دقيق للمقبوضات، المدفوعات، التحويلات، والإيداعات.
 - **سجل المصروفات التشغيلية:** تصنيف فواتير الخدمات والصيانة والمشتريات الطارئة.
 - **إدارة الرواتب والسلف:** تسجيل السلف والخصومات وحساب صافي المستحقات الشهرية للموظفين.
 
-#### 9. 🔐 الصلاحيات والتصميم المتجاوب (RBAC & UI)
+#### 10. 🔐 الصلاحيات وتجربة المستخدم (RBAC & UI)
 - **مصفوفة صلاحيات دقيقة:** تخصيص الوصول للوحدات حسب دور كل موظف (مدير، كاشير، ويتر، شيف، مسؤول مخزن).
 - **قائمة جانبية ديناميكية (Sidebar):** تتكيف تلقائياً مع الشاشات وتخفي الروابط غير المصرح بها.
-- **دعم الوضع الليلي (Dark Mode):** تصميم مريح للعين في بيئات العمل المختلفة.
+- **دعم متكامل للوضعين النهاري والليلي (Light & Dark Modes):** ألوان مريحة ومتباينة بدقة تناسب بيئات الإضاءة المختلفة طوال اليوم.
 
 ---
 
