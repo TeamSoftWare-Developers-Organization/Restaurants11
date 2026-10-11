@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Sidebar, Modal } from '@/components';
+import { Sidebar, Modal, StaffRosteringView } from '@/components';
 import {
     Users,
     Plus,
@@ -23,7 +23,8 @@ import {
     Fingerprint,
     Upload,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    Sparkles
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -41,8 +42,8 @@ export default function EmployeesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Active Tab: 'list' for employee cards/table, 'permissions' for interactive permission matrix
-    const [activeTab, setActiveTab] = useState<'list' | 'permissions'>('list');
+    // Active Tab: 'list' for employee cards/table, 'permissions' for permission matrix, 'rostering' for AI predictive schedule
+    const [activeTab, setActiveTab] = useState<'list' | 'permissions' | 'rostering'>('list');
 
     // Employee Form Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -314,6 +315,18 @@ export default function EmployeesPage() {
                                 <Shield className="w-3.5 h-3.5" />
                                 <span>مصفوفة الصلاحيات</span>
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('rostering')}
+                                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                    activeTab === 'rostering'
+                                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-600/20'
+                                        : 'text-gray-500 hover:text-purple-600 dark:hover:text-purple-400'
+                                }`}
+                            >
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span>الجدولة الذكية للورديات</span>
+                            </button>
                         </div>
 
                         <button
@@ -525,6 +538,11 @@ export default function EmployeesPage() {
                             </table>
                         </div>
                     </section>
+                )}
+
+                {/* Tab 3: AI Predictive Rostering */}
+                {activeTab === 'rostering' && (
+                    <StaffRosteringView onRosterApplied={() => fetchEmployees()} />
                 )}
             </main>
 

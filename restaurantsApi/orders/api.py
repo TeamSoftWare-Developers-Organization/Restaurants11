@@ -53,7 +53,7 @@ class PaymentSummaryOut(Schema):
     card_provider: Optional[str] = None
     payment_date_time: datetime
 
-# Schema لإخراج بيانات الطلب (يشمل قائمة أصناف الطلب)
+# Schema لإخراج بيانات الطلب (يشمل قائمة أصناف الطلب ورمز الـ QR المشفر)
 class OrderOut(Schema):
     id: int
     employee: Optional[EmployeeOut] = None
@@ -64,6 +64,33 @@ class OrderOut(Schema):
     discount_amount: float
     items: List[OrderItemOut] # قائمة بأصناف الطلب المرتبطة
     payments: List[PaymentSummaryOut] = []
+    qr_code_base64: Optional[str] = None
+    qr_image_url: Optional[str] = None
+    tax_amount: Optional[float] = 0.0
+
+    @staticmethod
+    def resolve_qr_code_base64(obj):
+        try:
+            from core.qr_generator import get_order_qr_data
+            return get_order_qr_data(obj)["tlv_base64"]
+        except Exception:
+            return None
+
+    @staticmethod
+    def resolve_qr_image_url(obj):
+        try:
+            from core.qr_generator import get_order_qr_data
+            return get_order_qr_data(obj)["qr_image_url"]
+        except Exception:
+            return None
+
+    @staticmethod
+    def resolve_tax_amount(obj):
+        try:
+            from core.qr_generator import get_order_qr_data
+            return get_order_qr_data(obj)["tax_amount"]
+        except Exception:
+            return 0.0
 
 
 # 3. تعريف نقاط نهاية API لـ Order
@@ -150,6 +177,15 @@ def get_order(request, order_id: int):
     """
     order = get_object_or_404(Order, id=order_id)
     return order
+
+@order_router.get("/{order_id}/qr/", response=dict, auth=JWTAuth())
+def get_order_qr(request, order_id: int):
+    """
+    استرجاع رمز الـ QR المشفر بمعيار TLV Base64 للفاتورة
+    """
+    order = get_object_or_404(Order, id=order_id)
+    from core.qr_generator import get_order_qr_data
+    return get_order_qr_data(order)
 
 @order_router.put("/{order_id}", response=OrderOut, auth=JWTAuth())
 def update_order(request, order_id: int, order_data: OrderIn):
@@ -288,6 +324,8 @@ class KDSItemSchedule(Schema):
     quantity: int
     duration_minutes: float
     fire_delay_minutes: float
+    station_name: Optional[str] = "المطبخ العام"
+    station_icon: Optional[str] = "🍳"
 
 class KDSOrderOut(Schema):
     order_id: int
@@ -296,7 +334,22 @@ class KDSOrderOut(Schema):
     total_prep_time_minutes: float
     estimated_ready_at: str
     kitchen_load_factor: float
+    kitchen_load_status: Optional[str] = "ضغط خفيف 🟢"
+    elapsed_minutes: Optional[float] = 0.0
+    remaining_minutes: Optional[float] = 0.0
     items: List[KDSItemSchedule]
+
+class EstimateItemIn(Schema):
+    name: str
+    quantity: int = 1
+    category_name: Optional[str] = ""
+    menu_item_id: Optional[int] = None
+
+class PrepTimeEstimateOut(Schema):
+    total_prep_time_minutes: float
+    kitchen_load_factor: float
+    kitchen_load_status: str
+    items: List[dict]
 
 @order_router.get("/kitchen/ai/kds-queue/", response=List[KDSOrderOut])
 def get_kds_queue(request):
@@ -304,6 +357,36 @@ def get_kds_queue(request):
     استرجاع طابور المطبخ مع الجدولة الزمنية وتوقيتات الطهي المتزامن بالذكاء الاصطناعي
     """
     return KitchenIntelligenceService.get_active_kds_queue()
+
+
+@order_router.post("/kitchen/ai/estimate-prep-time/", response=PrepTimeEstimateOut)
+def estimate_prep_time(request, items: List[EstimateItemIn]):
+    """
+    حساب الوقت اللازم لتحضير سلة وجبات قبل أو أثناء إنشاء الطلب
+    """
+    load_factor = KitchenIntelligenceService.calculate_kitchen_load_factor()
+    calculated_items = []
+    max_duration = 0.0
+
+    for it in items:
+        calc = KitchenIntelligenceService.calculate_item_prep_time(
+            item_name=it.name,
+            quantity=it.quantity,
+            category_name=it.category_name or "",
+            menu_item_id=it.menu_item_id
+        )
+        adjusted_time = round(calc["duration_minutes"] * load_factor, 1)
+        if adjusted_time > max_duration:
+            max_duration = adjusted_time
+        calc["adjusted_duration_minutes"] = adjusted_time
+        calculated_items.append(calc)
+
+    return {
+        "total_prep_time_minutes": round(max_duration, 1),
+        "kitchen_load_factor": round(load_factor, 2),
+        "kitchen_load_status": KitchenIntelligenceService.get_load_status_label(load_factor),
+        "items": calculated_items
+    }
 
 
 @order_router.post("/kitchen/ai/kds-queue/{order_id}/complete/")

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Sidebar, Modal, ShiftModal, ExpenseModal } from '@/components';
+import { Sidebar, Modal, ShiftModal, ExpenseModal, ThermalReceipt80mm } from '@/components';
 import AIRecommendations from '@/components/pos/AIRecommendations';
+import { useSettingsStore } from '@/store/settingsStore';
 import {
     ShoppingBag,
     Search,
@@ -51,6 +52,9 @@ export default function POSPage() {
     const [isClient, setIsClient] = useState(false);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const { settings, fetchSettings } = useSettingsStore();
+    const [showThermalReceipt, setShowThermalReceipt] = useState(false);
+    const [thermalOrder, setThermalOrder] = useState<any>(null);
     const [lastOrder, setLastOrder] = useState<any>(null);
     const [invoiceIssued, setInvoiceIssued] = useState(false);
     const [currentOrder, setCurrentOrder] = useState<any>(null);
@@ -82,7 +86,8 @@ export default function POSPage() {
     // حالة للتبديل بين القائمة والسلة على الأجهزة الصغيرة (Responsive Mobile Tabs)
     const [mobileTab, setMobileTab] = useState<'menu' | 'cart'>('menu');
 
-    const { activeShift, setActiveShift } = useAuthStore();
+    const { activeShift, setActiveShift, user } = useAuthStore();
+    const currentCashierName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : 'الكاشير';
     const { subtotal, total } = getTotals();
 
     useEffect(() => {
@@ -92,6 +97,7 @@ export default function POSPage() {
         } else {
             fetchData();
             checkCurrentShift();
+            fetchSettings();
         }
     }, [isLoggedIn, router]);
 
@@ -372,7 +378,7 @@ export default function POSPage() {
                         </div>
 
                         <form onSubmit={handleBarcodeSubmit} className="relative group shadow-sm">
-                            <Barcode className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-600 group-focus-within:scale-110 transition-transform" />
+                            <Barcode className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600 group-focus-within:scale-110 transition-transform" />
                             <input
                                 ref={barcodeInputRef}
                                 type="text"
@@ -385,7 +391,7 @@ export default function POSPage() {
                                         processBarcode(barcodeQuery);
                                     }
                                 }}
-                                className="w-full h-11 md:h-12 bg-white dark:bg-[#111827] border-2 border-indigo-100 dark:border-indigo-950/60 hover:border-indigo-500/50 focus:border-indigo-600 rounded-2xl pr-12 pl-4 text-xs md:text-sm font-bold transition-all outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
+                                className="w-full h-11 md:h-12 bg-white dark:bg-[#111827] border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500/50 focus:border-emerald-600 rounded-2xl pr-12 pl-4 text-xs md:text-sm font-bold transition-all outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
                             />
                         </form>
                     </div>
@@ -869,12 +875,21 @@ export default function POSPage() {
                     </div>
                     <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">تمت عملية البيع بنجاح!</h3>
                     <p className="text-gray-500 font-bold text-xs mb-5">تم تسجيل الدفع وتحديث حالة الطلب بنجاح.</p>
-                    <button
-                        onClick={() => { setShowSuccessModal(false); clearCart(); router.push('/orders'); }}
-                        className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-md transition-all text-xs"
-                    >
-                        حسنًا
-                    </button>
+                    <div className="flex gap-2 w-full">
+                        <button
+                            onClick={() => setShowThermalReceipt(true)}
+                            className="flex-1 h-10 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl font-black transition-all text-xs flex items-center justify-center gap-1.5"
+                        >
+                            <Receipt className="w-4 h-4" />
+                            <span>طباعة إيصال حراري</span>
+                        </button>
+                        <button
+                            onClick={() => { setShowSuccessModal(false); clearCart(); router.push('/orders'); }}
+                            className="flex-1 h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-md transition-all text-xs"
+                        >
+                            حسنًا
+                        </button>
+                    </div>
                 </div>
             </Modal>
 
@@ -1056,6 +1071,15 @@ export default function POSPage() {
 
             <ShiftModal isOpen={showShiftModal} onClose={() => { if (shiftMode === 'open' && !activeShift) return; setShowShiftModal(false); }} mode={shiftMode} onSuccess={() => checkCurrentShift()} />
             <ExpenseModal isOpen={showExpenseModal} onClose={() => setShowExpenseModal(false)} />
+
+            {showThermalReceipt && thermalOrder && (
+                <ThermalReceipt80mm
+                    order={thermalOrder}
+                    settings={settings}
+                    onClose={() => setShowThermalReceipt(false)}
+                    autoPrint={true}
+                />
+            )}
         </div>
     );
 
@@ -1106,6 +1130,31 @@ export default function POSPage() {
 
             await orderService.updateOrder(orderToPay.id, { status: 'completed' });
 
+            const completedOrderData = {
+                ...orderToPay,
+                items: (orderToPay.items && orderToPay.items.length > 0) ? orderToPay.items : items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    unit_price: item.price,
+                    quantity: item.quantity,
+                    notes: item.notes,
+                    menu_item: { name: item.name, price: item.price }
+                })),
+                total_amount: total,
+                payment_method: method === 'card' ? 'credit_card' : method === 'debt' ? 'debt' : 'cash',
+                card_provider: method === 'card' ? cardProvider : undefined,
+                table_number: orderToPay.table_number || (orderType === 'takeaway' ? 'سفري' : 'محلي'),
+                cashier_name: currentCashierName,
+                shift_id: activeShift?.id,
+                order_date_time: new Date().toISOString()
+            };
+            setThermalOrder(completedOrderData);
+
+            if (settings?.auto_print_on_checkout) {
+                setShowThermalReceipt(true);
+            }
+
             setShowSuccessModal(true);
             clearCart();
             setCurrentOrder(null);
@@ -1132,7 +1181,7 @@ export default function POSPage() {
             return;
         }
 
-        if (items.length === 0) return;
+        if (items.length === 0 && !currentOrder) return;
 
         try {
             let order = currentOrder;
@@ -1156,9 +1205,25 @@ export default function POSPage() {
             }
             setInvoiceIssued(true);
 
-            setTimeout(() => {
-                window.print();
-            }, 500);
+            const orderToPrint = {
+                ...order,
+                items: (order.items && order.items.length > 0) ? order.items : items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    unit_price: item.price,
+                    quantity: item.quantity,
+                    notes: item.notes,
+                    menu_item: { name: item.name, price: item.price }
+                })),
+                total_amount: order.total_amount ? Number(order.total_amount) : total,
+                table_number: order.table_number || (orderType === 'takeaway' ? 'سفري' : 'محلي'),
+                cashier_name: currentCashierName,
+                shift_id: activeShift?.id,
+                order_date_time: order.created_at || order.order_date_time || new Date().toISOString()
+            };
+            setThermalOrder(orderToPrint);
+            setShowThermalReceipt(true);
         } catch (err: any) {
             console.error('Failed to issue invoice', err);
             const msg = err?.response?.data?.message || err?.message || 'حدث خطأ أثناء إصدار الفاتورة';

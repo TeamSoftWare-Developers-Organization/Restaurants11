@@ -55,29 +55,29 @@ export default function AIRecommendations({ className = "", compact = false }: A
 
   return (
     <div
-      className={`bg-slate-900/90 dark:bg-[#131b2e] border border-blue-500/30 dark:border-blue-900/50 rounded-2xl p-3.5 shadow-xl transition-all ${className}`}
+      className={`bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800/80 rounded-2xl p-4 shadow-sm transition-all ${className}`}
       dir="rtl"
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="p-1.5 bg-blue-500/20 text-blue-400 rounded-lg">
-            <Sparkles className="w-4 h-4 animate-pulse text-amber-300" />
-          </span>
+      <div className="flex items-center justify-between mb-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shadow-xs">
+            <Sparkles className="w-4 h-4 text-emerald-600" />
+          </div>
           <div>
-            <h3 className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+            <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
               اقتراحات ذكية تكميلية للعميل
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-mono font-bold">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black shadow-xs">
                 AI
               </span>
             </h3>
-            <p className="text-[10px] text-slate-400 font-medium">
+            <p className="text-[11px] text-gray-400 dark:text-gray-400 font-semibold mt-0.5">
               أصناف يفضل الزبائن طلبها معاً بناءً على تحليل السلة
             </p>
           </div>
         </div>
 
         {loading && (
-          <div className="flex items-center gap-1 text-xs text-blue-400 font-bold animate-pulse">
+          <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold animate-pulse">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
             <span>جاري التحليل...</span>
           </div>
@@ -85,7 +85,7 @@ export default function AIRecommendations({ className = "", compact = false }: A
       </div>
 
       <div
-        className={`grid gap-2 ${
+        className={`grid gap-2.5 ${
           compact
             ? "grid-cols-2"
             : "grid-cols-2 sm:grid-cols-4"
@@ -94,14 +94,14 @@ export default function AIRecommendations({ className = "", compact = false }: A
         {recommendations.map((item) => (
           <div
             key={item.id}
-            className="bg-[#0b1120] hover:border-blue-500/60 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between transition-all group hover:shadow-md hover:scale-[1.02]"
+            className="bg-gray-50/70 dark:bg-gray-800/40 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 border border-gray-100 dark:border-gray-700/60 hover:border-emerald-500/40 p-3 rounded-2xl flex flex-col justify-between transition-all group shadow-xs hover:shadow-md hover:scale-[1.01]"
           >
             <div>
-              <p className="text-xs font-black text-slate-100 line-clamp-1 group-hover:text-blue-300 transition-colors">
+              <p className="text-xs font-black text-gray-900 dark:text-gray-100 truncate group-hover:text-emerald-600 transition-colors">
                 {item.name}
               </p>
-              <p className="text-xs font-black text-emerald-400 mt-1 tabular-nums">
-                {typeof item.price === "number" ? item.price.toFixed(2) : item.price} <span className="text-[10px] font-bold text-slate-400">د.ل</span>
+              <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
+                {typeof item.price === "number" ? item.price.toFixed(2) : item.price} <span className="text-[10px] font-bold text-gray-400">د.ل</span>
               </p>
             </div>
 
@@ -114,9 +114,9 @@ export default function AIRecommendations({ className = "", compact = false }: A
                   image_url: item.image_url,
                 })
               }
-              className="mt-2.5 w-full bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-[11px] font-black py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 active:scale-95 shadow-xs"
+              className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm shadow-emerald-600/20"
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-3.5 h-3.5" />
               <span>إضافة للسلة</span>
             </button>
           </div>

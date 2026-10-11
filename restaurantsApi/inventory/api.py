@@ -211,6 +211,15 @@ class PurchaseReturnIn(Schema):
     return_date: Optional[str] = None
     items: List[ReturnItemIn]
 
+class AutoPOItemIn(Schema):
+    ingredient_id: int
+    quantity: float
+    unit_price: Optional[float] = None
+
+class AutoPOGenerateIn(Schema):
+    supplier_id: Optional[int] = None
+    items: Optional[List[AutoPOItemIn]] = None
+
 
 
 def handle_create_supplier(payload: SupplierIn):
@@ -443,6 +452,21 @@ def handle_list_purchase_returns():
     return result
 
 
+def handle_auto_po_preview():
+    from ml_services.auto_purchaser import AutoPurchaseOrderService
+    return AutoPurchaseOrderService.get_depleted_items_preview()
+
+def handle_auto_po_generate(payload: Optional[AutoPOGenerateIn] = None):
+    from ml_services.auto_purchaser import AutoPurchaseOrderService
+    supplier_id = payload.supplier_id if payload else None
+    items_override = [it.dict() for it in payload.items] if (payload and payload.items) else None
+    return AutoPurchaseOrderService.generate_draft_po(supplier_id=supplier_id, items_override=items_override)
+
+def handle_receive_purchase_invoice(invoice_id: int):
+    from ml_services.auto_purchaser import AutoPurchaseOrderService
+    return AutoPurchaseOrderService.receive_and_post_invoice(invoice_id)
+
+
 purchases_router = Router(tags=["الموردين والمشتريات"])
 
 @purchases_router.post("/suppliers/")
@@ -460,6 +484,18 @@ def create_purchase_invoice(request, payload: PurchaseInvoiceIn):
 @purchases_router.get("/purchases/")
 def list_purchase_invoices(request):
     return handle_list_purchase_invoices()
+
+@purchases_router.get("/purchases/auto-generate/preview/")
+def auto_po_preview(request):
+    return handle_auto_po_preview()
+
+@purchases_router.post("/purchases/auto-generate/")
+def auto_po_generate(request, payload: Optional[AutoPOGenerateIn] = None):
+    return handle_auto_po_generate(payload)
+
+@purchases_router.post("/purchases/{invoice_id}/receive/")
+def receive_purchase_invoice(request, invoice_id: int):
+    return handle_receive_purchase_invoice(invoice_id)
 
 @purchases_router.post("/purchases/returns/")
 def create_purchase_return(request, payload: PurchaseReturnIn):
@@ -485,6 +521,18 @@ def inv_create_purchase_invoice(request, payload: PurchaseInvoiceIn):
 @inventory_router.get("/purchases/")
 def inv_list_purchase_invoices(request):
     return handle_list_purchase_invoices()
+
+@inventory_router.get("/purchases/auto-generate/preview/")
+def inv_auto_po_preview(request):
+    return handle_auto_po_preview()
+
+@inventory_router.post("/purchases/auto-generate/")
+def inv_auto_po_generate(request, payload: Optional[AutoPOGenerateIn] = None):
+    return handle_auto_po_generate(payload)
+
+@inventory_router.post("/purchases/{invoice_id}/receive/")
+def inv_receive_purchase_invoice(request, invoice_id: int):
+    return handle_receive_purchase_invoice(invoice_id)
 
 @inventory_router.post("/purchases/returns/")
 def inv_create_purchase_return(request, payload: PurchaseReturnIn):

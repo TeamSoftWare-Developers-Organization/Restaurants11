@@ -7,3 +7,5 @@ export { default as DeleteConfirmModal } from './DeleteConfirmModal';
 export { default as GlobalModals } from './GlobalModals';
 export { ThemeProvider } from './ThemeProvider';
 export { default as AppLayout } from './AppLayout';
+export { default as ThermalReceipt80mm } from './pos/ThermalReceipt80mm';
+export { default as StaffRosteringView } from './employees/StaffRosteringView';

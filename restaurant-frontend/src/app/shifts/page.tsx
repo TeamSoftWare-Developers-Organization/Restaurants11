@@ -440,7 +440,7 @@ export default function ShiftsPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xs">
                         <div>
                             <div className="flex items-center gap-3 mb-1">
-                                <span className="p-2.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl">
+                                <span className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl">
                                     <Clock className="w-6 h-6" />
                                 </span>
                                 <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
@@ -460,7 +460,7 @@ export default function ShiftsPage() {
                                     onClick={() => setViewTab('allocations')}
                                     className={`px-3 sm:px-4 py-2 rounded-xl transition-all ${
                                         viewTab === 'allocations'
-                                            ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs'
+                                            ? 'bg-emerald-600 text-white shadow-xs'
                                             : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'
                                     }`}
                                 >
@@ -470,7 +470,7 @@ export default function ShiftsPage() {
                                     onClick={() => setViewTab('overtime')}
                                     className={`px-3 sm:px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
                                         viewTab === 'overtime'
-                                            ? 'bg-amber-600 text-white shadow-xs'
+                                            ? 'bg-emerald-600 text-white shadow-xs'
                                             : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'
                                     }`}
                                 >
@@ -481,7 +481,7 @@ export default function ShiftsPage() {
                                     onClick={() => setViewTab('templates')}
                                     className={`px-3 sm:px-4 py-2 rounded-xl transition-all ${
                                         viewTab === 'templates'
-                                            ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs'
+                                            ? 'bg-emerald-600 text-white shadow-xs'
                                             : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'
                                     }`}
                                 >
@@ -495,10 +495,10 @@ export default function ShiftsPage() {
                                     setModalError(null);
                                     setIsStandaloneOvertimeModalOpen(true);
                                 }}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-2xl text-xs font-black transition-all active:scale-95"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 rounded-2xl text-xs font-black transition-all active:scale-95"
                                 title="تسجيل عمل أو مهمة إضافية جديدة لموظف"
                             >
-                                <Briefcase className="w-4 h-4 text-amber-600" />
+                                <Briefcase className="w-4 h-4 text-emerald-600" />
                                 <span>+ تسجيل عمل إضافي</span>
                             </button>
 
@@ -507,7 +507,7 @@ export default function ShiftsPage() {
                                     setModalError(null);
                                     setIsAllocationModalOpen(true);
                                 }}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-xs font-black shadow-xs shadow-amber-600/20 transition-all active:scale-95"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-xs shadow-emerald-600/20 transition-all active:scale-95"
                             >
                                 <Plus className="w-4 h-4" />
                                 <span>تخصيص وردية لموظف</span>
@@ -691,7 +691,7 @@ export default function ShiftsPage() {
                                         </p>
                                         <button
                                             onClick={() => setIsAllocationModalOpen(true)}
-                                            className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-black hover:bg-amber-700 transition-all shadow-xs"
+                                            className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 transition-all shadow-xs"
                                         >
                                             <Plus className="w-4 h-4" />
                                             <span>تخصيص وردية الآن</span>
@@ -883,7 +883,7 @@ export default function ShiftsPage() {
 
                                 <button
                                     onClick={() => setIsStandaloneOvertimeModalOpen(true)}
-                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-xs font-black shadow-xs shadow-amber-600/20 transition-all active:scale-95"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-xs shadow-emerald-600/20 transition-all active:scale-95"
                                 >
                                     <Plus className="w-4 h-4" />
                                     <span>تسجيل مهمة إضافية جديدة</span>
@@ -894,7 +894,7 @@ export default function ShiftsPage() {
                             <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xs overflow-hidden">
                                 {overtimeRecords.length === 0 ? (
                                     <div className="p-16 text-center space-y-3">
-                                        <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-600 flex items-center justify-center mx-auto">
+                                        <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 flex items-center justify-center mx-auto">
                                             <Briefcase className="w-8 h-8" />
                                         </div>
                                         <h3 className="text-base font-black text-gray-900 dark:text-white">
@@ -905,7 +905,7 @@ export default function ShiftsPage() {
                                         </p>
                                         <button
                                             onClick={() => setIsStandaloneOvertimeModalOpen(true)}
-                                            className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-black hover:bg-amber-700 transition-all shadow-xs"
+                                            className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 transition-all shadow-xs"
                                         >
                                             <Plus className="w-4 h-4" />
                                             <span>تسجيل عمل إضافي الآن</span>
@@ -1312,7 +1312,7 @@ export default function ShiftsPage() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs transition-all active:scale-95"
+                                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition-all active:scale-95"
                                 >
                                     حفظ التخصيص
                                 </button>
@@ -1430,7 +1430,7 @@ export default function ShiftsPage() {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs transition-all active:scale-95"
+                                        className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition-all active:scale-95"
                                     >
                                         حفظ وتحديث الإضافي
                                     </button>
@@ -1571,7 +1571,7 @@ export default function ShiftsPage() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs transition-all active:scale-95"
+                                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition-all active:scale-95"
                                 >
                                     تسجيل العمل الإضافي
                                 </button>

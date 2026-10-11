@@ -550,20 +550,19 @@ export default function SettingsPage() {
                                             {/* Template Choice */}
                                             <div className="space-y-2">
                                                 <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                                                    قالب طباعة المبيعات الافتراضي
+                                                    مقاس ونوع الإيصال الافتراضي للمبيعات
                                                 </label>
                                                 <div className="grid grid-cols-1 gap-2">
                                                     {[
-                                                        { id: 'thermal_80mm', title: 'حراري 80mm (افتراضي)', desc: 'المعيار القياسي لطابعات إيصالات الكاشير' },
-                                                        { id: 'thermal_58mm', title: 'حراري 58mm (مدمج)', desc: 'مخصص لأجهزة نقاط البيع المحمولة POS' },
-                                                        { id: 'detailed_a4', title: 'رسمي ضريبي (A4/A5)', desc: 'فاتورة معتمدة للشركات، الحفلات والعملاء الآجل' },
+                                                        { id: 'thermal_80mm', title: 'إيصال حراري (80mm Thermal)', desc: 'المقاس القياسي لطابعات إيصالات الكاشير الرول الحراري (عرض 80mm مع هوامش صفرية)' },
+                                                        { id: 'detailed_a4', title: 'فاتورة رسمية (A4 Official)', desc: 'فاتورة ضريبية كاملة بنموذج A4/A5 للشركات، الحفلات والطلبات الكبيرة' },
                                                     ].map((tmpl) => (
                                                         <label
                                                             key={tmpl.id}
                                                             onClick={() => handleChange('sales_invoice_template', tmpl.id)}
                                                             className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
                                                                 (localSettings?.sales_invoice_template || 'thermal_80mm') === tmpl.id
-                                                                    ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/30'
+                                                                    ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/30 ring-1 ring-indigo-500/20'
                                                                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                                                             }`}
                                                         >
@@ -586,19 +585,19 @@ export default function SettingsPage() {
                                             {/* Toggles */}
                                             <div className="pt-2 border-t border-gray-100 dark:border-gray-700 space-y-2.5">
                                                 <label className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
-                                                    <span>إظهار شعار المطعم بالإيصال</span>
+                                                    <span>إظهار شعار المطعم على الإيصال الحراري</span>
                                                     <input
                                                         type="checkbox"
                                                         checked={localSettings?.show_logo_sales !== false}
                                                         onChange={(e) => handleChange('show_logo_sales', e.target.checked)}
-                                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
                                                     />
                                                 </label>
 
                                                 <label className="flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
                                                     <span className="flex items-center gap-1.5">
-                                                        <span>رمز الاستجابة السريعة (ZATCA QR)</span>
-                                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-mono">TLV</span>
+                                                        <span>رمز الاستجابة السريعة المحاسبي (ZATCA TLV Base64 QR)</span>
+                                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-mono font-bold">معتمد</span>
                                                     </span>
                                                     <input
                                                         type="checkbox"
