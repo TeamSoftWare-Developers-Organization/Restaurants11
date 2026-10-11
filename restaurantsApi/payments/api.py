@@ -52,6 +52,35 @@ class ShiftOut(Schema):
 class ShiftCloseIn(Schema):
     closing_balance: float
 
+class CloseShiftWithVarianceIn(Schema):
+    counted_cash: float
+    notes: Optional[str] = None
+
+class ShiftReconciliationReportOut(Schema):
+    success: bool
+    shift_id: int
+    shift_name: str
+    cashier_id: int
+    cashier_name: str
+    start_time: str
+    end_time: str
+    opening_balance: float
+    cash_sales: float
+    cash_in: float
+    cash_out: float
+    card_sales: float
+    other_sales: float
+    total_sales: float
+    expected_cash: float
+    counted_cash: float
+    actual_closing_balance: float
+    variance: float
+    variance_status: str
+    variance_status_display: str
+    color: str
+    notes: Optional[str] = ""
+    timestamp: str
+
 # مخططات حركات الخزينة (TreasuryTransaction)
 class TreasuryTransactionIn(Schema):
     amount: float
@@ -170,6 +199,39 @@ def close_shift(request, data: ShiftCloseIn):
     shift.closing_balance = data.closing_balance
     shift.save()
     return shift
+
+@payments_router.post("/shifts/{shift_id}/close/", response=ShiftReconciliationReportOut)
+@payments_router.post("/shifts/{shift_id}/close", response=ShiftReconciliationReportOut)
+def close_shift_with_variance(request, shift_id: int, data: CloseShiftWithVarianceIn):
+    """
+    إغلاق الوردية وحساب الفارق المالي وتصنيف الحالة (BALANCED, SURPLUS, DEFICIT).
+    """
+    from .services import ShiftReconciliationService
+    shift = get_object_or_404(Shift, id=shift_id)
+    return ShiftReconciliationService.reconcile_and_close_shift(shift, data.counted_cash, data.notes)
+
+@payments_router.post("/shifts/close-reconciliation/", response=ShiftReconciliationReportOut, auth=JWTAuth())
+@payments_router.post("/shifts/close-reconciliation", response=ShiftReconciliationReportOut, auth=JWTAuth())
+def close_current_shift_with_variance(request, data: CloseShiftWithVarianceIn):
+    """
+    إغلاق وردية المستخدم الحالية المفتوحة مع تقرير المطابقة والفروقات.
+    """
+    from .services import ShiftReconciliationService
+    shift = get_object_or_404(Shift, cashier=request.auth, status='open')
+    return ShiftReconciliationService.reconcile_and_close_shift(shift, data.counted_cash, data.notes)
+
+@payments_router.get("/shifts/{shift_id}/reconciliation-report/", response=ShiftReconciliationReportOut)
+@payments_router.get("/shifts/{shift_id}/reconciliation-report", response=ShiftReconciliationReportOut)
+def get_shift_variance_report(request, shift_id: int):
+    """
+    معاينة أو جلب تقرير المطابقة لوردية محددة.
+    """
+    from .services import ShiftReconciliationService
+    shift = get_object_or_404(Shift, id=shift_id)
+    financials = ShiftReconciliationService.calculate_expected_cash(shift)
+    counted = float(shift.closing_balance) if shift.closing_balance is not None else financials["expected_cash"]
+    return ShiftReconciliationService.reconcile_and_close_shift(shift, counted)
+
 
 @payments_router.get("/shifts/current", response=Optional[ShiftOut], auth=JWTAuth())
 def get_current_shift(request):

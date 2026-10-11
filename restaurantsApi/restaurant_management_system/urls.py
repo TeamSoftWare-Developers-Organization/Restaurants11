@@ -16,7 +16,7 @@ from inventory.api import inventory_router, purchases_router
 from reservations.api import reservations_router
 from payments.api import payments_router
 from payments.shifts_api import shifts_router
-from core.api import core_router, executive_router
+from core.api import core_router, executive_router, license_router
 from core.zakat_api import zakat_router
 from ml_services.api import ai_router
 
@@ -49,6 +49,7 @@ add_router_safe("/payments", payments_router)
 add_router_safe("/shifts", shifts_router)
 add_router_safe("/settings", core_router)
 add_router_safe("/core", executive_router)
+add_router_safe("/core/license", license_router)
 add_router_safe("/zakat", zakat_router)
 add_router_safe("/ai", ai_router)
 

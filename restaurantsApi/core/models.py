@@ -125,3 +125,57 @@ class ZakatDisbursement(models.Model):
 
     def __str__(self):
         return f"صرف زكاة: {self.amount} د.ل إلى {self.recipient_category}"
+
+
+class SystemLicense(models.Model):
+    """
+    نموذج الترخيص وإدارة مفتاح المنتج والفترة التجريبية للنظام
+    """
+    LICENSE_TYPE_CHOICES = [
+        ('TRIAL', 'فترة تجريبية (14 يوماً)'),
+        ('LIFETIME', 'ترخيص دائم مدى الحياة'),
+    ]
+
+    machine_id = models.CharField(max_length=64, unique=True, verbose_name="معرف الجهاز الفريد (Machine ID)")
+    installed_at = models.DateTimeField(default=timezone.now, verbose_name="تاريخ أول تثبيت وتشغيل")
+    trial_days = models.PositiveIntegerField(default=14, verbose_name="عدد الأيام التجريبية")
+    is_activated = models.BooleanField(default=False, verbose_name="هل النظام مفعل بصفة دائمة")
+    product_key = models.CharField(max_length=64, blank=True, null=True, verbose_name="مفتاح المنتج المسجل")
+    activated_at = models.DateTimeField(blank=True, null=True, verbose_name="تاريخ ووقت التفعيل")
+    license_type = models.CharField(max_length=20, choices=LICENSE_TYPE_CHOICES, default='TRIAL', verbose_name="نوع الترخيص")
+
+    class Meta:
+        verbose_name = "ترخيص النظام"
+        verbose_name_plural = "تراخيص النظام"
+
+    def __str__(self):
+        status_text = "مفعل" if self.is_activated else f"تجريبي ({self.remaining_trial_days} يوم متبقي)"
+        return f"ترخيص الجهاز [{self.machine_id}] - {status_text}"
+
+    @property
+    def is_trial_active(self) -> bool:
+        """
+        التحقق مما إذا كانت الفترة التجريبية لا تزال سارية المفعول
+        """
+        if self.is_activated:
+            return False
+        elapsed_delta = timezone.now() - self.installed_at
+        return elapsed_delta.days < self.trial_days
+
+    @property
+    def remaining_trial_days(self) -> int:
+        """
+        الأيام المتبقية من الفترة التجريبية
+        """
+        if self.is_activated:
+            return 0
+        elapsed_delta = timezone.now() - self.installed_at
+        remaining = self.trial_days - elapsed_delta.days
+        return max(0, remaining)
+
+    @property
+    def is_valid(self) -> bool:
+        """
+        صلاحية النظام للعمل (إما مفعل مدى الحياة أو في فترة التجربة)
+        """
+        return self.is_activated or self.is_trial_active

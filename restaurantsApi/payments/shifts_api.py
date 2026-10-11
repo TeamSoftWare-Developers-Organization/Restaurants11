@@ -724,3 +724,20 @@ def get_current_pos_shift_reconciliation(request):
     user = request.auth
     shift = get_object_or_404(Shift, cashier=user, status='open')
     return calculate_shift_reconciliation(shift)
+
+
+class CloseShiftWithVariancePayload(Schema):
+    counted_cash: float
+    notes: Optional[str] = None
+
+
+@shifts_router.post("/{shift_id}/close/")
+@shifts_router.post("/{shift_id}/close")
+def close_shift_variance_endpoint(request, shift_id: int, payload: CloseShiftWithVariancePayload):
+    """
+    إغلاق الوردية وحساب الفارق المالي وتصنيف الحالة (BALANCED, SURPLUS, DEFICIT).
+    """
+    from .services import ShiftReconciliationService
+    shift = get_object_or_404(Shift, id=shift_id)
+    return ShiftReconciliationService.reconcile_and_close_shift(shift, payload.counted_cash, payload.notes)
+

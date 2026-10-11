@@ -71,13 +71,23 @@ A modern, cloud-ready, end-to-end Restaurant Enterprise Resource Planning (ERP) 
 - **Interactive Preview Modal:** Review low-stock ingredients, suggested reorder quantities, unit costs, and total budget before committing.
 - **One-Click Warehouse Receipt (`POST /purchases/{id}/receive/`):** Instantly posts draft purchase orders into inventory, increments stock, updates the weighted average unit cost, and adjusts supplier ledger balance.
 
-#### 4. 🕒 Shift Customization & Overtime Management
+#### 4. 🕒 Shift Variance, Cash Reconciliation & Overtime Management
+- **Shift Reconciliation & Variance Auditing (`POST /api/payments/shifts/{shift_id}/close/`):**
+  - Instant drawer reconciliation comparing counted cash against book expectations:
+    $$\text{Expected Cash} = \text{Opening Balance} + \text{Cash Sales} + \text{Cash In} - \text{Cash Out}$$
+    $$\text{Variance} = \text{Actual Counted Cash} - \text{Expected Cash}$$
+  - Automated status classification: `BALANCED` (exact 100% match), `SURPLUS` (excess drawer cash), or `DEFICIT` (cash shortage).
+  - Itemized closing reconciliation receipt and printable shift handover digest.
+- **Interactive Close Shift Modal (`CloseShiftModal.tsx`):** Live variance calculation as cash is entered, color-coded status badges, notes recording, and direct summary printing.
 - **Shift Scheduling & Allocation:** Create and configure shifts with custom working hours, roles, and shift templates.
 - **Extra Duties & Overtime Tracking:** Dedicated logging for additional tasks (أعمال إضافية), extra hours worked, and automated overtime compensation calculations.
-- **Cashier Counter Control:** Floating opening balance, mid-shift operational expenses logging, closing drawer count, and variance auditing.
-- **Responsive Modals & Toast System:** Modern, mobile-responsive dialogs with keyboard accessibility (Escape key, outside click), smooth animations, and custom non-blocking Toast alerts.
 
-#### 5. 📦 Inventory, Stocktaking & Procurement
+#### 5. 💻 Progressive Web App (PWA) & Desktop Standalone Mode
+- **Native Desktop & Tablet Experience:** Installable PWA (`manifest.json`) running in borderless `standalone` window mode.
+- **Branded App Icons & Assets:** High-resolution 192x192 and 512x512 maskable application icons.
+- **Offline & Network Resiliency:** Safe local data caching with automatic synchronization.
+
+#### 6. 📦 Inventory, Stocktaking & Procurement
 - **Real-Time Stock Audit (جرد المنتجات والمخزون):** Periodic physical count entry, automated variance calculation between actual and system stock, and one-click reconciliation.
 - **Product & Ingredient Catalog:** Multi-unit conversion support (grams, milliliters, kilograms, pieces) with product image upload and thumbnail previews.
 - **Suppliers & Purchase Invoices (فواتير المشتريات):** Register supplier bills, track credit/debit balances, and manage purchase returns.
@@ -198,12 +208,21 @@ python employees/services/hardware_scanner_bridge.py --mode test --image path/to
 
 ---
 
-## 🔑 Default Credentials
+## 🔑 Demo & Operational Accounts (الحسابات التجريبية)
 
-| Role | Username / Email | Password |
-|---|---|---|
-| **System Administrator** | `admin` or `admin@example.com` | `admin` |
-| **Cashier / Staff** | `Ali451` | `123` |
+Easily seed or reset all operational demo accounts using the built-in Django command:
+```bash
+python manage.py seed_demo_users
+```
+
+| Role / الدور | Username | Password | Permissions & Coverage |
+|---|---|---|---|
+| **System Administrator (مدير النظام)** | `admin` | `Password@123` | Full superuser access across all modules |
+| **POS Cashier (كاشير نقطة البيع)** | `cashier1` | `Password@123` | POS, Orders, Tables, Reservations, Drawer |
+| **Kitchen Chef & KDS (شيف المطبخ)** | `chef_kds` | `Password@123` | Kitchen Display System (KDS), Order status |
+| **Dining Waiter (نادل الصالة)** | `waiter1` | `Password@123` | Table management, Dine-in ordering |
+| **Inventory Manager (مسؤول المخزن والمشتريات)** | `inventory_mgr` | `Password@123` | Inventory, Stocktaking, Recipes, POs |
+
 
 ---
 ---
@@ -256,13 +275,21 @@ python employees/services/hardware_scanner_bridge.py --mode test --image path/to
 - **نافذة المعاينة والتحكم:** مراجعة المواد الموشكة على النفاد، الرصيد الحالي، والكميات المقترحة مع إمكانية تعديل الكمية قبل الاعتماد.
 - **الاستلام والترحيل الفوري للمخزن (`POST /purchases/{id}/receive/`):** اعتماد الفاتورة وترحيل الكميات فورياً للمخزون، وتحديث متوسط التكلفة وحساب المورد بنقرة واحدة.
 
-#### 4. 🕒 إدارة وتخصيص الورديات والعمل الإضافي (Shifts & Overtime)
-- **جدولة الورديات:** إنشاء قوالب الورديات وتعيين الموظفين ومواعيد العمل بدقة.
-- **الأعمال الإضافية وحساب تكلفة الأوفر تايم:** تسجيل المهام الإضافية (Extra Duties)، ساعات العمل الإضافي، وحساب التكلفة المستحقة آلياً.
-- **إدارة عهدة الكاشير:** تسجيل الرصيد الافتتاحي (Float)، تسجيل مصاريف الوردية التشغيلية، والرصيد الختامي ومطابقة العجز والفائض.
-- **نوافذ منبثقة متجاوبة ونظام إشعارات مخصص:** نوافذ مودال (Modal) عصرية متجاوبة مع الهواتف، تدعم زر Escape والإغلاق الذكي، واستبدال رسائل التنبيه الافتراضية بنظام Toast Notifications مريح.
+#### 4. 🕒 احتساب فروقات الوردية والمطابقة النقدية والعمل الإضافي (Shift Variance & Overtime)
+- **محرك تسوية الوردية الدقيق (`POST /api/payments/shifts/{shift_id}/close/`):**
+  - معادلة النقدية المتوقعة دفترياً:
+    $$\text{النقدية المتوقعة} = \text{الرصيد الافتتاحي} + \text{مبيعات الكاش} + \text{المقبوضات الإضافية} - \text{المصروفات}$$
+    $$\text{الفارق (Variance)} = \text{المبلغ الفعلي المعدود في الخزينة} - \text{النقدية المتوقعة}$$
+  - تصنيف الحالة آلياً: `BALANCED` (مطابق 100%)، `SURPLUS` (فائض نقدي بالدرج)، أو `DEFICIT` (عجز نقدي).
+  - إصدار تقرير تسوية إغلاق تفصيلي وإيصال مطابقة قابل للطباعة مباشرة.
+- **نافذة إغلاق الوردية الذكية (`CloseShiftModal.tsx`):** حساب الفارق مباشرة أثناء كتابة المبلغ المعدود، تمييز لوني ديناميكي (أخضر / زمردي / أحمر)، تسجيل الملاحظات وطباعة ملخص الاستلام والتسليم.
+- **جدولة وتخصيص الورديات:** قوالب ورديات مرنة، ربط الكاشير بنقطة البيع، وحساب ساعات العمل الإضافي وتكلفتها آلياً.
 
-#### 5. 📦 المخزون، الجرد، والمشتريات
+#### 5. 💻 تطبيق الويب التقدمي (PWA) للعمل كبرنامج ديسكتوب
+- **تثبيت مباشر كبرنامج سطح مكتب (Desktop PWA):** دعم التثبيت على أنظمة ويندوز، ماك، والأجهزة اللوحية عبر ملف `manifest.json` وتشغيل الواجهة في نافذة مستقلة `standalone` بدون متصفح.
+- **أيقونات وهوية بصرية مخصصة:** أيقونات عالية الدقة (192x192 و 512x512) مع دعم العمل دون انقطاع.
+
+#### 6. 📦 المخزون، الجرد، والمشتريات
 - **جرد المنتجات والمخزون الحي:** واجهة متخصصة لإجراء الجرد الفعلي للمنتجات، مقارنة الرصيد الدفتري بالفعلي، واحتساب الفروقات والتسوية بنقرة واحدة.
 - **دليل المواد والمنتجات:** دعم وحدات القياس المتعددة (جرام، مليلتر، كجم، قطعة) ورفع صور المنتجات ومعاينتها.
 - **الموردين وفواتير الشراء:** تسجيل فواتير التوريد، متابعة ديون ومستحقات الموردين، وإصدار مرتجعات الشراء.

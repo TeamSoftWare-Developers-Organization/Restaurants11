@@ -218,5 +218,18 @@ export const shiftService = {
     getCurrentPosShiftReconciliation: async (): Promise<ShiftReconciliation> => {
         const res = await api.get('/shifts/pos/current-reconciliation/');
         return res.data;
+    },
+
+    closeShiftWithVariance: async (
+        shiftId: number,
+        countedCash: number,
+        notes?: string
+    ): Promise<any> => {
+        const res = await api.post(`/payments/shifts/${shiftId}/close/`, {
+            counted_cash: countedCash,
+            notes: notes || ''
+        });
+        return res.data;
     }
 };
+

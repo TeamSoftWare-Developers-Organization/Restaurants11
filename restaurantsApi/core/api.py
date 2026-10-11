@@ -106,3 +106,53 @@ def get_executive_brief(request):
     """
     from core.executive_ai import ExecutiveOperationsDigestService
     return ExecutiveOperationsDigestService.generate_digest()
+
+
+# --- نظام التراخيص وتفعيل مفتاح المنتج (License & Activation) ---
+license_router = Router(tags=["إدارة التراخيص والتفعيل"])
+
+class LicenseStatusOut(Schema):
+    machine_id: str
+    installed_at: str
+    trial_days: int
+    is_activated: bool
+    license_type: str
+    product_key: Optional[str] = None
+    activated_at: Optional[str] = None
+    is_trial_active: bool
+    remaining_trial_days: int
+    is_valid: bool
+
+class LicenseActivateIn(Schema):
+    product_key: str
+
+class LicenseActivateOut(Schema):
+    success: bool
+    message: str
+    license_status: Optional[LicenseStatusOut] = None
+
+@license_router.get("/status/", response=LicenseStatusOut)
+def get_license_status(request):
+    """
+    استرجاع حالة ترخيص النظام، الأيام المتبقية، الـ Machine ID، وهل النظام صالح للعمل.
+    """
+    from core.license_service import LicenseService
+    return LicenseService.get_license_status()
+
+@license_router.post("/activate/", response=LicenseActivateOut)
+def activate_product_key(request, data: LicenseActivateIn):
+    """
+    تفعيل النظام عبر مفتاح المنتج (Product Key) المطابق لمعرف الجهاز.
+    """
+    from core.license_service import LicenseService
+    success, message, lic = LicenseService.verify_and_activate(data.product_key)
+    
+    status_data = None
+    if lic:
+        status_data = LicenseService.get_license_status()
+
+    return {
+        "success": success,
+        "message": message,
+        "license_status": status_data
+    }

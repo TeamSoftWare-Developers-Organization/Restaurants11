@@ -21,6 +21,7 @@ export interface Shift {
     opening_balance: number;
     closing_balance: number | null;
     status: 'open' | 'closed';
+    shift_name?: string;
 }
 
 interface AuthState {
