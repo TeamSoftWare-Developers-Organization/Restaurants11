@@ -59,8 +59,12 @@ A modern, cloud-ready, end-to-end Restaurant Enterprise Resource Planning (ERP) 
     - **Puzzles (ألغاز):** High Margin, Low Volume (Feature prominently on POS).
     - **Plowhorses (أحصنة عمل):** Low Margin, High Volume (Optimize cost or slight price increase).
     - **Dogs (راكدة):** Low Margin, Low Volume (Recipe redesign or drop).
-- **👥 AI Smart Staff Rostering:**
-  - Forecasts labor requirements based on historical order volume trends across shifts to eliminate understaffing or overstaffing.
+- **👥 AI Predictive Staff Rostering & Labor Cost Optimizer:**
+  - Forecasts hourly order demand curves from historical sales, dynamically detects morning vs evening rush peaks, and calculates required chef and cashier staffing.
+  - Automatically generates and assigns rosters to active personnel while calculating tangible labor cost savings compared to traditional flat schedules.
+- **📊 AI Executive Operations Digest (`GET /api/core/ai/executive-brief/`):**
+  - Aggregates real-time mission-critical KPIs across 6 departments (Critical Inventory, Suspicious Shifts, Kitchen Load, High-Risk Reservations, Live Sales & AI Savings).
+  - Surfaces actionable executive directive cards with instant one-click routing to urgent operational tasks directly on the root `/` and `/dashboard` views.
 
 #### 3. ⚡ One-Click Auto Purchase Orders (Procurement Automation)
 - **Instant PO Generation:** Directly bridges stock depletion forecasts with the procurement engine. With a single click, generates a draft Purchase Order (`PO-AUTO-{timestamp}`, status `PENDING`) assigned to the default or selected supplier.
@@ -241,8 +245,11 @@ python employees/services/hardware_scanner_bridge.py --mode test --image path/to
   - اقتراح تفعيل الحجز المزدوج الذكي (Overbooking) أو طلب التأكيد الفوري لتفادي بقاء الطاولات فارغة.
 - **📊 مصفوفة هندسة المنيو والربحية (AI Menu Engineering Matrix):**
   - تقسيم جميع أطباق القائمة آلياً وفق مصفوفة بوسطن الرباعية (BCG): **نجوم (Stars)**، **ألغاز (Puzzles)**، **أحصنة عمل (Plowhorses)**، و**أصناف راكدة (Dogs)** بناءً على هامش الربح وشعبية المبيعات.
-- **👥 الجدولة الذكية للكوادر (AI Staff Rostering):**
-  - التنبؤ بعدد الموظفين المطلوب في كل وردية بناءً على حمولة الطلبات المتوقعة.
+- **👥 الجدولة الذكية للورديات وتكلفة العمالة (AI Predictive Staff Rostering):**
+  - التنبؤ بعدد الطلبات المتوقعة لكل ساعة بناءً على تاريخ المبيعات، وتوليد جدول ورديات الطهاة والكاشيرات تلقائياً لتقليل تكلفة العمالة ومنع الازدحام في أوقات الذروة واحتساب الوفر المالي المحقق.
+- **📊 الموجز التنفيذي الذكي للإدارة (AI Executive Operations Digest):**
+  - تجميع وسحب المؤشرات الحرجة اللحظية من 6 محاور تشغيلية رئيسية (المخزون المعرض للنفاد، الورديات المشبوهة، ضغط المطبخ، الحجوزات عالية المخاطر، والمبيعات والوفر المالي) عبر مسار `GET /api/core/ai/executive-brief/`.
+  - شريط بطاقات علوي تنفيذي في لوحة التحكم `/` و `/dashboard` يقدم "ملخص تشغيل اليوم الذكي" مع أزرار توجيه فوري للمهام الحرجة بنقرة واحدة.
 
 #### 3. ⚡ الأتمتة التلقائية لأوامر الشراء (One-Click Auto Purchase Orders)
 - **توليد مسودة أمر الشراء بنقرة واحدة:** ربط تنبيهات المخزون مباشرة بنظام المشتريات لتوليد فاتورة شراء مسودة (`PO-AUTO-{timestamp}`) بالكميات المقترحة وتوجيهها للمورد الافتراضي.
