@@ -10,3 +10,4 @@ export { default as AppLayout } from './AppLayout';
 export { default as ThermalReceipt80mm } from './pos/ThermalReceipt80mm';
 export { default as StaffRosteringView } from './employees/StaffRosteringView';
 export { default as AIDynamicPromotionsWidget } from './pos/AIDynamicPromotionsWidget';
+export { default as ExecutiveOperationsDigest } from './dashboard/ExecutiveOperationsDigest';

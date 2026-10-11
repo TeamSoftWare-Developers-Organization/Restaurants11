@@ -55,9 +55,9 @@ class ExecutiveOperationsDigestService:
         except Exception:
             pass
 
-        # تدعيم الفحص بمقارنة الرصيد الحالي بحد الطلب الأدنى
+        # تدعيم الفحص بمقارنة الرصيد الحالي بحد الطلب الأدنى (reorder_level)
         low_stock_qs = Ingredient.objects.filter(
-            Q(current_stock__lte=F('minimum_stock')) | Q(current_stock__lte=2.0)
+            Q(current_stock__lte=F('reorder_level')) | Q(current_stock__lte=2.0)
         )
         for ing in low_stock_qs:
             if not any(x.get("id") == ing.id for x in critical_stock_items):
@@ -120,8 +120,7 @@ class ExecutiveOperationsDigestService:
         # 4. الحجوزات اليومية ومخاطر الـ No-Show (Reservations Risk)
         # -------------------------------------------------------------
         today_reservations_qs = Reservation.objects.filter(
-            Q(reservation_date=today) |
-            Q(reservation_time__date=today)
+            reservation_time__date=today
         )
         today_reservations_count = today_reservations_qs.count()
 

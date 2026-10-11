@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Sidebar } from '@/components';
+import { Sidebar, ExecutiveOperationsDigest } from '@/components';
 import {
   BarChart3,
   Users,
@@ -94,6 +94,9 @@ export default function Dashboard() {
             </button>
           </div>
         </header>
+
+        {/* AI Executive Operations Digest Banner & Quick Action Cards */}
+        <ExecutiveOperationsDigest />
 
         {/* AI Financial Fraud & Anomaly Alerts */}
         <AIAnomalyWidget />

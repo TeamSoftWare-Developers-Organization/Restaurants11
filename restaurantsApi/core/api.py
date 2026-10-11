@@ -92,3 +92,17 @@ def delete_logo(request):
         settings.logo = None
         settings.save()
     return settings
+
+
+executive_router = Router(tags=["الموجز التنفيذي الذكي"])
+
+@executive_router.get("/ai/executive-brief/")
+@core_router.get("/ai/executive-brief/")
+def get_executive_brief(request):
+    """
+    الموجز التنفيذي الذكي للإدارة (AI Executive Operations Digest)
+    يسحب المؤشرات الحرجة اللحظية من المخزون، الورديات، الخزينة، المطبخ، الحجوزات والمبيعات
+    ويرجع ملخصاً شاملاً ونقاط تركيز يومية (Actionable Insights).
+    """
+    from core.executive_ai import ExecutiveOperationsDigestService
+    return ExecutiveOperationsDigestService.generate_digest()

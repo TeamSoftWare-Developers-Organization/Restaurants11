@@ -16,7 +16,7 @@ from inventory.api import inventory_router, purchases_router
 from reservations.api import reservations_router
 from payments.api import payments_router
 from payments.shifts_api import shifts_router
-from core.api import core_router
+from core.api import core_router, executive_router
 from core.zakat_api import zakat_router
 from ml_services.api import ai_router
 
@@ -28,21 +28,29 @@ api = NinjaExtraAPI(title="Restaurant Management System API",
     description="API للتعامل مع نظام إدارة المطاعم",
     version="1.0.0",)
 
+def add_router_safe(prefix, router_obj):
+    if router_obj is not None:
+        router_obj.api = None
+        for _, sub in getattr(router_obj, '_routers', []):
+            sub.api = None
+        api.add_router(prefix, router_obj)
+
 # Registering controllers/routers
 api.register_controllers(NinjaJWTDefaultController) # المسار سيكون /api/token/
-api.add_router("", purchases_router)
-api.add_router("/employees", employee_router)
-api.add_router("/attendance", attendance_router)
-api.add_router("/auth", auth_router)
-api.add_router("/orders", order_router)
-api.add_router("/menu", menu_router)
-api.add_router("/inventory", inventory_router)
-api.add_router("/reservations", reservations_router)
-api.add_router("/payments", payments_router)
-api.add_router("/shifts", shifts_router)
-api.add_router("/settings", core_router)
-api.add_router("/zakat", zakat_router)
-api.add_router("/ai", ai_router)
+add_router_safe("", purchases_router)
+add_router_safe("/employees", employee_router)
+add_router_safe("/attendance", attendance_router)
+add_router_safe("/auth", auth_router)
+add_router_safe("/orders", order_router)
+add_router_safe("/menu", menu_router)
+add_router_safe("/inventory", inventory_router)
+add_router_safe("/reservations", reservations_router)
+add_router_safe("/payments", payments_router)
+add_router_safe("/shifts", shifts_router)
+add_router_safe("/settings", core_router)
+add_router_safe("/core", executive_router)
+add_router_safe("/zakat", zakat_router)
+add_router_safe("/ai", ai_router)
 
 # مثال:
 # @api.get("/hello")
