@@ -60,16 +60,20 @@ export const useAuthStore = create<AuthState>()(
 
                     // Fetch user info with the new token
                     const userResponse = await api.get('/auth/me/');
-                    const profile = userResponse.data.employee_profile;
+                    const profile = userResponse.data?.employee_profile;
+
+                    const userEmail = profile?.email || profile?.user?.email || profile?.username || 'admin@restaurant.com';
+                    const userFirstName = profile?.first_name || profile?.user?.first_name || profile?.username || 'Admin';
+                    const userLastName = profile?.last_name || profile?.user?.last_name || '';
 
                     set({
                         user: {
-                            id: profile.id,
-                            email: profile.user.email,
-                            first_name: profile.user.first_name,
-                            last_name: profile.user.last_name,
-                            role: profile.role,
-                            permissions: profile.permissions || {}
+                            id: profile?.id || 1,
+                            email: userEmail,
+                            first_name: userFirstName,
+                            last_name: userLastName,
+                            role: profile?.role || 'manager',
+                            permissions: profile?.permissions || {}
                         },
                         isLoading: false
                     });
@@ -88,12 +92,16 @@ export const useAuthStore = create<AuthState>()(
                     const response = await api.get('/auth/me/');
                     const profile = response.data?.employee_profile;
                     if (profile) {
+                        const userEmail = profile.email || profile.user?.email || profile.username || 'admin@restaurant.com';
+                        const userFirstName = profile.first_name || profile.user?.first_name || profile.username || 'Admin';
+                        const userLastName = profile.last_name || profile.user?.last_name || '';
+
                         set({
                             user: {
                                 id: profile.id,
-                                email: profile.user?.email || '',
-                                first_name: profile.user?.first_name || '',
-                                last_name: profile.user?.last_name || '',
+                                email: userEmail,
+                                first_name: userFirstName,
+                                last_name: userLastName,
                                 role: profile.role || 'manager',
                                 permissions: profile.permissions || {}
                             },

@@ -34,8 +34,14 @@ class EmployeeOut(Schema):
     phone_number: Optional[str] = None
     hire_date: str # يمكن تحويله إلى str لسهولة العرض في API
     username: str
+    email: Optional[str] = None
     permissions: Optional[dict] = None
     has_fingerprint: bool = False
+
+    @staticmethod
+    def resolve_email(obj):
+        if not obj.user: return ""
+        return obj.user.email or ""
 
     @staticmethod
     def resolve_first_name(obj):

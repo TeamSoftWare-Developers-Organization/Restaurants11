@@ -15,7 +15,11 @@ import {
     Briefcase,
     Calendar,
     ChevronDown,
-    PlusCircle
+    PlusCircle,
+    Scale,
+    ArrowRightLeft,
+    Coins,
+    Banknote
 } from 'lucide-react';
 
 interface ShiftModalProps {
@@ -42,7 +46,11 @@ export function ShiftModal({ isOpen, onClose, mode, onSuccess }: ShiftModalProps
     const [overtimeRate, setOvertimeRate] = useState<string>('15.0');
     const [extraDuties, setExtraDuties] = useState<string>('');
 
-    // Load active session and shift templates when modal opens
+    // Live Shift Reconciliation (فرق إجمالي الوردية وحساب النقدية المتوقعة)
+    const [reconciliation, setReconciliation] = useState<any>(null);
+    const [isLoadingReconciliation, setIsLoadingReconciliation] = useState(false);
+
+    // Load active session, shift templates, and reconciliation when modal opens
     useEffect(() => {
         if (isOpen) {
             setBalance('');
@@ -51,6 +59,7 @@ export function ShiftModal({ isOpen, onClose, mode, onSuccess }: ShiftModalProps
             setOvertimeHours('1.0');
             setOvertimeRate('15.0');
             setExtraDuties('');
+            setReconciliation(null);
 
             const loadShiftContext = async () => {
                 try {
@@ -63,17 +72,37 @@ export function ShiftModal({ isOpen, onClose, mode, onSuccess }: ShiftModalProps
                     }
                     const templates = await shiftService.getTemplates();
                     setAvailableTemplates(templates);
+
+                    // إذا كان الإجراء إغلاق الوردية، جلب المطابقة المالية اللحظية للدرج
+                    if (mode === 'close') {
+                        setIsLoadingReconciliation(true);
+                        try {
+                            const reconData = await shiftService.getCurrentPosShiftReconciliation();
+                            setReconciliation(reconData);
+                        } catch (reconErr) {
+                            console.error('Error fetching live reconciliation:', reconErr);
+                        } finally {
+                            setIsLoadingReconciliation(false);
+                        }
+                    }
                 } catch (e) {
                     console.error('Error loading shift info in modal', e);
                 }
             };
             loadShiftContext();
         }
-    }, [isOpen]);
+    }, [isOpen, mode]);
 
     const calculatedOvertimeCost = hasOvertime && parseFloat(overtimeHours) > 0 && parseFloat(overtimeRate) > 0
         ? Math.round(parseFloat(overtimeHours) * parseFloat(overtimeRate) * 100) / 100
         : 0;
+
+    // احتساب فرق إجمالي الوردية اللحظي (Live Variance)
+    const enteredBalanceNum = balance !== '' && !isNaN(parseFloat(balance)) ? parseFloat(balance) : null;
+    const expectedDrawerCash = reconciliation ? reconciliation.expected_drawer_cash : null;
+    const liveVariance = enteredBalanceNum !== null && expectedDrawerCash !== null
+        ? Math.round((enteredBalanceNum - expectedDrawerCash) * 100) / 100
+        : null;
 
     const handleOpenShift = async () => {
         if (!balance || isNaN(parseFloat(balance))) {
@@ -244,6 +273,83 @@ export function ShiftModal({ isOpen, onClose, mode, onSuccess }: ShiftModalProps
                             />
                         </div>
                     </div>
+
+                    {/* Shift Drawer Financial Summary & Reconciliation in Close Mode */}
+                    {mode === 'close' && (
+                        <div className="space-y-3">
+                            {isLoadingReconciliation ? (
+                                <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 flex items-center justify-center gap-2 text-xs text-gray-500">
+                                    <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                    <span>جاري احتساب ومطابقة رصيد الوردية المسجل...</span>
+                                </div>
+                            ) : reconciliation ? (
+                                <div className="p-3.5 rounded-2xl bg-linear-to-br from-gray-50 to-emerald-50/30 dark:from-gray-900 dark:to-emerald-950/20 border border-gray-200/80 dark:border-gray-800 space-y-2.5 text-xs">
+                                    <div className="flex items-center justify-between font-black text-gray-700 dark:text-gray-200">
+                                        <span className="flex items-center gap-1.5">
+                                            <Scale className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                            <span>بيان المطابقة النقدية للوردية الحالية</span>
+                                        </span>
+                                        <span className="text-[10px] text-gray-400 font-bold">
+                                            {reconciliation.shift_name}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2 text-center pt-1 border-t border-gray-200/60 dark:border-gray-800">
+                                        <div className="bg-white dark:bg-gray-800/80 p-2 rounded-xl border border-gray-100 dark:border-gray-700/50">
+                                            <span className="text-[10px] text-gray-400 block font-bold">الرصيد الافتتاحي</span>
+                                            <span className="font-black text-gray-800 dark:text-gray-100 text-xs">
+                                                {reconciliation.opening_balance.toFixed(2)} د.ل
+                                            </span>
+                                        </div>
+                                        <div className="bg-white dark:bg-gray-800/80 p-2 rounded-xl border border-gray-100 dark:border-gray-700/50">
+                                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-bold">+ المقبوض نقداً</span>
+                                            <span className="font-black text-emerald-700 dark:text-emerald-300 text-xs">
+                                                +{reconciliation.total_cash_in.toFixed(2)} د.ل
+                                            </span>
+                                        </div>
+                                        <div className="bg-white dark:bg-gray-800/80 p-2 rounded-xl border border-gray-100 dark:border-gray-700/50">
+                                            <span className="text-[10px] text-rose-500 block font-bold">- المصروف نقداً</span>
+                                            <span className="font-black text-rose-600 dark:text-rose-400 text-xs">
+                                                -{reconciliation.total_cash_out.toFixed(2)} د.ل
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-2.5 bg-emerald-100/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 rounded-xl font-bold">
+                                        <span className="text-[11px] text-emerald-900 dark:text-emerald-200 font-black">
+                                            الرصيد الدفتري المتوقع في الدرج:
+                                        </span>
+                                        <span className="font-black text-emerald-800 dark:text-emerald-100 text-sm">
+                                            {reconciliation.expected_drawer_cash.toFixed(2)} د.ل
+                                        </span>
+                                    </div>
+
+                                    {/* Live Variance Calculation Badge */}
+                                    {liveVariance !== null && (
+                                        <div className={`p-2.5 rounded-xl border flex items-center justify-between font-black transition-all ${
+                                            Math.abs(liveVariance) < 0.001
+                                                ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 text-blue-700 dark:text-blue-300'
+                                                : liveVariance > 0
+                                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-700 dark:text-emerald-300'
+                                                : 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 text-rose-700 dark:text-rose-300'
+                                        }`}>
+                                            <span className="text-xs flex items-center gap-1.5">
+                                                <ArrowRightLeft className="w-3.5 h-3.5" />
+                                                <span>فرق إجمالي الوردية:</span>
+                                            </span>
+                                            <span className="text-xs font-black">
+                                                {Math.abs(liveVariance) < 0.001
+                                                    ? 'متطابق تماماً (0.00 د.ل)'
+                                                    : liveVariance > 0
+                                                    ? `فائض نقدي (+${liveVariance.toFixed(2)} د.ل)`
+                                                    : `عجز نقدي (${liveVariance.toFixed(2)} د.ل)`}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
 
                     {/* Overtime Section in Shift Close */}
                     {mode === 'close' && (

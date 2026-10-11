@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
 from ninja_jwt.authentication import JWTAuth
-from .models import Shift, ShiftTemplate, ShiftAllocation, TreasuryTransaction
+from .models import Shift, ShiftTemplate, ShiftAllocation, TreasuryTransaction, Payment
 from employees.models import Employee
 from django.contrib.auth.models import User
 
@@ -105,6 +105,12 @@ class ShiftAllocationOut(Schema):
     overtime_status_display: str
     notes: Optional[str] = None
     created_at: str
+    # فرق الوردية والمطابقة المالية
+    actual_closing_balance: Optional[float] = None
+    expected_drawer_cash: Optional[float] = None
+    variance: Optional[float] = None
+    variance_status: Optional[str] = None
+    variance_status_display: Optional[str] = None
 
 
 class OvertimeUpdateIn(Schema):
@@ -122,6 +128,30 @@ class ShiftSummaryOut(Schema):
     total_overtime_cost: float
     scheduled_count: int
     completed_count: int
+
+
+class ShiftReconciliationOut(Schema):
+    shift_id: int
+    cashier_id: int
+    cashier_name: str
+    shift_name: str
+    status: str
+    start_time: str
+    end_time: Optional[str] = None
+    opening_balance: float
+    total_cash_in: float
+    total_cash_out: float
+    total_card_sales: float
+    total_other_sales: float
+    total_sales: float
+    expected_drawer_cash: float
+    actual_closing_balance: Optional[float] = None
+    variance: Optional[float] = None
+    variance_status: str  # balanced, surplus, shortage, open
+    variance_status_display: str
+    has_overtime: bool
+    overtime_hours: float
+    overtime_cost: float
 
 
 # 3. نقاط نهاية قوالب الورديات (Shift Templates)
@@ -185,12 +215,113 @@ def delete_shift_template(request, template_id: int):
     return {"success": True, "message": "تم حذف قالب الوردية بنجاح"}
 
 
+def calculate_shift_reconciliation(shift: Shift) -> dict:
+    """
+    حساب فرق إجمالي الوردية الواحدة والمطابقة المالية الدقيقة لدرج النقدية والمبيعات.
+    Formula:
+    - المقبوضات النقدية = مجموع الحركات الموجبة (IN) لدرج الوردية
+    - المصروفات النقدية = مجموع المسحوبات والمصاريف (OUT) من الدرج
+    - الرصيد الدفتري المتوقع = الرصيد الافتتاحي + المقبوضات النقدية - المصروفات النقدية
+    - فرق الوردية (Variance) = الرصيد الفعلي المعدود عند الإغلاق - الرصيد الدفتري المتوقع
+      * Variance == 0: متطابق (balanced)
+      * Variance > 0: فائض (surplus)
+      * Variance < 0: عجز (shortage)
+    """
+    opening = float(shift.opening_balance or 0.0)
+
+    # 1. التدفقات النقدية من درج الخزينة للوردية
+    cash_in = float(
+        TreasuryTransaction.objects.filter(
+            shift=shift,
+            transaction_type__in=['in', 'IN']
+        ).aggregate(total=Sum('amount'))['total'] or 0.0
+    )
+
+    cash_out = float(
+        TreasuryTransaction.objects.filter(
+            shift=shift,
+            transaction_type__in=['out', 'OUT']
+        ).aggregate(total=Sum('amount'))['total'] or 0.0
+    )
+
+    expected_drawer = round(opening + cash_in - cash_out, 2)
+
+    # 2. مبيعات البطاقات والوسائل الإلكترونية خلال فترة الوردية
+    end_time_val = shift.end_time or timezone.now()
+    card_sales = float(
+        Payment.objects.filter(
+            payment_method='credit_card',
+            payment_date_time__gte=shift.start_time,
+            payment_date_time__lte=end_time_val
+        ).aggregate(total=Sum('amount'))['total'] or 0.0
+    )
+
+    other_sales = float(
+        Payment.objects.filter(
+            payment_method__in=['debt', 'online_wallet', 'other'],
+            payment_date_time__gte=shift.start_time,
+            payment_date_time__lte=end_time_val
+        ).aggregate(total=Sum('amount'))['total'] or 0.0
+    )
+
+    total_sales = round(cash_in + card_sales + other_sales, 2)
+
+    # 3. حساب الفارق
+    closing = float(shift.closing_balance) if shift.closing_balance is not None else None
+    variance = round(closing - expected_drawer, 2) if closing is not None else None
+
+    if closing is None:
+        variance_status = 'open'
+        variance_status_display = 'الوردية لا تزال مفتوحة'
+    elif abs(variance) < 0.001:
+        variance_status = 'balanced'
+        variance_status_display = 'متطابق تماماً بدون أي فرق'
+    elif variance > 0:
+        variance_status = 'surplus'
+        variance_status_display = f'فائض نقدي قدره {variance:+.2f} د.ل'
+    else:
+        variance_status = 'shortage'
+        variance_status_display = f'عجز نقدي قدره {variance:+.2f} د.ل'
+
+    cashier_name = ""
+    if shift.cashier:
+        cashier_name = shift.cashier.get_full_name() or shift.cashier.username
+    if not cashier_name:
+        cashier_name = "كاشير غير محدد"
+
+    return {
+        "shift_id": shift.id,
+        "cashier_id": shift.cashier.id if shift.cashier else 0,
+        "cashier_name": cashier_name,
+        "shift_name": shift.shift_name,
+        "status": shift.status,
+        "start_time": shift.start_time.strftime("%Y-%m-%d %H:%M"),
+        "end_time": shift.end_time.strftime("%Y-%m-%d %H:%M") if shift.end_time else None,
+        "opening_balance": opening,
+        "total_cash_in": round(cash_in, 2),
+        "total_cash_out": round(cash_out, 2),
+        "total_card_sales": round(card_sales, 2),
+        "total_other_sales": round(other_sales, 2),
+        "total_sales": total_sales,
+        "expected_drawer_cash": expected_drawer,
+        "actual_closing_balance": closing,
+        "variance": variance,
+        "variance_status": variance_status,
+        "variance_status_display": variance_status_display,
+        "has_overtime": shift.has_overtime,
+        "overtime_hours": float(shift.overtime_hours or 0.0),
+        "overtime_cost": float(shift.overtime_cost or 0.0),
+    }
+
+
 # 4. نقاط نهاية تخصيص الورديات (Shift Allocations)
 def _format_allocation(alloc: ShiftAllocation) -> dict:
-    # التحقق من وجود جلسة POS نشطة
     is_active = False
-    if alloc.actual_pos_shift and alloc.actual_pos_shift.status == 'open':
-        is_active = True
+    recon = None
+    if alloc.actual_pos_shift:
+        if alloc.actual_pos_shift.status == 'open':
+            is_active = True
+        recon = calculate_shift_reconciliation(alloc.actual_pos_shift)
     elif alloc.status == 'active':
         is_active = True
 
@@ -218,6 +349,12 @@ def _format_allocation(alloc: ShiftAllocation) -> dict:
         "overtime_status_display": dict(ShiftAllocation.OVERTIME_STATUS_CHOICES).get(alloc.overtime_status, alloc.overtime_status),
         "notes": alloc.notes or "",
         "created_at": alloc.created_at.strftime("%Y-%m-%d %H:%M"),
+        # مطابقة الوردية والفارق المالي إن وُجدت جلسة نقطة بيع مرتبطة
+        "actual_closing_balance": float(alloc.actual_pos_shift.closing_balance) if alloc.actual_pos_shift and alloc.actual_pos_shift.closing_balance is not None else None,
+        "expected_drawer_cash": recon.get("expected_drawer_cash") if recon else None,
+        "variance": recon.get("variance") if recon else None,
+        "variance_status": recon.get("variance_status") if recon else None,
+        "variance_status_display": recon.get("variance_status_display") if recon else None,
     }
 
 
@@ -554,7 +691,8 @@ def finish_pos_shift_with_overtime(
             allocation.overtime_hourly_rate = Decimal(str(overtime_rate))
             allocation.extra_duties = extra_duties or ""
             allocation.overtime_status = 'pending'
-        allocation.save()
+    # حساب المطابقة المالية للوردية
+    recon = calculate_shift_reconciliation(shift)
 
     return {
         "status": "success",
@@ -563,4 +701,26 @@ def finish_pos_shift_with_overtime(
         "has_overtime": shift.has_overtime,
         "overtime_hours": float(shift.overtime_hours),
         "overtime_cost": float(shift.overtime_cost),
+        "reconciliation": recon,
     }
+
+
+# 8. حساب فرق إجمالي الوردية الواحدة والمطابقة النقدية (Shift Variance & Reconciliation)
+@shifts_router.get("/{shift_id}/reconciliation/", response=ShiftReconciliationOut)
+def get_shift_reconciliation(request, shift_id: int):
+    """
+    احتساب فرق إجمالي الوردية الواحدة والمطابقة المالية المباشرة،
+    بما في ذلك الرصيد الافتتاحي، المقبوضات النقدية، المصروفات، الرصيد المتوقع، الفعلي، وفرق العجز أو الفائض.
+    """
+    shift = get_object_or_404(Shift, id=shift_id)
+    return calculate_shift_reconciliation(shift)
+
+
+@shifts_router.get("/pos/current-reconciliation/", response=ShiftReconciliationOut, auth=JWTAuth())
+def get_current_pos_shift_reconciliation(request):
+    """
+    معاينة المطابقة النقدية اللحظية لوردية الكاشير الحالية المفتوحة في نقطة البيع لمعرفة المتوقع في الدرج حالياً.
+    """
+    user = request.auth
+    shift = get_object_or_404(Shift, cashier=user, status='open')
+    return calculate_shift_reconciliation(shift)

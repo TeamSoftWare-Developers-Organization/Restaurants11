@@ -35,9 +35,39 @@ export interface ShiftAllocation {
     overtime_total_cost: number;
     extra_duties?: string;
     overtime_status: 'none' | 'pending' | 'approved' | 'paid';
-    overtime_status_display: string;
+    overtime_status_display?: string;
     notes?: string;
     created_at: string;
+    // Shift Variance & Reconciliation
+    actual_closing_balance?: number | null;
+    expected_drawer_cash?: number | null;
+    variance?: number | null;
+    variance_status?: 'balanced' | 'surplus' | 'shortage' | 'open';
+    variance_status_display?: string;
+}
+
+export interface ShiftReconciliation {
+    shift_id: number;
+    cashier_id: number;
+    cashier_name: string;
+    shift_name: string;
+    status: string;
+    start_time: string;
+    end_time?: string | null;
+    opening_balance: number;
+    total_cash_in: number;
+    total_cash_out: number;
+    total_card_sales: number;
+    total_other_sales: number;
+    total_sales: number;
+    expected_drawer_cash: number;
+    actual_closing_balance?: number | null;
+    variance?: number | null;
+    variance_status: 'balanced' | 'surplus' | 'shortage' | 'open';
+    variance_status_display: string;
+    has_overtime: boolean;
+    overtime_hours: number;
+    overtime_cost: number;
 }
 
 export interface ShiftSummary {
@@ -176,6 +206,17 @@ export const shiftService = {
                 extra_duties: extraDuties
             }
         });
+        return res.data;
+    },
+
+    // Shift Variance & Reconciliation
+    getShiftReconciliation: async (shiftId: number): Promise<ShiftReconciliation> => {
+        const res = await api.get(`/shifts/${shiftId}/reconciliation/`);
+        return res.data;
+    },
+
+    getCurrentPosShiftReconciliation: async (): Promise<ShiftReconciliation> => {
+        const res = await api.get('/shifts/pos/current-reconciliation/');
         return res.data;
     }
 };

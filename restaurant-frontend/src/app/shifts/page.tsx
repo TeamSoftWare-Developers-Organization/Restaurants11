@@ -30,7 +30,10 @@ import {
     RefreshCw,
     BadgePercent,
     Tag,
-    Receipt
+    Receipt,
+    Scale,
+    ArrowRightLeft,
+    Wallet
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -40,6 +43,7 @@ import {
     ShiftAllocation,
     ShiftTemplate,
     ShiftSummary,
+    ShiftReconciliation,
     CreateAllocationPayload,
     OvertimePayload,
     StandaloneOvertimePayload
@@ -93,6 +97,11 @@ export default function ShiftsPage() {
     const [isStandaloneOvertimeModalOpen, setIsStandaloneOvertimeModalOpen] = useState(false);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [selectedAllocation, setSelectedAllocation] = useState<ShiftAllocation | null>(null);
+
+    // Shift Reconciliation Details Modal (عرض تفاصيل فرق الوردية)
+    const [isReconciliationModalOpen, setIsReconciliationModalOpen] = useState(false);
+    const [activeReconciliation, setActiveReconciliation] = useState<ShiftReconciliation | null>(null);
+    const [isLoadingReconciliation, setIsLoadingReconciliation] = useState(false);
 
     // Notifications & Confirmation State (No browser alert/confirm popups)
     const [toast, setToast] = useState<{
@@ -336,6 +345,25 @@ export default function ShiftsPage() {
             loadAllData();
         } catch (err: any) {
             showToast(err.response?.data?.message || 'فشل تحديث حالة العمل الإضافي', 'error');
+        }
+    };
+
+    // Open Shift Reconciliation Details Modal (عرض تفاصيل فرق الوردية)
+    const handleOpenReconciliation = async (alloc: ShiftAllocation) => {
+        if (!alloc.actual_pos_shift_id) {
+            showToast('هذه الوردية لم تبدأ جلسة كاشير فعلية بعد', 'info');
+            return;
+        }
+        setIsLoadingReconciliation(true);
+        setIsReconciliationModalOpen(true);
+        setActiveReconciliation(null);
+        try {
+            const data = await shiftService.getShiftReconciliation(alloc.actual_pos_shift_id);
+            setActiveReconciliation(data);
+        } catch (err: any) {
+            showToast(err.response?.data?.message || 'فشل جلب تفاصيل المطابقة المالية للوردية', 'error');
+        } finally {
+            setIsLoadingReconciliation(false);
         }
     };
 
@@ -706,6 +734,9 @@ export default function ShiftsPage() {
                                                     <th className="px-5 py-4">الوردية والتوقيت</th>
                                                     <th className="px-5 py-4">نقطة البيع (POS)</th>
                                                     <th className="px-4 py-4 text-center">حالة الجلسة</th>
+                                                    <th className="px-5 py-4 bg-emerald-50/40 dark:bg-emerald-950/10 text-emerald-800 dark:text-emerald-200">
+                                                        فرق إجمالي الوردية (الخزينة)
+                                                    </th>
                                                     <th className="px-6 py-4 bg-amber-50/40 dark:bg-amber-950/10 text-amber-800 dark:text-amber-200">
                                                         الأعمال الإضافية والتكلفة
                                                     </th>
@@ -776,6 +807,52 @@ export default function ShiftsPage() {
                                                             )}
                                                         </td>
 
+                                                        {/* Shift Drawer Reconciliation & Variance */}
+                                                        <td className="px-5 py-4 bg-emerald-50/10 dark:bg-emerald-950/5">
+                                                            {alloc.actual_pos_shift_id ? (
+                                                                <div className="space-y-1">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <button
+                                                                            onClick={() => handleOpenReconciliation(alloc)}
+                                                                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl font-black text-[11px] border transition-all hover:scale-105 active:scale-95 ${
+                                                                                alloc.variance === null || alloc.variance === undefined
+                                                                                    ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                                                                    : Math.abs(alloc.variance) < 0.001
+                                                                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                                                                    : alloc.variance > 0
+                                                                                    ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                                                                                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                                                                            }`}
+                                                                            title="انقر لعرض تفاصيل المطابقة المالية وحساب الفارق"
+                                                                        >
+                                                                            <Scale className="w-3.5 h-3.5" />
+                                                                            <span>
+                                                                                {alloc.variance === null || alloc.variance === undefined
+                                                                                    ? `متوقع: ${alloc.expected_drawer_cash?.toFixed(2) || '0.00'} د.ل`
+                                                                                    : Math.abs(alloc.variance) < 0.001
+                                                                                    ? 'متطابق (0.00 د.ل)'
+                                                                                    : alloc.variance > 0
+                                                                                    ? `فائض (+${alloc.variance.toFixed(2)} د.ل)`
+                                                                                    : `عجز (${alloc.variance.toFixed(2)} د.ل)`}
+                                                                            </span>
+                                                                        </button>
+                                                                    </div>
+                                                                    {alloc.expected_drawer_cash !== null && alloc.expected_drawer_cash !== undefined && (
+                                                                        <div className="text-[10px] text-gray-400 font-bold">
+                                                                            الدفتري: {alloc.expected_drawer_cash.toFixed(2)} د.ل
+                                                                            {alloc.actual_closing_balance !== null && alloc.actual_closing_balance !== undefined && (
+                                                                                <span> • الفعلي: {alloc.actual_closing_balance.toFixed(2)} د.ل</span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-[11px] text-gray-400 font-bold">
+                                                                    لم تبدأ جلسة كاشير
+                                                                </span>
+                                                            )}
+                                                        </td>
+
                                                         {/* Overtime Details & Cost */}
                                                         <td className="px-6 py-4 bg-amber-50/20 dark:bg-amber-950/5">
                                                             {alloc.has_overtime && alloc.overtime_hours > 0 ? (
@@ -836,6 +913,15 @@ export default function ShiftsPage() {
                                                         {/* Actions */}
                                                         <td className="px-4 py-4 text-center">
                                                             <div className="flex items-center justify-center gap-1.5">
+                                                                {alloc.actual_pos_shift_id && (
+                                                                    <button
+                                                                        onClick={() => handleOpenReconciliation(alloc)}
+                                                                        className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/40 transition-colors"
+                                                                        title="مطابقة رصيد الوردية وفرق الصندوق"
+                                                                    >
+                                                                        <Scale className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
                                                                 <button
                                                                     onClick={() => handleOpenOvertime(alloc)}
                                                                     className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/40 transition-colors"
