@@ -114,3 +114,39 @@ def apply_optimized_roster(request, payload: RosteringApplyRequest):
         "roster": result
     }
 
+
+class PromotionApplyRequest(Schema):
+    promotion_id: str
+    action: Optional[str] = "activate"
+
+
+@ai_router.get("/promotions/suggestions/")
+def get_promotion_suggestions(request):
+    """
+    إرجاع حزم الخصومات والعروض الترويجية الموصى بها لساعات الركود
+    والأصناف ذات الهامش المرتفع والمبيعات المنخفضة (Puzzles) لحماية الربح وتنشيط الطلب.
+    """
+    from ml_services.dynamic_pricing import DynamicPricingPromotionService
+    return DynamicPricingPromotionService.generate_promotion_suggestions()
+
+
+@ai_router.post("/promotions/apply/")
+def apply_dynamic_promotion(request, payload: PromotionApplyRequest):
+    """
+    تفعيل أو إيقاف العرض الترويجي المقترح بنقرة واحدة لينعكس في نقطة البيع (POS).
+    """
+    from ml_services.dynamic_pricing import DynamicPricingPromotionService
+    return DynamicPricingPromotionService.apply_promotion(
+        promotion_id=payload.promotion_id,
+        action=payload.action or "activate"
+    )
+
+
+@ai_router.get("/promotions/active/")
+def get_active_promotions(request):
+    """
+    إرجاع العروض الترويجية النشطة حالياً في نقطة البيع (POS).
+    """
+    from ml_services.dynamic_pricing import DynamicPricingPromotionService
+    return DynamicPricingPromotionService.get_active_promotions()
+

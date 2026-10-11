@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Sidebar, Modal, ShiftModal, ExpenseModal, ThermalReceipt80mm } from '@/components';
 import AIRecommendations from '@/components/pos/AIRecommendations';
+import AIDynamicPromotionsWidget from '@/components/pos/AIDynamicPromotionsWidget';
 import { useSettingsStore } from '@/store/settingsStore';
 import {
     ShoppingBag,
@@ -395,6 +396,9 @@ export default function POSPage() {
                             />
                         </form>
                     </div>
+
+                    {/* ويدجت عروض وتسعير الساعات الهادئة الذكي (AI Dynamic Promotions) */}
+                    <AIDynamicPromotionsWidget compact={true} className="mb-1" />
 
                     {!selectedCategoryName ? (
                         <div className="space-y-3">
