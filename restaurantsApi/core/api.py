@@ -156,3 +156,101 @@ def activate_product_key(request, data: LicenseActivateIn):
         "message": message,
         "license_status": status_data
     }
+
+
+# --- وحدة المطور الفائق (SuperDev: ظافر وأيوب) الحصرية ---
+
+def is_superdev_user(user) -> bool:
+    """
+    التحقق الصارم من أن المستخدم هو أحد المطورين الفائقين (ظافر أو أيوب).
+    حتى حساب المدير العام (admin) أو أي دور إداري آخر محجوب وممنوع من هذه الصلاحية.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    
+    uname = (user.username or '').strip().lower()
+    
+    # استبعاد صريح لحساب admin العام ولأي حساب غير ظافر وأيوب
+    if uname in ['admin', 'cashier1', 'chef_kds', 'waiter1', 'inventory_mgr']:
+        return False
+
+    # قائمة المعرفات الحصرية للمطورين ظافر وأيوب
+    allowed_superdevs = {
+        'zafer', 'ayoub', 'zafer12', 
+        'zafer@restoerp.dev', 'ayoub@restoerp.dev',
+        'zafer@admin.com', 'zaefrali90@gmail.com'
+    }
+    if uname in allowed_superdevs:
+        return True
+
+    # فحص الاسم الأول أو الصلاحية الخاصة
+    first_name_lower = (user.first_name or '').strip().lower()
+    if first_name_lower in ['ظافر', 'أيوب', 'zafer', 'ayoub']:
+        return True
+
+    if hasattr(user, 'employee_profile') and user.employee_profile.permissions:
+        if user.employee_profile.permissions.get('is_superdev') is True:
+            return True
+
+    return False
+
+
+class SuperDevCheckOut(Schema):
+    is_superdev: bool
+    developer_name: Optional[str] = None
+
+
+class SuperDevGenerateKeyIn(Schema):
+    machine_id: str
+    client_name: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class SuperDevGenerateKeyOut(Schema):
+    success: bool
+    machine_id: str
+    product_key: str
+    generated_by: str
+    message: str
+
+
+@license_router.get("/superdev/check/", response={200: SuperDevCheckOut, 403: dict}, auth=JWTAuth())
+def check_superdev_access(request):
+    """
+    فحص صلاحية المطور الفائق (SuperDev).
+    مسموح فقط لـ (ظافر وأيوب)، ومحجوب عن باقي المستخدمين حتى Admin.
+    """
+    if not is_superdev_user(request.auth):
+        return 403, {"message": "الوصول مرفوض: هذه الميزة مخصصة حصرياً للمطورين الفائقين (SuperDev: ظافر وأيوب) فقط."}
+
+    dev_name = request.auth.first_name or request.auth.username
+    return {
+        "is_superdev": True,
+        "developer_name": dev_name
+    }
+
+
+@license_router.post("/superdev/generate-key/", response={200: SuperDevGenerateKeyOut, 403: dict, 400: dict}, auth=JWTAuth())
+def superdev_generate_product_key(request, data: SuperDevGenerateKeyIn):
+    """
+    توليد كود التفعيل Product Key لأي جهاز حاسوب بواسطة المطورين الفائقين ظافر وأيوب.
+    """
+    if not is_superdev_user(request.auth):
+        return 403, {"message": "الوصول مرفوض تماماً: هذه الخاصية محجوبة عن جميع المستخدمين والمدراء ومقتصرة على المطورين الفائقين ظافر وأيوب."}
+
+    machine_id = (data.machine_id or '').strip()
+    if not machine_id:
+        return 400, {"message": "يرجى إدخال معرّف الجهاز (Machine ID)."}
+
+    from core.license_service import generate_valid_product_key
+    key = generate_valid_product_key(machine_id)
+
+    dev_name = request.auth.get_full_name() or request.auth.username
+    return {
+        "success": True,
+        "machine_id": machine_id.upper(),
+        "product_key": key,
+        "generated_by": dev_name,
+        "message": f"تم استخراج كود التفعيل بنجاح لجهاز العميل ({data.client_name or machine_id})!"
+    }
+

@@ -125,14 +125,8 @@ export default function ThermalReceipt80mm({
         window.print();
     };
 
-    useEffect(() => {
-        if (autoPrint) {
-            const timer = setTimeout(() => {
-                window.print();
-            }, 300);
-            return () => clearTimeout(timer);
-        }
-    }, [autoPrint]);
+    // Note: Do NOT trigger automatic window.print() to avoid the browser print dialog popping up unprompted.
+    // The user views the receipt in this popup modal and can click print only if desired.
 
     const getFullLogoUrl = (path?: string) => {
         if (!path) return '';
@@ -189,11 +183,11 @@ export default function ThermalReceipt80mm({
                 <div className="no-print p-4 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                            <Printer className="w-4 h-4" />
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black text-gray-900 dark:text-white">معاينة الإيصال الحراري (80mm)</h3>
-                            <p className="text-[11px] text-gray-400 font-medium">متوافق مع طابعات الكاشير الحرارية ورمز ZATCA</p>
+                            <h3 className="text-sm font-black text-gray-900 dark:text-white">فاتورة المبيعات (معاينة منبثقة)</h3>
+                            <p className="text-[11px] text-gray-400 font-medium">تم الحفظ بنجاح • إيصال حراري 80mm</p>
                         </div>
                     </div>
 
@@ -201,9 +195,10 @@ export default function ThermalReceipt80mm({
                         <button
                             onClick={handlePrint}
                             className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-3.5 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                            title="طباعة عبر الطابعة"
                         >
                             <Printer className="w-3.5 h-3.5" />
-                            <span>طباعة فورية</span>
+                            <span>طباعة ورقية</span>
                         </button>
 
                         {onClose && (
@@ -420,22 +415,27 @@ export default function ThermalReceipt80mm({
                 </div>
 
                 {/* Onscreen Footer Close Action */}
-                <div className="no-print p-3 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-2">
-                    {onClose && (
+                <div className="no-print p-3 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center gap-2">
+                    <span className="text-[11px] text-gray-500 font-bold hidden sm:inline">
+                        إجمالي الفاتورة: <strong className="text-emerald-600 font-black">{total.toFixed(2)} {currency}</strong>
+                    </span>
+                    <div className="flex items-center gap-2 mr-auto sm:mr-0">
+                        {onClose && (
+                            <button
+                                onClick={onClose}
+                                className="px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-200/70 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-xl transition cursor-pointer"
+                            >
+                                إغلاق (طلب جديد)
+                            </button>
+                        )}
                         <button
-                            onClick={onClose}
-                            className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition"
+                            onClick={handlePrint}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
                         >
-                            إغلاق
+                            <Printer className="w-3.5 h-3.5" />
+                            <span>طباعة ورقية</span>
                         </button>
-                    )}
-                    <button
-                        onClick={handlePrint}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-xs flex items-center gap-1.5"
-                    >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>طباعة الإيصال الآن</span>
-                    </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -281,16 +281,6 @@ export default function POSPage() {
 
     return (
         <div className="flex bg-gray-50/50 dark:bg-[#0b0f19] min-h-screen transition-colors duration-300" dir="rtl">
-            <style jsx global>{`
-                @media print {
-                    @page { size: 80mm auto; margin: 0; }
-                    body { visibility: hidden; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
-                    .no-print, main, aside, nav { display: none !important; }
-                    #printable-receipt { visibility: visible !important; display: block !important; position: absolute; left: 0; top: 0; width: 100%; padding: 20px; background: white !important; color: black !important; }
-                    #printable-receipt * { visibility: visible !important; color: black !important; }
-                }
-            `}</style>
-            
             <Sidebar className="no-print" />
 
             <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen flex flex-col xl:flex-row gap-5 p-4 md:p-6 transition-all duration-300 min-w-0 w-full`}>
@@ -804,7 +794,7 @@ export default function POSPage() {
                             className="w-full h-10 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-emerald-600 hover:border-emerald-600 font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all text-xs no-print active:scale-98"
                         >
                             <Receipt className="w-4 h-4" />
-                            <span>إصدار وطباعة فاتورة</span>
+                            <span>إصدار وعرض الفاتورة</span>
                         </button>
 
                         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-200/50 dark:border-gray-700/40">
@@ -828,51 +818,7 @@ export default function POSPage() {
                 </section>
             </main>
 
-            {/* باقي المودالز ونظام الطباعة */}
-            <div id="printable-receipt" style={{ display: 'none' }}>
-                <div className="text-center mb-4 border-b pb-4" style={{ borderColor: '#eee' }}>
-                    <h1 className="text-xl font-bold">نظام إدارة المطعم</h1>
-                    <p className="text-sm font-bold opacity-70">فاتورة مبيعات</p>
-                    <div className="flex justify-between text-[10px] mt-4 font-bold">
-                        <span>رقم الطلب: #{lastOrder?.id || '---'}</span>
-                        <span>التاريخ: {new Date().toLocaleDateString('en-GB')}</span>
-                    </div>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                    {items.map((item) => (
-                        <div key={item.id} className="text-xs font-bold py-1 border-b border-gray-100">
-                            <div className="flex justify-between">
-                                <span>{item.name} x {item.quantity}</span>
-                                <span>{(item.price * item.quantity).toFixed(2)} د.ل</span>
-                            </div>
-                            {item.notes && (
-                                <div className="text-[10px] text-gray-600 font-normal pr-1">
-                                    * ملاحظة: {item.notes}
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="border-t pt-2 space-y-1" style={{ borderColor: '#eee' }}>
-                    <div className="flex justify-between text-xs font-bold">
-                        <span>المجموع الفرعي:</span>
-                        <span>{subtotal.toFixed(2)} د.ل</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold pt-1 border-t mt-1" style={{ borderColor: '#eee' }}>
-                        <span>الإجمالي التام:</span>
-                        <span>{total.toFixed(2)} د.ل</span>
-                    </div>
-                </div>
-
-                <div className="mt-8 text-center text-[10px] font-bold border-t pt-4" style={{ borderColor: '#eee' }}>
-                    <p>شكراً لزيارتكم!</p>
-                    <p className="mt-1 opacity-50">نظام إدارة المطاعم الذكي</p>
-                </div>
-            </div>
-
-            <Modal isOpen={showSuccessModal} onClose={() => { setShowSuccessModal(false); clearCart(); router.push('/orders'); }} title="تم إتمام العملية">
+            <Modal isOpen={showSuccessModal} onClose={() => { setShowSuccessModal(false); clearCart(); }} title="تم إتمام العملية">
                 <div className="flex flex-col items-center justify-center py-6 text-center">
                     <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/30 rounded-full flex items-center justify-center mb-3">
                         <CheckCircle className="w-10 h-10 text-emerald-600" />
@@ -881,17 +827,20 @@ export default function POSPage() {
                     <p className="text-gray-500 font-bold text-xs mb-5">تم تسجيل الدفع وتحديث حالة الطلب بنجاح.</p>
                     <div className="flex gap-2 w-full">
                         <button
-                            onClick={() => setShowThermalReceipt(true)}
+                            onClick={() => {
+                                setShowSuccessModal(false);
+                                setShowThermalReceipt(true);
+                            }}
                             className="flex-1 h-10 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl font-black transition-all text-xs flex items-center justify-center gap-1.5"
                         >
                             <Receipt className="w-4 h-4" />
-                            <span>طباعة إيصال حراري</span>
+                            <span>عرض الفاتورة</span>
                         </button>
                         <button
-                            onClick={() => { setShowSuccessModal(false); clearCart(); router.push('/orders'); }}
+                            onClick={() => { setShowSuccessModal(false); clearCart(); }}
                             className="flex-1 h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-md transition-all text-xs"
                         >
-                            حسنًا
+                            طلب جديد
                         </button>
                     </div>
                 </div>
@@ -1080,8 +1029,11 @@ export default function POSPage() {
                 <ThermalReceipt80mm
                     order={thermalOrder}
                     settings={settings}
-                    onClose={() => setShowThermalReceipt(false)}
-                    autoPrint={true}
+                    onClose={() => {
+                        setShowThermalReceipt(false);
+                        setThermalOrder(null);
+                    }}
+                    autoPrint={false}
                 />
             )}
         </div>
@@ -1155,11 +1107,10 @@ export default function POSPage() {
             };
             setThermalOrder(completedOrderData);
 
-            if (settings?.auto_print_on_checkout) {
-                setShowThermalReceipt(true);
-            }
+            // Open the in-app invoice popup modal immediately (without browser print dialog)
+            setShowThermalReceipt(true);
+            setShowSuccessModal(false);
 
-            setShowSuccessModal(true);
             clearCart();
             setCurrentOrder(null);
             setInvoiceIssued(false);

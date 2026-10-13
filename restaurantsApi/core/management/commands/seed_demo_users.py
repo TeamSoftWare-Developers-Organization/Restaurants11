@@ -17,6 +17,30 @@ class Command(BaseCommand):
 
         demo_users = [
             {
+                "username": "zafer",
+                "email": "zafer@restoerp.dev",
+                "first_name": "ظافر",
+                "last_name": "محمد علي",
+                "is_superuser": True,
+                "is_staff": True,
+                "role": "manager",
+                "role_display": "المطور الفائق (SuperDev)",
+                "phone": "+218910000000",
+                "permissions": {**Employee.get_default_permissions_for_role('manager'), 'is_superdev': True}
+            },
+            {
+                "username": "ayoub",
+                "email": "ayoub@restoerp.dev",
+                "first_name": "أيوب",
+                "last_name": "المطور",
+                "is_superuser": True,
+                "is_staff": True,
+                "role": "manager",
+                "role_display": "المطور الفائق (SuperDev)",
+                "phone": "+218910000099",
+                "permissions": {**Employee.get_default_permissions_for_role('manager'), 'is_superdev': True}
+            },
+            {
                 "username": "admin",
                 "email": "admin@restaurant.local",
                 "first_name": "مدير",

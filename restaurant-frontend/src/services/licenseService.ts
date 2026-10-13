@@ -21,6 +21,25 @@ export interface ActivateResponse {
     license_status?: LicenseStatus | null;
 }
 
+export interface SuperDevCheckResponse {
+    is_superdev: boolean;
+    developer_name?: string;
+}
+
+export interface SuperDevGenerateKeyPayload {
+    machine_id: string;
+    client_name?: string;
+    notes?: string;
+}
+
+export interface SuperDevGenerateKeyResponse {
+    success: boolean;
+    machine_id: string;
+    product_key: string;
+    generated_by: string;
+    message: string;
+}
+
 export const licenseService = {
     /**
      * جلب حالة الترخيص الحالية، معرف الجهاز، الأيام التجريبية المتبقية وصلاحية النظام.
@@ -39,4 +58,21 @@ export const licenseService = {
         });
         return response.data;
     },
+
+    /**
+     * فحص ما إذا كان المستخدم الحالي SuperDev (ظافر أو أيوب).
+     */
+    checkSuperDevAccess: async (): Promise<SuperDevCheckResponse> => {
+        const response = await api.get<SuperDevCheckResponse>('/core/license/superdev/check/');
+        return response.data;
+    },
+
+    /**
+     * توليد كود التفعيل لأي جهاز حاسوب بواسطة المطور الفائق حصرياً.
+     */
+    generateKeyForMachine: async (payload: SuperDevGenerateKeyPayload): Promise<SuperDevGenerateKeyResponse> => {
+        const response = await api.post<SuperDevGenerateKeyResponse>('/core/license/superdev/generate-key/', payload);
+        return response.data;
+    },
 };
+

@@ -29,14 +29,19 @@ import {
     QrCode,
     Receipt,
     RotateCcw as RotateCcwIcon,
-    Layers
+    Layers,
+    Key
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useSettingsStore } from '@/store/settingsStore';
 import { confirmDialog, alertDialog } from '@/store/modalStore';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
+import { licenseService } from '@/services/licenseService';
 import { RestaurantSettings } from '@/services/settingsService';
 import InvoiceLivePreview from '@/components/invoices/InvoiceLivePreview';
+import SuperDevKeyGenerator from '@/components/settings/SuperDevKeyGenerator';
+
 
 export default function SettingsPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -54,10 +59,51 @@ export default function SettingsPage() {
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [activeTab, setActiveTab] = useState<'general' | 'financial' | 'invoices' | 'operational'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'financial' | 'invoices' | 'operational' | 'superdev'>('general');
+
+    // SuperDev Access Verification (ظافر وأيوب فقط)
+    const { user } = useAuthStore();
+    const [isSuperDev, setIsSuperDev] = useState(false);
+    const [superDevName, setSuperDevName] = useState<string>('');
+    const [currentMachineId, setCurrentMachineId] = useState<string>('');
 
     const [localSettings, setLocalSettings] = useState<RestaurantSettings | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // التحقق الصارم من صلاحية المطور الفائق (محجوب تماماً عن Admin والمستخدمين العاديين)
+    useEffect(() => {
+        const uname = (user?.username || '').trim().toLowerCase();
+        const allowedUnames = [
+            'zafer', 'ayoub', 'zafer12', 
+            'zafer@restoerp.dev', 'ayoub@restoerp.dev', 
+            'zafer@admin.com', 'zaefrali90@gmail.com'
+        ];
+        const isCandidate = allowedUnames.includes(uname) || (user?.permissions as any)?.is_superdev === true;
+
+        if (isCandidate && uname !== 'admin') {
+            licenseService.checkSuperDevAccess()
+                .then((res) => {
+                    if (res?.is_superdev) {
+                        setIsSuperDev(true);
+                        setSuperDevName(res.developer_name || user?.first_name || 'SuperDev');
+                    } else {
+                        setIsSuperDev(false);
+                    }
+                })
+                .catch(() => {
+                    setIsSuperDev(false);
+                });
+        } else {
+            setIsSuperDev(false);
+        }
+
+        // جلب معرف هذا الجهاز الحالي للمساعدة التلقائية
+        licenseService.getLicenseStatus()
+            .then((st) => {
+                if (st?.machine_id) setCurrentMachineId(st.machine_id);
+            })
+            .catch(() => {});
+    }, [user]);
 
     useEffect(() => {
         if (!settings) {
@@ -184,14 +230,16 @@ export default function SettingsPage() {
                             </p>
                         </div>
 
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-2xl font-bold text-sm sm:text-base shadow-lg shadow-indigo-600/20 transition-all transform active:scale-95 w-full sm:w-auto shrink-0 cursor-pointer"
-                        >
-                            {saving ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                            {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
-                        </button>
+                        {activeTab !== 'superdev' && (
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-2xl font-bold text-sm sm:text-base shadow-lg shadow-indigo-600/20 transition-all transform active:scale-95 w-full sm:w-auto shrink-0 cursor-pointer"
+                            >
+                                {saving ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+                            </button>
+                        )}
                     </div>
 
                     {/* Feedback Messages */}
@@ -209,7 +257,7 @@ export default function SettingsPage() {
                     )}
 
                     {/* Tabs Navigation */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 sm:mb-8 gap-1.5">
+                    <div className={`grid grid-cols-2 ${isSuperDev ? 'md:grid-cols-5' : 'md:grid-cols-4'} p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 sm:mb-8 gap-1.5`}>
                         <button
                             type="button"
                             onClick={() => setActiveTab('general')}
@@ -258,6 +306,20 @@ export default function SettingsPage() {
                             <Globe className="w-4 h-4 shrink-0" />
                             التشغيل والتوصيل
                         </button>
+                        {isSuperDev && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('superdev')}
+                                className={`flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition-all cursor-pointer col-span-2 md:col-span-1 ${
+                                    activeTab === 'superdev'
+                                        ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/30'
+                                        : 'text-amber-600 dark:text-amber-400 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/40'
+                                }`}
+                            >
+                                <Key className="w-4 h-4 shrink-0 text-amber-500" />
+                                ⚡ مولد المفاتيح (SuperDev)
+                            </button>
+                        )}
                     </div>
 
                     {/* Form Content */}
@@ -852,6 +914,16 @@ export default function SettingsPage() {
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* SuperDev Tab */}
+                        {isSuperDev && activeTab === 'superdev' && (
+                            <div className="space-y-6 animate-in fade-in duration-500">
+                                <SuperDevKeyGenerator
+                                    currentMachineId={currentMachineId}
+                                    developerName={superDevName}
+                                />
                             </div>
                         )}
 

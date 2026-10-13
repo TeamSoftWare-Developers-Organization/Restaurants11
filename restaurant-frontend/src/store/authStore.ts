@@ -6,6 +6,7 @@ import { UserPermissions } from '@/services/employeeService';
 
 interface User {
     id: number;
+    username?: string;
     email: string;
     first_name: string;
     last_name: string;
@@ -67,9 +68,12 @@ export const useAuthStore = create<AuthState>()(
                     const userFirstName = profile?.first_name || profile?.user?.first_name || profile?.username || 'Admin';
                     const userLastName = profile?.last_name || profile?.user?.last_name || '';
 
+                    const userUsername = profile?.username || profile?.user?.username || '';
+
                     set({
                         user: {
                             id: profile?.id || 1,
+                            username: userUsername,
                             email: userEmail,
                             first_name: userFirstName,
                             last_name: userLastName,
@@ -97,9 +101,12 @@ export const useAuthStore = create<AuthState>()(
                         const userFirstName = profile.first_name || profile.user?.first_name || profile.username || 'Admin';
                         const userLastName = profile.last_name || profile.user?.last_name || '';
 
+                        const userUsername = profile.username || profile.user?.username || '';
+
                         set({
                             user: {
                                 id: profile.id,
+                                username: userUsername,
                                 email: userEmail,
                                 first_name: userFirstName,
                                 last_name: userLastName,
