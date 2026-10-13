@@ -1,0 +1,59 @@
+{
+  "name": "restoerp-desktop",
+  "version": "1.0.0",
+  "description": "RestoERP - Standalone Desktop Restaurant Management & POS Suite",
+  "main": "electron/main.js",
+  "author": "RestoERP Team",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron electron/main.js",
+    "desktop:dev": "electron electron/main.js",
+    "desktop:pack": "electron-builder --dir",
+    "desktop:dist": "electron-builder --win nsis",
+    "desktop:portable": "electron-builder --win portable"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.restoerp.pos",
+    "productName": "RestoERP",
+    "copyright": "Copyright © 2026 RestoERP Team",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "restaurant-frontend/public/icons/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "restaurant-frontend/public/icons/icon-512x512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "RestoERP POS",
+      "installerIcon": "restaurant-frontend/public/icons/icon-512x512.png",
+      "uninstallerIcon": "restaurant-frontend/public/icons/icon-512x512.png",
+      "uninstallDisplayName": "RestoERP POS Suite"
+    }
+  }
+}

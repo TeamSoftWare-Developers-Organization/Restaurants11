@@ -323,7 +323,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Form Content */}
-                    <form onSubmit={handleSave} className="space-y-6">
+                    <div className="space-y-6">
                         {/* General Tab */}
                         {activeTab === 'general' && (
                             <div className="space-y-6 animate-in fade-in duration-500">
@@ -916,7 +916,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         )}
-                    </form>
+                    </div>
 
                     {/* SuperDev Tab */}
                     {isSuperDev && activeTab === 'superdev' && (

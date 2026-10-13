@@ -30,7 +30,8 @@ import {
     RotateCcw,
     ClipboardCheck,
     Scale,
-    Clock
+    Clock,
+    Monitor
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -58,6 +59,7 @@ const links = [
     { label: 'المصروفات', icon: ReceiptText, href: '/expenses', color: 'rose', perm: 'expenses' },
     { label: 'المرتبات', icon: Banknote, href: '/salaries', color: 'emerald', perm: 'salaries' },
     { label: 'حساب الزكاة', icon: Scale, href: '/zakat', color: 'amber', perm: 'treasury' },
+    { label: 'تطبيق سطح المكتب (.exe)', icon: Monitor, href: '/desktop', color: 'indigo' },
     { label: 'الإعدادات', icon: Settings, href: '/settings', color: 'slate', perm: 'settings' }
 ];
 

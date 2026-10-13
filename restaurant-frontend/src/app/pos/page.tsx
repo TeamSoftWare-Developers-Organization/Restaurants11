@@ -61,6 +61,21 @@ export default function POSPage() {
     const [currentOrder, setCurrentOrder] = useState<any>(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showWarningModal, setShowWarningModal] = useState(false);
+    const [alertModal, setAlertModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'warning' | 'error' | 'success' | 'info';
+    }>({
+        isOpen: false,
+        title: 'تنبيه',
+        message: '',
+        type: 'warning'
+    });
+
+    const showAlert = (message: string, title = 'تنبيه', type: 'warning' | 'error' | 'success' | 'info' = 'warning') => {
+        setAlertModal({ isOpen: true, title, message, type });
+    };
     const [tables, setTables] = useState<Table[]>([]);
     const [orderType, setOrderType] = useState<'dine_in' | 'takeaway'>('takeaway');
     const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
@@ -254,7 +269,7 @@ export default function POSPage() {
             });
             setBarcodeQuery('');
         } else {
-            alert(`لم يتم العثور على صنف برمز الباركود: ${cleanCode}`);
+            showAlert(`لم يتم العثور على صنف برمز الباركود: ${cleanCode}`, 'الباركود غير موجود', 'warning');
             setBarcodeQuery('');
         }
         
@@ -749,7 +764,7 @@ export default function POSPage() {
                             <button
                                 onClick={() => {
                                     if (items.length === 0 && !currentOrder) {
-                                        alert('يرجى إضافة أصناف إلى السلة أولاً');
+                                        showAlert('يرجى إضافة أصناف إلى السلة أولاً قبل اختيار طريقة الدفع.', 'السلة فارغة', 'warning');
                                         return;
                                     }
                                     setShowCardModal(true);
@@ -763,7 +778,7 @@ export default function POSPage() {
                             <button
                                 onClick={() => {
                                     if (items.length === 0 && !currentOrder) {
-                                        alert('يرجى إضافة أصناف إلى السلة أولاً');
+                                        showAlert('يرجى إضافة أصناف إلى السلة أولاً قبل اختيار طريقة الدفع.', 'السلة فارغة', 'warning');
                                         return;
                                     }
                                     setShowDebtModal(true);
@@ -843,6 +858,53 @@ export default function POSPage() {
                             طلب جديد
                         </button>
                     </div>
+                </div>
+            </Modal>
+
+            {/* نافذة التنبيهات المنبثقة الشاملة (In-App Popup Alert Modal) */}
+            <Modal
+                isOpen={alertModal.isOpen}
+                onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                title={alertModal.title}
+            >
+                <div className="flex flex-col items-center justify-center py-5 text-center">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-inner ${
+                        alertModal.type === 'error'
+                            ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                            : alertModal.type === 'success'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
+                            : alertModal.type === 'info'
+                            ? 'bg-sky-50 dark:bg-sky-950/30 text-sky-600'
+                            : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600'
+                    }`}>
+                        {alertModal.type === 'success' ? (
+                            <CheckCircle className="w-9 h-9" />
+                        ) : alertModal.type === 'error' ? (
+                            <X className="w-9 h-9 stroke-[2.5]" />
+                        ) : (
+                            <AlertCircle className="w-9 h-9" />
+                        )}
+                    </div>
+                    <h3 className="text-base font-black text-gray-900 dark:text-white mb-2">
+                        {alertModal.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 font-bold text-xs sm:text-sm mb-6 max-w-xs leading-relaxed">
+                        {alertModal.message}
+                    </p>
+                    <button
+                        onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                        className={`w-full h-11 text-white rounded-xl font-black shadow-md transition-all text-xs cursor-pointer active:scale-98 ${
+                            alertModal.type === 'error'
+                                ? 'bg-rose-600 hover:bg-rose-700'
+                                : alertModal.type === 'success'
+                                ? 'bg-emerald-600 hover:bg-emerald-700'
+                                : alertModal.type === 'info'
+                                ? 'bg-sky-600 hover:bg-sky-700'
+                                : 'bg-amber-600 hover:bg-amber-700'
+                        }`}
+                    >
+                        حسناً، فهمت
+                    </button>
                 </div>
             </Modal>
 
@@ -1041,14 +1103,14 @@ export default function POSPage() {
 
     async function handleCheckout(method: 'cash' | 'card' | 'debt', cardProvider?: string, transactionId?: string, debtDetails?: string) {
         if (!activeShift) {
-            alert('يرجى فتح وردية أولاً قبل البدء في المبيعات.');
+            showAlert('يرجى فتح وردية أولاً قبل البدء في المبيعات.', 'الوردية مغلقة', 'warning');
             setShiftMode('open');
             setShowShiftModal(true);
             return;
         }
 
         if (items.length === 0 && !currentOrder) {
-            alert('يرجى إضافة أصناف إلى السلة أولاً');
+            showAlert('يرجى إضافة أصناف إلى السلة أولاً لإتمام عملية البيع.', 'السلة فارغة', 'warning');
             return;
         }
 
@@ -1122,7 +1184,7 @@ export default function POSPage() {
                 setShiftMode('open');
                 setShowShiftModal(true);
             }
-            alert(`فشل إتمام العملية: ${msg}`);
+            showAlert(`فشل إتمام العملية: ${msg}`, 'خطأ في الدفع', 'error');
         } finally {
             setIsProcessingCheckout(false);
         }
@@ -1130,7 +1192,7 @@ export default function POSPage() {
 
     async function handlePrintInvoice() {
         if (!activeShift) {
-            alert('يرجى فتح وردية أولاً قبل البدء في المبيعات.');
+            showAlert('يرجى فتح وردية أولاً قبل البدء في المبيعات.', 'الوردية مغلقة', 'warning');
             setShiftMode('open');
             setShowShiftModal(true);
             return;
@@ -1186,20 +1248,20 @@ export default function POSPage() {
                 setShiftMode('open');
                 setShowShiftModal(true);
             }
-            alert(`حدث خطأ أثناء إصدار الفاتورة: ${msg}`);
+            showAlert(`حدث خطأ أثناء إصدار الفاتورة: ${msg}`, 'خطأ في الفاتورة', 'error');
         }
     }
 
     async function handleHoldOrder() {
         if (!activeShift) {
-            alert('يرجى فتح وردية أولاً قبل البدء في المبيعات وحفظ الطلبات المعلقة.');
+            showAlert('يرجى فتح وردية أولاً قبل البدء في المبيعات وحفظ الطلبات المعلقة.', 'الوردية مغلقة', 'warning');
             setShiftMode('open');
             setShowShiftModal(true);
             return;
         }
 
         if (items.length === 0) {
-            alert('يرجى إضافة أصناف إلى السلة أولاً لوضع الطلب في الانتظار');
+            showAlert('يرجى إضافة أصناف إلى السلة أولاً لوضع الطلب في الانتظار.', 'السلة فارغة', 'warning');
             return;
         }
 
@@ -1223,7 +1285,7 @@ export default function POSPage() {
             setCurrentOrder(null);
             setInvoiceIssued(false);
             await fetchActiveOrders();
-            alert(`تم حفظ الطلب رقم #${created.id} كطلب معلق بنجاح!`);
+            showAlert(`تم حفظ الطلب رقم #${created.id} كطلب معلق بنجاح!`, 'تم التعليق بنجاح', 'success');
         } catch (err: any) {
             console.error('Failed to hold order', err);
             const msg = err?.response?.data?.message || err?.message || 'حدث خطأ أثناء تعليق الطلب';
@@ -1231,7 +1293,7 @@ export default function POSPage() {
                 setShiftMode('open');
                 setShowShiftModal(true);
             }
-            alert(`فشل حفظ الطلب المعلق: ${msg}`);
+            showAlert(`فشل حفظ الطلب المعلق: ${msg}`, 'خطأ في الحفظ', 'error');
         } finally {
             setIsProcessingHold(false);
         }
@@ -1244,7 +1306,7 @@ export default function POSPage() {
             await fetchActiveOrders();
         } catch (err: any) {
             console.error('Failed to cancel active order', err);
-            alert('فشل إلغاء الطلب المعلق');
+            showAlert('فشل إلغاء الطلب المعلق', 'خطأ في الإلغاء', 'error');
         }
     }
 }
