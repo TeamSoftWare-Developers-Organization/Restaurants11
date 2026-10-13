@@ -916,18 +916,17 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         )}
-
-                        {/* SuperDev Tab */}
-                        {isSuperDev && activeTab === 'superdev' && (
-                            <div className="space-y-6 animate-in fade-in duration-500">
-                                <SuperDevKeyGenerator
-                                    currentMachineId={currentMachineId}
-                                    developerName={superDevName}
-                                />
-                            </div>
-                        )}
-
                     </form>
+
+                    {/* SuperDev Tab */}
+                    {isSuperDev && activeTab === 'superdev' && (
+                        <div className="space-y-6 animate-in fade-in duration-500">
+                            <SuperDevKeyGenerator
+                                currentMachineId={currentMachineId}
+                                developerName={superDevName}
+                            />
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
