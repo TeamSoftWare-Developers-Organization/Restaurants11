@@ -59,7 +59,7 @@ const links = [
     { label: 'المصروفات', icon: ReceiptText, href: '/expenses', color: 'rose', perm: 'expenses' },
     { label: 'المرتبات', icon: Banknote, href: '/salaries', color: 'emerald', perm: 'salaries' },
     { label: 'حساب الزكاة', icon: Scale, href: '/zakat', color: 'amber', perm: 'treasury' },
-    { label: 'تطبيق سطح المكتب (.exe)', icon: Monitor, href: '/desktop', color: 'indigo' },
+    { label: 'تطبيق سطح المكتب (.exe)', icon: Monitor, href: '/desktop', color: 'indigo', perm: 'superdev' },
     { label: 'الإعدادات', icon: Settings, href: '/settings', color: 'slate', perm: 'settings' }
 ];
 
@@ -118,8 +118,21 @@ export default function Sidebar({ className }: SidebarProps) {
         (user as typeof user & { is_superuser?: boolean })?.is_superuser ||
         (user as typeof user & { is_staff?: boolean })?.is_staff;
 
-    const visibleLinks = links.filter(link => !link.perm || isAdmin || hasPermission(link.perm));
-    const displayLinks = visibleLinks.length > 0 ? visibleLinks : links;
+    const uname = (user?.username || '').trim().toLowerCase();
+    const fname = (user?.first_name || '').trim().toLowerCase();
+    const isSuperDev = (
+        ['zafer', 'ayoub', 'zafer12', 'zafer@restoerp.dev', 'ayoub@restoerp.dev', 'zafer@admin.com', 'zaefrali90@gmail.com'].includes(uname) ||
+        ['ظافر', 'أيوب', 'zafer', 'ayoub'].includes(fname) ||
+        (user?.permissions as any)?.is_superdev === true
+    ) && uname !== 'admin';
+
+    const visibleLinks = links.filter(link => {
+        if (link.perm === 'superdev') {
+            return isSuperDev;
+        }
+        return !link.perm || isAdmin || hasPermission(link.perm);
+    });
+    const displayLinks = visibleLinks.length > 0 ? visibleLinks : links.filter(l => l.perm !== 'superdev');
 
     const { settings } = useSettingsStore();
     const getFullLogoUrl = (path?: string) => {

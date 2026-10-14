@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const http = require('http');
 const { spawn } = require('child_process');
+const os = require('os');
+const crypto = require('crypto');
 
 // Define app constants
 const FRONTEND_PORT = 3005;
@@ -283,6 +285,28 @@ ipcMain.handle('window-maximize', () => {
 ipcMain.handle('window-close', () => {
     if (mainWindow) mainWindow.close();
 });
+
+ipcMain.handle('get-machine-id', () => {
+    try {
+        const netInterfaces = os.networkInterfaces();
+        let mac = '';
+        for (const key of Object.keys(netInterfaces)) {
+            for (const item of netInterfaces[key]) {
+                if (!item.internal && item.mac && item.mac !== '00:00:00:00:00:00') {
+                    mac = item.mac;
+                    break;
+                }
+            }
+            if (mac) break;
+        }
+        const str = `${os.hostname()}-${mac || os.platform()}`;
+        const hash = crypto.createHash('sha256').update(str).digest('hex').substring(0, 16).toUpperCase();
+        return `${hash.substring(0,4)}-${hash.substring(4,8)}-${hash.substring(8,12)}-${hash.substring(12,16)}`;
+    } catch (e) {
+        return 'CLIENT-DESKTOP';
+    }
+});
+
 
 // App Lifecycle
 app.whenReady().then(() => {

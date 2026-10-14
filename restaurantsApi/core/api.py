@@ -218,10 +218,18 @@ class SuperDevGenerateKeyOut(Schema):
 def check_superdev_access(request):
     """
     فحص صلاحية المطور الفائق (SuperDev).
-    مسموح فقط لـ (ظافر وأيوب)، ومحجوب عن باقي المستخدمين حتى Admin.
+    مسموح فقط لـ (ظافر وأيوب) وعلى أجهزتهم المعتمدة حصرياً.
+    محجوب تماماً عن حواسيب العملاء سواء كان الخادم محلياً أو أونلاين.
     """
+    from core.license_service import is_authorized_superdev_device
+
     if not is_superdev_user(request.auth):
         return 403, {"message": "الوصول مرفوض: هذه الميزة مخصصة حصرياً للمطورين الفائقين (SuperDev: ظافر وأيوب) فقط."}
+
+    if not is_authorized_superdev_device(request):
+        return 403, {
+            "message": "الجهاز غير مصرح: زر وصلاحيات SuperDev مقتصرة حصرياً على جهاز ظافر وجهاز أيوب فقط، ومحجوبة تماماً عن هذا الجهاز."
+        }
 
     dev_name = request.auth.first_name or request.auth.username
     return {
@@ -230,13 +238,49 @@ def check_superdev_access(request):
     }
 
 
+class SuperDevAuthorizeDeviceIn(Schema):
+    passcode: str
+    developer_name: Optional[str] = "superdev"
+
+
+class SuperDevAuthorizeDeviceOut(Schema):
+    success: bool
+    device_token: str
+    message: str
+
+
+@license_router.post("/superdev/authorize-device/", response={200: SuperDevAuthorizeDeviceOut, 403: dict}, auth=JWTAuth())
+def authorize_superdev_device(request, data: SuperDevAuthorizeDeviceIn):
+    """
+    اعتماد وتوثيق جهاز حاسوب جديد للمطور (ظافر أو أيوب).
+    يتطلب إدخال الرمز السري الفائق وحساب المطور.
+    """
+    if not is_superdev_user(request.auth):
+        return 403, {"message": "الوصول مرفوض: غير مصرح لك بهذا الإجراء."}
+
+    from core.license_service import SUPERDEV_MASTER_PASSCODE, generate_superdev_device_token
+    if data.passcode.strip() != SUPERDEV_MASTER_PASSCODE:
+        return 403, {"message": "رمز المرور السري الخاص بالمطور غير صحيح."}
+
+    dev_name = (data.developer_name or request.auth.username or 'superdev').strip().lower()
+    token = generate_superdev_device_token(dev_name)
+
+    return {
+        "success": True,
+        "device_token": token,
+        "message": f"تم اعتماد هذا الجهاز رسمياً كجهاز مطور فائق (SuperDev) خاص بـ {dev_name} بنجاح!"
+    }
+
+
 @license_router.post("/superdev/generate-key/", response={200: SuperDevGenerateKeyOut, 403: dict, 400: dict}, auth=JWTAuth())
 def superdev_generate_product_key(request, data: SuperDevGenerateKeyIn):
     """
     توليد كود التفعيل Product Key لأي جهاز حاسوب بواسطة المطورين الفائقين ظافر وأيوب.
     """
-    if not is_superdev_user(request.auth):
-        return 403, {"message": "الوصول مرفوض تماماً: هذه الخاصية محجوبة عن جميع المستخدمين والمدراء ومقتصرة على المطورين الفائقين ظافر وأيوب."}
+    from core.license_service import is_authorized_superdev_device
+
+    if not is_superdev_user(request.auth) or not is_authorized_superdev_device(request):
+        return 403, {"message": "الوصول مرفوض تماماً: هذه الخاصية مقتصرة حصرياً على جهازي المطورين الفائقين ظافر وأيوب."}
 
     machine_id = (data.machine_id or '').strip()
     if not machine_id:
@@ -253,4 +297,229 @@ def superdev_generate_product_key(request, data: SuperDevGenerateKeyIn):
         "generated_by": dev_name,
         "message": f"تم استخراج كود التفعيل بنجاح لجهاز العميل ({data.client_name or machine_id})!"
     }
+
+
+class DatabaseStatusOut(Schema):
+    engine: str
+    is_postgres: bool
+    db_name: str
+    db_host: str
+    db_port: str
+    db_user: str
+    port_open: bool
+    status: str
+    message: str
+
+
+@license_router.get("/db-status/", response=DatabaseStatusOut)
+def get_database_status(request):
+    """
+    فحص حالة ونوع قاعدة البيانات الحالية (PostgreSQL vs SQLite) ومدى جاهزية السيرفر.
+    """
+    from django.db import connection
+    import socket
+
+    engine = connection.settings_dict.get('ENGINE', '')
+    is_postgres = 'postgresql' in engine
+    db_name = connection.settings_dict.get('NAME', '')
+    db_host = connection.settings_dict.get('HOST', '127.0.0.1') or '127.0.0.1'
+    db_port = str(connection.settings_dict.get('PORT', '5432') or '5432')
+    db_user = connection.settings_dict.get('USER', 'postgres') or 'postgres'
+
+    port_open = False
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1.0)
+        res = sock.connect_ex((db_host, int(db_port)))
+        sock.close()
+        port_open = (res == 0)
+    except Exception:
+        port_open = False
+
+    if is_postgres:
+        status = "connected_postgres"
+        message = "متصل بنجاح بقاعدة بيانات PostgreSQL الرسمية."
+    elif port_open:
+        status = "postgres_port_detected"
+        message = "تم اكتشاف منفذ خادم PostgreSQL (5432) نشطاً! تأكد من إنشاء قاعدة البيانات restaurant_db وتطبيق migrations."
+    else:
+        status = "sqlite_fallback"
+        message = "يعمل النظام حالياً على قاعدة البيانات المحلية SQLite3 الاحتياطية."
+
+    return {
+        "engine": "PostgreSQL" if is_postgres else "SQLite3",
+        "is_postgres": is_postgres,
+        "db_name": str(db_name),
+        "db_host": db_host,
+        "db_port": db_port,
+        "db_user": db_user,
+        "port_open": port_open,
+        "status": status,
+        "message": message,
+    }
+
+
+class AutoSetupPostgresIn(Schema):
+    db_name: Optional[str] = "restaurant_db"
+    db_user: Optional[str] = "postgres"
+    db_password: Optional[str] = "0918147613a"
+    db_host: Optional[str] = "127.0.0.1"
+    db_port: Optional[str] = "5432"
+
+
+class AutoSetupPostgresOut(Schema):
+    success: bool
+    db_created: bool
+    db_name: str
+    message: str
+    details: Optional[str] = None
+    engine: str
+
+
+@license_router.post("/superdev/auto-setup-postgres/", response={200: AutoSetupPostgresOut, 400: dict, 403: dict, 500: dict}, auth=JWTAuth())
+def auto_setup_postgres(request, data: AutoSetupPostgresIn):
+    """
+    إنشاء وتهيئة قاعدة بيانات PostgreSQL وتطبيق كافة جداول النظام تلقائياً بنقرة زر واحدة.
+    مخصصة للمطورين الفائقين (ظافر وأيوب) أو الإدارة عند تجهيز حاسوب العميل.
+    """
+    user_auth = request.auth
+    from core.license_service import is_authorized_superdev_device
+    if not is_superdev_user(user_auth) or not is_authorized_superdev_device(request):
+        return 403, {"message": "غير مصرح: هذه الميزة مخصصة حصرياً للمطورين الفائقين (ظافر وأيوب) وعلى أجهزتهم المعتمدة فقط."}
+
+    import psycopg2
+    from psycopg2 import sql
+    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+    from django.conf import settings
+    from django.db import connections
+    from django.core.management import call_command
+    import io
+
+    db_name = (data.db_name or 'restaurant_db').strip()
+    db_user = (data.db_user or 'postgres').strip()
+    db_password = data.db_password if data.db_password is not None else '0918147613a'
+    db_host = (data.db_host or '127.0.0.1').strip()
+    db_port = str(data.db_port or '5432').strip()
+
+    # 1. الاتصال المباشر بخادم PostgreSQL عبر قاعدة postgres الافتراضية
+    try:
+        conn = psycopg2.connect(
+            dbname='postgres',
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port,
+            connect_timeout=5
+        )
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = conn.cursor()
+    except Exception as e:
+        return 400, {
+            "message": f"تعذر الاتصال بخادم PostgreSQL ({db_host}:{db_port}). يرجى التحقق من تشغيل السيرفر ومن صحة كلمة المرور للمستخدم '{db_user}'. الخطأ: {str(e)}"
+        }
+
+    # 2. التحقق من وجود قاعدة البيانات وإنشائها إن لم تكن موجودة
+    db_created = False
+    try:
+        cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
+        if not cur.fetchone():
+            cur.execute(
+                sql.SQL("CREATE DATABASE {} WITH OWNER {} ENCODING 'UTF8';").format(
+                    sql.Identifier(db_name),
+                    sql.Identifier(db_user)
+                )
+            )
+            db_created = True
+        cur.close()
+        conn.close()
+    except Exception as e:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return 500, {
+            "message": f"فشل في إنشاء قاعدة البيانات '{db_name}'. الخطأ: {str(e)}"
+        }
+
+    # 3. حفظ الإعدادات في ملف البيئة .env لضمان البقاء عليها دائماً
+    try:
+        env_path = settings.BASE_DIR / '.env'
+        env_lines = []
+        if env_path.exists():
+            with open(env_path, 'r', encoding='utf-8') as f:
+                env_lines = f.readlines()
+
+        env_dict = {
+            'USE_POSTGRES': 'True',
+            'DB_NAME': db_name,
+            'DB_USER': db_user,
+            'DB_PASSWORD': db_password,
+            'DB_HOST': db_host,
+            'DB_PORT': db_port,
+        }
+
+        new_lines = []
+        seen_keys = set()
+        for line in env_lines:
+            key_part = line.split('=')[0].strip() if '=' in line else ''
+            if key_part in env_dict:
+                new_lines.append(f"{key_part}={env_dict[key_part]}\n")
+                seen_keys.add(key_part)
+            else:
+                new_lines.append(line)
+        for k, v in env_dict.items():
+            if k not in seen_keys:
+                new_lines.append(f"{k}={v}\n")
+
+        with open(env_path, 'w', encoding='utf-8') as f:
+            f.writelines(new_lines)
+    except Exception as e:
+        print(f"Warning: Could not write .env: {e}")
+
+    # 4. توجيه اتصال دجانغو النشط لقاعدة بيانات PostgreSQL
+    try:
+        settings.DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
+        }
+        connections['default'].close()
+    except Exception as e:
+        print(f"Connection update warning: {e}")
+
+    # 5. تطبيق الهجرات وبناء الجداول تلقائياً
+    out = io.StringIO()
+    try:
+        call_command('migrate', interactive=False, stdout=out)
+        migration_output = out.getvalue()
+    except Exception as e:
+        return 500, {
+            "message": f"تم إنشاء قاعدة البيانات بنجاح، لكن حدث خطأ أثناء تطبيق الهجرات (Migrations): {str(e)}",
+            "details": str(e)
+        }
+
+    # 6. التأكد من وجود مستخدم مدير افتراضي
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if not User.objects.filter(is_superuser=True).exists():
+            User.objects.create_superuser('admin', 'admin@restoerp.dev', 'admin123')
+    except Exception:
+        pass
+
+    msg = f"تم إنشاء وتجهيز قاعدة بيانات PostgreSQL ('{db_name}') وتطبيق كافة جداول النظام بنجاح تام بنقرة واحدة!" if db_created else f"تم التحقق من قاعدة البيانات '{db_name}' وتحديث وتطبيق كافة الجداول بنجاح!"
+
+    return {
+        "success": True,
+        "db_created": db_created,
+        "db_name": db_name,
+        "message": msg,
+        "details": migration_output,
+        "engine": "PostgreSQL"
+    }
+
+
 

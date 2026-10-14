@@ -25,20 +25,63 @@ import {
     ChevronLeft,
     ShoppingBag,
     ChefHat,
-    Smartphone
+    Smartphone,
+    Lock,
+    ShieldAlert,
+    ArrowRight,
+    UserCheck
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import { licenseService } from '@/services/licenseService';
 
 export default function DesktopShowcasePage() {
     const { isSidebarCollapsed } = useUIStore();
+    const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState<'methods' | 'printers' | 'network' | 'license' | 'specs'>('methods');
     const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
     const [machineId, setMachineId] = useState<string>('جاري الفحص...');
     const [isLicensed, setIsLicensed] = useState<boolean>(true);
+    const [isVerifying, setIsVerifying] = useState<boolean>(true);
+    const [isSuperDev, setIsSuperDev] = useState<boolean>(false);
+    const [devName, setDevName] = useState<string>('');
 
     useEffect(() => {
+        const uname = (user?.username || '').trim().toLowerCase();
+        const fname = (user?.first_name || '').trim().toLowerCase();
+        const allowedUnames = [
+            'zafer', 'ayoub', 'zafer12', 
+            'zafer@restoerp.dev', 'ayoub@restoerp.dev', 
+            'zafer@admin.com', 'zaefrali90@gmail.com'
+        ];
+        const isCandidate = (
+            allowedUnames.includes(uname) ||
+            ['ظافر', 'أيوب', 'zafer', 'ayoub'].includes(fname) ||
+            (user?.permissions as any)?.is_superdev === true
+        ) && uname !== 'admin';
+
+        if (isCandidate) {
+            licenseService.checkSuperDevAccess()
+                .then((res) => {
+                    if (res?.is_superdev) {
+                        setIsSuperDev(true);
+                        setDevName(res.developer_name || user?.first_name || 'SuperDev');
+                    } else {
+                        setIsSuperDev(false);
+                    }
+                })
+                .catch(() => {
+                    setIsSuperDev(false);
+                })
+                .finally(() => {
+                    setIsVerifying(false);
+                });
+        } else {
+            setIsSuperDev(false);
+            setIsVerifying(false);
+        }
+
         licenseService.getLicenseStatus()
             .then((st) => {
                 if (st?.machine_id) setMachineId(st.machine_id);
@@ -47,13 +90,65 @@ export default function DesktopShowcasePage() {
             .catch(() => {
                 setMachineId('E165-594A-81A8-FF6F');
             });
-    }, []);
+    }, [user]);
 
     const copyToClipboard = (text: string, key: string) => {
         navigator.clipboard.writeText(text);
         setCopiedSnippet(key);
         setTimeout(() => setCopiedSnippet(null), 2500);
     };
+
+    if (isVerifying) {
+        return (
+            <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50/70 dark:bg-[#070b14] w-full min-w-0" dir="rtl">
+                <Sidebar />
+                <main className={`flex-1 min-w-0 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-8 flex items-center justify-center transition-all duration-300`}>
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center animate-spin">
+                            <Cpu className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-bold text-gray-500 dark:text-gray-400">جاري التحقق من صلاحيات المطور الفائق...</p>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    if (!isSuperDev) {
+        return (
+            <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50/70 dark:bg-[#070b14] w-full min-w-0" dir="rtl">
+                <Sidebar />
+                <main className={`flex-1 min-w-0 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-4 sm:p-8 flex items-center justify-center transition-all duration-300`}>
+                    <div className="max-w-md w-full bg-white dark:bg-gray-900 border-2 border-rose-500/30 rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
+                        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-rose-500/10 animate-bounce">
+                            <Lock className="w-8 h-8" />
+                        </div>
+
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-black mb-3">
+                            <ShieldAlert className="w-3.5 h-3.5" />
+                            <span>منطقة محظورة • SuperDev Only</span>
+                        </div>
+
+                        <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-2">
+                            صلاحية المطورين الفائقين فقط
+                        </h2>
+
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium mb-6 leading-relaxed">
+                            هذه الصفحة مخصصة حصرياً للمطورين <strong className="text-amber-600 dark:text-amber-400 font-bold">ظافر</strong> و <strong className="text-amber-600 dark:text-amber-400 font-bold">أيوب</strong> لإدارة وبناء حزم سطح المكتب المستقلة (.exe). الوصول محجوب عن كافّة المستخدمين والمدراء.
+                        </p>
+
+                        <Link
+                            href="/"
+                            className="inline-flex items-center justify-center gap-2 w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs shadow-md shadow-indigo-600/20 transition-all active:scale-95"
+                        >
+                            <span>العودة إلى لوحة التحكم</span>
+                            <ArrowRight className="w-4 h-4 rotate-180" />
+                        </Link>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50/70 dark:bg-[#070b14] w-full min-w-0 transition-colors duration-300" dir="rtl">
@@ -70,9 +165,15 @@ export default function DesktopShowcasePage() {
 
                         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                             <div className="space-y-4 max-w-2xl">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100/70 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-400/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold tracking-wide">
-                                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                                    <span>برنامج سطح المكتب المخصص • RestoERP Desktop Edition v1.0.0</span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100/70 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-400/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold tracking-wide">
+                                        <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                                        <span>برنامج سطح المكتب المخصص • RestoERP Desktop Edition v1.0.0</span>
+                                    </div>
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                                        <UserCheck className="w-3.5 h-3.5" />
+                                        <span>المطور المصرح: <strong className="font-black text-amber-600 dark:text-amber-300">{devName || 'ظافر / أيوب'}</strong></span>
+                                    </div>
                                 </div>
 
                                 <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">

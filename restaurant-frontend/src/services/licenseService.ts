@@ -40,6 +40,35 @@ export interface SuperDevGenerateKeyResponse {
     message: string;
 }
 
+export interface DatabaseStatus {
+    engine: string;
+    is_postgres: boolean;
+    db_name: string;
+    db_host: string;
+    db_port: string;
+    db_user: string;
+    port_open: boolean;
+    status: 'connected_postgres' | 'postgres_port_detected' | 'sqlite_fallback';
+    message: string;
+}
+
+export interface AutoSetupPostgresPayload {
+    db_name?: string;
+    db_user?: string;
+    db_password?: string;
+    db_host?: string;
+    db_port?: string;
+}
+
+export interface AutoSetupPostgresResponse {
+    success: boolean;
+    db_created: boolean;
+    db_name: string;
+    message: string;
+    details?: string;
+    engine: string;
+}
+
 export const licenseService = {
     /**
      * جلب حالة الترخيص الحالية، معرف الجهاز، الأيام التجريبية المتبقية وصلاحية النظام.
@@ -74,5 +103,38 @@ export const licenseService = {
         const response = await api.post<SuperDevGenerateKeyResponse>('/core/license/superdev/generate-key/', payload);
         return response.data;
     },
+
+    /**
+     * فحص حالة قاعدة البيانات الحالية وسيرفر PostgreSQL.
+     */
+    getDatabaseStatus: async (): Promise<DatabaseStatus> => {
+        const response = await api.get<DatabaseStatus>('/core/license/db-status/');
+        return response.data;
+    },
+
+    /**
+     * إنشاء وتهيئة قاعدة بيانات PostgreSQL وتطبيق الجداول تلقائياً بضغطة زر واحدة.
+     */
+    autoSetupPostgres: async (payload?: AutoSetupPostgresPayload): Promise<AutoSetupPostgresResponse> => {
+        const response = await api.post<AutoSetupPostgresResponse>('/core/license/superdev/auto-setup-postgres/', payload || {});
+        return response.data;
+    },
+
+    /**
+     * اعتماد هذا الجهاز كجهاز رسمي للمطورين الفائقين (ظافر أو أيوب).
+     */
+    authorizeSuperDevDevice: async (passcode: string, developerName?: string): Promise<{ success: boolean; device_token: string; message: string }> => {
+        const response = await api.post<{ success: boolean; device_token: string; message: string }>('/core/license/superdev/authorize-device/', {
+            passcode,
+            developer_name: developerName || 'superdev'
+        });
+        if (response.data?.device_token && typeof window !== 'undefined') {
+            localStorage.setItem('resto_superdev_device_token', response.data.device_token);
+        }
+        return response.data;
+    },
 };
+
+
+
 

@@ -42,6 +42,19 @@ api.interceptors.request.use(
                     console.error('Error parsing auth-storage', e);
                 }
             }
+
+            // Attach SuperDev Device Verification Headers
+            const devToken = localStorage.getItem('resto_superdev_device_token');
+            if (devToken) {
+                if (!config.headers) config.headers = {} as any;
+                (config.headers as any)['X-SuperDev-Device-Token'] = devToken;
+            }
+
+            const machineId = localStorage.getItem('resto_client_machine_id');
+            if (machineId) {
+                if (!config.headers) config.headers = {} as any;
+                (config.headers as any)['X-Device-Machine-Id'] = machineId;
+            }
         }
         return config;
     },

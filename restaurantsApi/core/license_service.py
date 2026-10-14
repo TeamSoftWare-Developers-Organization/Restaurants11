@@ -133,6 +133,79 @@ class LicenseService:
         lic.product_key = formatted_key
         lic.license_type = 'LIFETIME'
         lic.activated_at = timezone.now()
-        lic.save()
-
         return True, "تم تفعيل النظام بنجاح مدى الحياة!", lic
+
+
+# --- وحدة اعتماد أجهزة المطورين الفائقين (ظافر وأيوب) حصرياً ---
+
+SUPERDEV_MASTER_PASSCODE = "superdev-zafer-ayoub-2026"
+
+# قائمة المعرفات المعتمدة لأجهزة المطورين (جهاز ظافر الحالي + أي أجهزة مضافة)
+SUPERDEV_AUTHORIZED_MACHINE_IDS = {
+    "E165-594A-81A8-FF6F",  # جهاز ظافر الأساسي
+}
+
+
+def generate_superdev_device_token(developer_name: str = "superdev") -> str:
+    """
+    توليد توقيع مشفر دائم لاعتماد جهاز المطور في المتصفح أو تطبيق الديسكتوب.
+    """
+    clean_name = developer_name.strip().lower()
+    signature = hmac.new(
+        LICENSE_SECRET_SALT.encode('utf-8'),
+        f"SUPERDEV-DEVICE-AUTHORIZED-{clean_name}".encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest().upper()
+    return f"SDEV-DEV-{signature[:24]}"
+
+
+def verify_superdev_device_token(token: str) -> bool:
+    """
+    فحص صحة رمز اعتماد جهاز المطور.
+    """
+    if not token or not token.startswith("SDEV-DEV-"):
+        return False
+    
+    for dev in ['zafer', 'ayoub', 'superdev', 'master']:
+        expected = generate_superdev_device_token(dev)
+        if hmac.compare_digest(token.strip(), expected):
+            return True
+    return False
+
+
+def is_authorized_superdev_device(request) -> bool:
+    """
+    التحقق الصارم من أن الجهاز الذي يقوم بالطلب هو حصرياً جهاز ظافر أو جهاز أيوب.
+    ممنوع ومحجوب تماماً عن أي حاسوب عميل آخر سواء تم تنصيب النظام محلياً أو أونلاين.
+    """
+    # 1. فحص توكن اعتماد الجهاز الممرر في الهيدر
+    dev_token = request.headers.get('X-SuperDev-Device-Token') or request.headers.get('x-superdev-device-token')
+    if dev_token and verify_superdev_device_token(dev_token):
+        return True
+
+    # 2. فحص معرف الجهاز الممرر من المتصفح / Electron
+    client_machine_id = (
+        request.headers.get('X-Device-Machine-Id') or 
+        request.headers.get('x-device-machine-id') or 
+        ''
+    ).strip().upper()
+
+    allowed_machines = set(SUPERDEV_AUTHORIZED_MACHINE_IDS)
+    env_machines = os.environ.get('SUPERDEV_ALLOWED_MACHINE_IDS', '')
+    if env_machines:
+        for m in env_machines.split(','):
+            if m.strip():
+                allowed_machines.add(m.strip().upper())
+
+    if client_machine_id and client_machine_id in allowed_machines:
+        return True
+
+    # 3. في حالة الخادم المحلي أو أثناء العمل من نفس الجهاز (localhost)
+    remote_addr = request.META.get('REMOTE_ADDR', '')
+    if remote_addr in ['127.0.0.1', '::1', 'localhost']:
+        local_id = get_or_create_machine_id().upper()
+        if local_id in allowed_machines:
+            return True
+
+    return False
+

@@ -30,7 +30,8 @@ import {
     Receipt,
     RotateCcw as RotateCcwIcon,
     Layers,
-    Key
+    Key,
+    Database
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -41,6 +42,8 @@ import { licenseService } from '@/services/licenseService';
 import { RestaurantSettings } from '@/services/settingsService';
 import InvoiceLivePreview from '@/components/invoices/InvoiceLivePreview';
 import SuperDevKeyGenerator from '@/components/settings/SuperDevKeyGenerator';
+import SuperDevPostgresGuide from '@/components/settings/SuperDevPostgresGuide';
+
 
 
 export default function SettingsPage() {
@@ -60,6 +63,8 @@ export default function SettingsPage() {
     const [localError, setLocalError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [activeTab, setActiveTab] = useState<'general' | 'financial' | 'invoices' | 'operational' | 'superdev'>('general');
+    const [superDevSubTab, setSuperDevSubTab] = useState<'keys' | 'database'>('database');
+    const [showPostgresGuideInOperational, setShowPostgresGuideInOperational] = useState(false);
 
     // SuperDev Access Verification (ظافر وأيوب فقط)
     const { user } = useAuthStore();
@@ -67,11 +72,19 @@ export default function SettingsPage() {
     const [superDevName, setSuperDevName] = useState<string>('');
     const [currentMachineId, setCurrentMachineId] = useState<string>('');
 
+    // Device Authorization Modal (حصري للمطورين الفائقين لاعتماد أجهزتهم)
+    const [showPairingModal, setShowPairingModal] = useState(false);
+    const [pairPasscode, setPairPasscode] = useState('');
+    const [pairLoading, setPairLoading] = useState(false);
+    const [pairError, setPairError] = useState<string | null>(null);
+    const [pairSuccess, setPairSuccess] = useState<string | null>(null);
+    const [secretClickCount, setSecretClickCount] = useState(0);
+
     const [localSettings, setLocalSettings] = useState<RestaurantSettings | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // التحقق الصارم من صلاحية المطور الفائق (محجوب تماماً عن Admin والمستخدمين العاديين)
-    useEffect(() => {
+    // فحص صلاحية وصلاحية الجهاز للمطورين الفائقين (ظافر وأيوب حصرياً)
+    const verifySuperDev = () => {
         const uname = (user?.username || '').trim().toLowerCase();
         const allowedUnames = [
             'zafer', 'ayoub', 'zafer12', 
@@ -96,6 +109,21 @@ export default function SettingsPage() {
         } else {
             setIsSuperDev(false);
         }
+    };
+
+    useEffect(() => {
+        // فحص وجود Electron لجلب معرّف عتاد الجهاز الفعلي تلقائياً
+        if (typeof window !== 'undefined' && (window as any).electronAPI?.getMachineId) {
+            (window as any).electronAPI.getMachineId().then((mId: string) => {
+                if (mId) {
+                    localStorage.setItem('resto_client_machine_id', mId);
+                    setCurrentMachineId(mId);
+                    verifySuperDev();
+                }
+            }).catch(() => {});
+        }
+
+        verifySuperDev();
 
         // جلب معرف هذا الجهاز الحالي للمساعدة التلقائية
         licenseService.getLicenseStatus()
@@ -103,7 +131,54 @@ export default function SettingsPage() {
                 if (st?.machine_id) setCurrentMachineId(st.machine_id);
             })
             .catch(() => {});
+
+        // اختصار لوحة المفاتيح السري للمطورين (Ctrl + Alt + Shift + D)
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.altKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+                e.preventDefault();
+                setShowPairingModal(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [user]);
+
+    const handleSecretTitleClick = () => {
+        const newCount = secretClickCount + 1;
+        setSecretClickCount(newCount);
+        if (newCount >= 5) {
+            setSecretClickCount(0);
+            setShowPairingModal(true);
+        }
+    };
+
+    const handleAuthorizeDeviceSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!pairPasscode.trim()) {
+            setPairError('يرجى إدخال الرمز السري الفائق.');
+            return;
+        }
+
+        try {
+            setPairLoading(true);
+            setPairError(null);
+            setPairSuccess(null);
+
+            const res = await licenseService.authorizeSuperDevDevice(pairPasscode.trim(), user?.username || 'superdev');
+            setPairSuccess(res.message);
+            verifySuperDev();
+            setTimeout(() => {
+                setShowPairingModal(false);
+                setPairPasscode('');
+                setPairSuccess(null);
+            }, 2000);
+        } catch (err: any) {
+            setPairError(err?.response?.data?.message || 'فشل في اعتماد الجهاز. تأكد من صحة الرمز السري.');
+        } finally {
+            setPairLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!settings) {
@@ -221,7 +296,11 @@ export default function SettingsPage() {
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                            <h1
+                                onClick={handleSecretTitleClick}
+                                className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3 select-none cursor-default"
+                                title="الإعدادات العامة"
+                            >
                                 <Settings className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-600 shrink-0" />
                                 الإعدادات العامة
                             </h1>
@@ -317,7 +396,7 @@ export default function SettingsPage() {
                                 }`}
                             >
                                 <Key className="w-4 h-4 shrink-0 text-amber-500" />
-                                ⚡ مولد المفاتيح (SuperDev)
+                                ⚡ لوحة SuperDev (ظافر & أيوب)
                             </button>
                         )}
                     </div>
@@ -914,6 +993,47 @@ export default function SettingsPage() {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Database & Server Section in Operational Tab (حصرية لـ SuperDev ظافر وأيوب) */}
+                                {isSuperDev && (
+                                    <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 flex items-center justify-center shrink-0">
+                                                    <Database className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h3 className="font-black text-gray-900 dark:text-white">
+                                                            إدارة وقاعدة بيانات الخادم (PostgreSQL / SQLite)
+                                                        </h3>
+                                                        <span className="text-[11px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-full">
+                                                            SuperDev: ظافر & أيوب
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                                                        يدعم النظام التبديل التلقائي الذكي إلى PostgreSQL عند تثبيت السيرفر على جهاز العميل، أو العمل السلس على SQLite3.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPostgresGuideInOperational(!showPostgresGuideInOperational)}
+                                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/70 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold text-xs transition cursor-pointer shrink-0"
+                                            >
+                                                <Database className="w-4 h-4" />
+                                                <span>{showPostgresGuideInOperational ? 'إخفاء دليل إعداد PostgreSQL' : 'عرض خطوات تهيئة قاعدة بيانات PostgreSQL'}</span>
+                                            </button>
+                                        </div>
+
+                                        {showPostgresGuideInOperational && (
+                                            <div className="pt-4 border-t border-gray-100 dark:border-gray-700/60 animate-in fade-in">
+                                                <SuperDevPostgresGuide developerName={superDevName} />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -921,14 +1041,116 @@ export default function SettingsPage() {
                     {/* SuperDev Tab */}
                     {isSuperDev && activeTab === 'superdev' && (
                         <div className="space-y-6 animate-in fade-in duration-500">
-                            <SuperDevKeyGenerator
-                                currentMachineId={currentMachineId}
-                                developerName={superDevName}
-                            />
+                            {/* SuperDev Subtabs */}
+                            <div className="flex items-center justify-center sm:justify-start gap-2 p-1.5 bg-gray-200/80 dark:bg-gray-800/80 rounded-2xl w-full sm:w-fit">
+                                <button
+                                    type="button"
+                                    onClick={() => setSuperDevSubTab('database')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                                        superDevSubTab === 'database'
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-gray-700/40'
+                                    }`}
+                                >
+                                    <Database className="w-4 h-4" />
+                                    <span>🗄️ تهيئة قاعدة بيانات PostgreSQL</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSuperDevSubTab('keys')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                                        superDevSubTab === 'keys'
+                                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-gray-700/40'
+                                    }`}
+                                >
+                                    <Key className="w-4 h-4" />
+                                    <span>🔑 مولد مفاتيح الترخيص الفائق</span>
+                                </button>
+                            </div>
+
+                            {/* Subtab Content */}
+                            {superDevSubTab === 'database' && (
+                                <SuperDevPostgresGuide developerName={superDevName} />
+                            )}
+
+                            {superDevSubTab === 'keys' && (
+                                <SuperDevKeyGenerator
+                                    currentMachineId={currentMachineId}
+                                    developerName={superDevName}
+                                />
+                            )}
                         </div>
                     )}
                 </div>
+
+                {/* نافذة اعتماد جهاز المطور السري (SuperDev Device Authorization Modal) */}
+                {showPairingModal && (
+                    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-slate-900 border-2 border-amber-500/70 rounded-3xl p-6 sm:p-8 max-w-md w-full text-white shadow-2xl relative animate-in fade-in zoom-in-95">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-3 bg-amber-500 text-slate-950 rounded-2xl font-black shadow-lg">
+                                    <Key className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-white">اعتماد جهاز المطور (SuperDev)</h3>
+                                    <p className="text-xs text-slate-400">خاص بـ ظافر وأيوب لاعتماد جهاز جديد</p>
+                                </div>
+                            </div>
+
+                            {pairError && (
+                                <div className="mb-4 p-3 bg-rose-500/20 border border-rose-500/40 rounded-xl text-rose-300 text-xs font-bold">
+                                    {pairError}
+                                </div>
+                            )}
+
+                            {pairSuccess && (
+                                <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-bold">
+                                    {pairSuccess}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleAuthorizeDeviceSubmit} className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                                        الرمز السري الفائق للمطور (Master Passcode)
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={pairPasscode}
+                                        onChange={(e) => setPairPasscode(e.target.value)}
+                                        placeholder="أدخل الرمز السري..."
+                                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-amber-300 font-mono text-sm focus:outline-none focus:border-amber-400"
+                                        autoFocus
+                                        required
+                                    />
+                                    <span className="text-[10px] text-slate-500 mt-1 block">
+                                        معرّف هذا الجهاز: {currentMachineId || 'جاري التعرف...'}
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowPairingModal(false); setPairError(null); }}
+                                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
+                                    >
+                                        إلغاء
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={pairLoading}
+                                        className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl shadow-md disabled:opacity-50 cursor-pointer"
+                                    >
+                                        {pairLoading ? 'جاري الاعتماد...' : 'اعتماد هذا الجهاز'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
 }
+
