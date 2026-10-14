@@ -11,13 +11,6 @@ const cairo = Cairo({
 export const metadata: Metadata = {
   title: "نظام إدارة المطعم المتكامل | Restaurant AI ERP & POS",
   description: "نظام شامل لإدارة المطاعم، الموظفين، المخزون، والطلبات مدعوم بالذكاء الاصطناعي",
-  manifest: "/manifest.json",
-  themeColor: "#2563eb",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "RestoERP",
-  },
   icons: {
     icon: "/icons/icon-192x192.png",
     apple: "/icons/icon-192x192.png",
