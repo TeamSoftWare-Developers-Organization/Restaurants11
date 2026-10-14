@@ -12,9 +12,8 @@
     "desktop:dist": "electron-builder --win nsis",
     "desktop:portable": "electron-builder --win portable"
   },
-  "dependencies": {},
   "devDependencies": {
-    "electron": "^33.2.1",
+    "electron": "^33.4.11",
     "electron-builder": "^25.1.8"
   },
   "build": {
@@ -43,7 +42,7 @@
           ]
         }
       ],
-      "icon": "restaurant-frontend/public/icons/icon-512x512.png"
+      "icon": "electron/icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -51,8 +50,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "RestoERP POS",
-      "installerIcon": "restaurant-frontend/public/icons/icon-512x512.png",
-      "uninstallerIcon": "restaurant-frontend/public/icons/icon-512x512.png",
+      "installerIcon": "electron/icon.ico",
+      "uninstallerIcon": "electron/icon.ico",
       "uninstallDisplayName": "RestoERP POS Suite"
     }
   }
