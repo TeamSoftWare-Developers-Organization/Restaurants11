@@ -25,7 +25,9 @@ import {
     Grid,
     Layers,
     ArrowRight,
-    Barcode
+    Barcode,
+    Maximize2,
+    Minimize2
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -101,6 +103,32 @@ export default function POSPage() {
 
     // حالة للتبديل بين القائمة والسلة على الأجهزة الصغيرة (Responsive Mobile Tabs)
     const [mobileTab, setMobileTab] = useState<'menu' | 'cart'>('menu');
+
+    // حالة توسيع عرض السلة على شاشات سطح المكتب
+    const [isCartExpanded, setIsCartExpanded] = useState<boolean>(false);
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('pos_cart_expanded');
+            if (saved === 'true') {
+                setIsCartExpanded(true);
+            }
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    const toggleCartExpand = () => {
+        setIsCartExpanded(prev => {
+            const next = !prev;
+            try {
+                localStorage.setItem('pos_cart_expanded', String(next));
+            } catch {
+                // ignore
+            }
+            return next;
+        });
+    };
 
     const { activeShift, setActiveShift, user } = useAuthStore();
     const currentCashierName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : 'الكاشير';
@@ -332,7 +360,7 @@ export default function POSPage() {
                 </div>
 
                 {/* قسم المنتجات والأقسام (يظهر حسب التبويب في الموبايل ودائماً في الشاشات الكبيرة) */}
-                <section className={`flex-1 space-y-4 ${mobileTab === 'cart' ? 'hidden xl:flex xl:flex-col' : 'flex flex-col'}`}>
+                <section className={`flex-1 min-w-0 space-y-4 ${mobileTab === 'cart' ? 'hidden xl:flex xl:flex-col' : 'flex flex-col'}`}>
                     <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0">
@@ -506,8 +534,8 @@ export default function POSPage() {
                 </section>
 
                 {/* قسم السلة الجانبي (يظهر حسب التبويب في الموبايل ودائماً في الشاشات الكبيرة) */}
-                <section className={`w-full xl:w-[380px] shrink-0 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60 flex flex-col h-[calc(100vh-7rem)] xl:h-[calc(100vh-3rem)] sticky top-3 xl:top-6 overflow-hidden ${mobileTab === 'menu' ? 'hidden xl:flex' : 'flex'}`}>
-                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/60 flex justify-between items-center bg-gray-50/40 dark:bg-gray-800/30">
+                <section className={`w-full xl:w-[400px] 2xl:w-[420px] shrink-0 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60 flex flex-col h-[calc(100vh-7rem)] xl:h-[calc(100vh-3rem)] sticky top-3 xl:top-6 overflow-hidden ${mobileTab === 'menu' ? 'hidden xl:flex' : 'flex'}`}>
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/60 flex justify-between items-center bg-gray-50/40 dark:bg-gray-800/30 shrink-0">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 shadow-sm">
                                 <ShoppingBag className="w-4 h-4" />
@@ -521,10 +549,11 @@ export default function POSPage() {
                                 </span>
                             </div>
                         </div>
+
                         {items.length > 0 && (
                             <button
                                 onClick={clearCart}
-                                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-all"
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-all"
                                 title="تفريغ السلة بالكامل"
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -533,8 +562,9 @@ export default function POSPage() {
                         )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                        <div className="flex gap-1.5 bg-gray-50/70 dark:bg-gray-800/40 p-1 rounded-xl border border-gray-100 dark:border-gray-800/60">
+                    {/* منطقة الأصناف المضافة - مساحة ممتدة رأسياً بالكامل */}
+                    <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2.5">
+                        <div className="flex gap-1.5 bg-gray-50/70 dark:bg-gray-800/40 p-1 rounded-xl border border-gray-100 dark:border-gray-800/60 shrink-0">
                             <button
                                 onClick={() => setOrderType('takeaway')}
                                 className={`flex-1 h-8 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
@@ -560,7 +590,7 @@ export default function POSPage() {
                         </div>
 
                         {orderType === 'dine_in' && (
-                            <div className="space-y-1 bg-emerald-50/60 dark:bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-500/20">
+                            <div className="space-y-1 bg-emerald-50/60 dark:bg-emerald-950/30 p-2 rounded-xl border border-emerald-500/20 shrink-0">
                                 <label className="text-[11px] font-black text-emerald-900 dark:text-emerald-200 flex items-center justify-between">
                                     <span className="flex items-center gap-1">
                                         <Utensils className="w-3 h-3 text-emerald-600" />
@@ -571,7 +601,7 @@ export default function POSPage() {
                                     <select
                                         value={selectedTableId || ''}
                                         onChange={(e) => setSelectedTableId(parseInt(e.target.value))}
-                                        className="w-full h-9 bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-800/60 rounded-lg pr-3 pl-8 text-xs font-bold text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-600/30 shadow-sm appearance-none cursor-pointer"
+                                        className="w-full h-8.5 bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-800/60 rounded-lg pr-3 pl-8 text-xs font-bold text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-600/30 shadow-sm appearance-none cursor-pointer"
                                     >
                                         <option value="" disabled>اختر الطاولة...</option>
                                         {tables.map(table => (
@@ -586,12 +616,12 @@ export default function POSPage() {
                         )}
 
                         {items.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-40">
-                                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2">
+                            <div className="flex flex-col items-center justify-center h-48 text-center py-8 opacity-45">
+                                <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2">
                                     <ShoppingBag className="text-gray-400 w-6 h-6" />
                                 </div>
-                                <p className="text-gray-600 dark:text-gray-300 font-black text-xs">السلة فارغة</p>
-                                <p className="text-gray-400 font-bold text-[10px] mt-0.5">امسح بالباركود أو اضغط على الأصناف</p>
+                                <p className="text-gray-700 dark:text-gray-200 font-black text-xs">السلة فارغة</p>
+                                <p className="text-gray-400 font-bold text-[10px] mt-0.5">امسح بالباركود أو اضغط على الأصناف لإضافتها</p>
                             </div>
                         ) : (
                             items.map((item) => {
@@ -600,9 +630,9 @@ export default function POSPage() {
                                 return (
                                     <div
                                         key={item.id}
-                                        className="group bg-gray-50/50 dark:bg-gray-800/40 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800/60 hover:border-emerald-500/40 transition-all flex flex-col gap-2"
+                                        className="group bg-gray-50/70 dark:bg-gray-800/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800/70 hover:border-emerald-500/40 transition-all flex flex-col gap-2"
                                     >
-                                        <div className="flex items-start gap-2.5">
+                                        <div className="flex items-center gap-2.5">
                                             <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-700/50 flex items-center justify-center shadow-xs">
                                                 {item.image_url ? (
                                                     <img src={getFullUrl(item.image_url)} alt={item.name} className="w-full h-full object-cover" />
@@ -612,8 +642,8 @@ export default function POSPage() {
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-start justify-between gap-1.5">
-                                                    <h4 className="font-black text-xs text-gray-900 dark:text-gray-100 truncate">
+                                                <div className="flex items-baseline justify-between gap-1.5">
+                                                    <h4 className="font-black text-xs text-gray-900 dark:text-gray-100 truncate" title={item.name}>
                                                         {item.name}
                                                     </h4>
                                                     <div className="text-left shrink-0">
@@ -625,7 +655,7 @@ export default function POSPage() {
 
                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                     <span className="text-[10px] text-gray-400 font-bold tabular-nums">
-                                                        {item.price.toFixed(2)} د.ل
+                                                        {item.price.toFixed(2)} د.ل للقطعة
                                                     </span>
                                                 </div>
                                             </div>
@@ -689,21 +719,21 @@ export default function POSPage() {
                                         )}
 
                                         <div className="flex items-center justify-between pt-1 border-t border-gray-200/50 dark:border-gray-700/40">
-                                            <div className="flex items-center bg-white dark:bg-gray-900 rounded-xl p-1 border border-gray-200/80 dark:border-gray-700/60 shadow-sm" dir="ltr">
+                                            <div className="flex items-center bg-white dark:bg-gray-900 rounded-lg p-0.5 border border-gray-200/80 dark:border-gray-700/60 shadow-2xs" dir="ltr">
                                                 <button
                                                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-700 dark:text-gray-200 hover:text-rose-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all font-bold"
+                                                    className="w-7 h-7 rounded-md flex items-center justify-center text-gray-700 dark:text-gray-200 hover:text-rose-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all font-bold"
                                                 >
-                                                    {item.quantity === 1 ? <Trash2 className="w-4 h-4 text-rose-500" /> : <Minus className="w-4 h-4" />}
+                                                    {item.quantity === 1 ? <Trash2 className="w-3.5 h-3.5 text-rose-500" /> : <Minus className="w-3.5 h-3.5" />}
                                                 </button>
-                                                <span className="font-black text-gray-900 dark:text-white text-sm min-w-[2rem] text-center tabular-nums">
+                                                <span className="font-black text-gray-900 dark:text-white text-xs min-w-[2rem] text-center tabular-nums">
                                                     {item.quantity}
                                                 </span>
                                                 <button
                                                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                                    className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-bold transition-all shadow-xs"
+                                                    className="w-7 h-7 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center font-bold transition-all shadow-2xs"
                                                 >
-                                                    <Plus className="w-4 h-4" />
+                                                    <Plus className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
 
@@ -714,18 +744,18 @@ export default function POSPage() {
                                                             setEditingNoteItemId(item.id);
                                                             setTempNoteText('');
                                                         }}
-                                                        className="h-8 px-2.5 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-gray-500 hover:text-amber-600 hover:border-amber-400 text-xs font-bold flex items-center gap-1 transition-all"
+                                                        className="h-7 px-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 text-gray-500 hover:text-amber-600 hover:border-amber-400 text-[11px] font-bold flex items-center gap-1 transition-all"
                                                     >
-                                                        <FileText className="w-3.5 h-3.5 text-amber-500" />
+                                                        <FileText className="w-3 h-3 text-amber-500" />
                                                         <span>ملاحظة</span>
                                                     </button>
                                                 )}
                                                 <button
                                                     onClick={() => removeItem(item.id)}
-                                                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
                                                     title="حذف الصنف"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         </div>
@@ -733,32 +763,34 @@ export default function POSPage() {
                                 );
                             })
                         )}
-
-                        {/* اقتراحات ذكية تكميلية داخل السلة */}
-                        <div className="pt-2">
-                            <AIRecommendations compact={true} />
-                        </div>
                     </div>
 
-                    <div className="p-3.5 bg-gray-50/60 dark:bg-gray-800/30 border-t border-gray-100 dark:border-gray-800/60 space-y-3">
-                        <div className="flex justify-between items-center text-gray-500 dark:text-gray-400 font-bold text-xs">
-                            <span>المجموع الفرعي:</span>
-                            <span className="tabular-nums font-black text-gray-700 dark:text-gray-200">{subtotal.toFixed(2)} د.ل</span>
-                        </div>
-                        <div className="flex justify-between items-baseline pt-2 border-t border-gray-200/60 dark:border-gray-700/50">
-                            <span className="text-xs font-black text-gray-900 dark:text-white">المبلغ الإجمالي</span>
-                            <span className="text-xl font-black text-emerald-600 tabular-nums">
-                                {total.toFixed(2)} <span className="text-xs not-italic font-bold text-gray-400 mr-0.5">د.ل</span>
-                            </span>
+                    {/* الفوتر المدمج والمصغر لتوفير أقصى ارتفاع ممكن للأصناف */}
+                    <div className="shrink-0 p-3 bg-gray-50/70 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800/60 space-y-2">
+                        {/* بطاقة الحسابات المدمجة */}
+                        <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-3 py-2 rounded-xl border border-gray-200/60 dark:border-gray-700/50 shadow-2xs">
+                            <div className="text-right">
+                                <span className="text-[10px] font-bold text-gray-400 block">المبلغ الإجمالي</span>
+                                <span className="text-lg font-black text-emerald-600 tabular-nums leading-none">
+                                    {total.toFixed(2)} <span className="text-[10px] font-bold text-gray-400">د.ل</span>
+                                </span>
+                            </div>
+                            <div className="text-left">
+                                <span className="text-[10px] font-bold text-gray-400 block">المجموع الفرعي</span>
+                                <span className="text-xs font-black text-gray-600 dark:text-gray-300 tabular-nums">
+                                    {subtotal.toFixed(2)} د.ل
+                                </span>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 pt-1">
+                        {/* أزرار طرق الدفع السريعة */}
+                        <div className="grid grid-cols-3 gap-1.5">
                             <button
                                 onClick={() => handleCheckout('cash')}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex flex-col items-center justify-center h-12 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-2xl font-black transition-all text-xs border-2 border-gray-200/80 dark:border-gray-700/60 hover:border-emerald-500 active:scale-95 disabled:opacity-50 shadow-sm"
+                                className="flex items-center justify-center gap-1.5 h-9.5 bg-white hover:bg-emerald-50 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-xl font-black text-xs border border-gray-200 dark:border-gray-700 active:scale-95 disabled:opacity-50 shadow-2xs"
                             >
-                                <Banknote className="w-4 h-4 mb-1 text-emerald-600" />
+                                <Banknote className="w-3.5 h-3.5 text-emerald-600" />
                                 <span>نقدي</span>
                             </button>
                             <button
@@ -770,9 +802,9 @@ export default function POSPage() {
                                     setShowCardModal(true);
                                 }}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex flex-col items-center justify-center h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black shadow-md shadow-emerald-600/20 transition-all text-xs active:scale-95 disabled:opacity-50"
+                                className="flex items-center justify-center gap-1.5 h-9.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs shadow-sm shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
                             >
-                                <CreditCard className="w-4 h-4 mb-1" />
+                                <CreditCard className="w-3.5 h-3.5" />
                                 <span>بطاقة</span>
                             </button>
                             <button
@@ -784,47 +816,50 @@ export default function POSPage() {
                                     setShowDebtModal(true);
                                 }}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex flex-col items-center justify-center h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black shadow-md shadow-amber-500/20 transition-all text-xs active:scale-95 disabled:opacity-50"
+                                className="flex items-center justify-center gap-1.5 h-9.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-xs shadow-sm shadow-amber-500/20 active:scale-95 disabled:opacity-50"
                             >
-                                <Clock className="w-4 h-4 mb-1" />
+                                <Clock className="w-3.5 h-3.5" />
                                 <span>آجل</span>
                             </button>
                         </div>
 
-                        <button
-                            onClick={handleHoldOrder}
-                            disabled={items.length === 0 || isProcessingHold || isProcessingCheckout}
-                            className="w-full h-11 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border-2 border-amber-300/60 rounded-2xl font-black flex items-center justify-center gap-2 transition-all text-xs disabled:opacity-50 shadow-sm active:scale-98"
-                        >
-                            {isProcessingHold ? (
-                                <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                <PauseCircle className="w-4 h-4 text-amber-600" />
-                            )}
-                            <span>{isProcessingHold ? 'جاري الحفظ...' : 'حفظ كطلب معلق'}</span>
-                        </button>
+                        {/* زرا الطلب المعلق وإصدار الفاتورة */}
+                        <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                                onClick={handleHoldOrder}
+                                disabled={items.length === 0 || isProcessingHold || isProcessingCheckout}
+                                className="h-8.5 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-300/60 rounded-xl font-black flex items-center justify-center gap-1.5 text-xs disabled:opacity-50 active:scale-98"
+                            >
+                                {isProcessingHold ? (
+                                    <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <PauseCircle className="w-3.5 h-3.5 text-amber-600" />
+                                )}
+                                <span>طلب معلق</span>
+                            </button>
+                            <button
+                                onClick={() => handlePrintInvoice()}
+                                className="h-8.5 border border-dashed border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-emerald-600 hover:border-emerald-600 font-black rounded-xl flex items-center justify-center gap-1.5 text-xs no-print active:scale-98"
+                            >
+                                <Receipt className="w-3.5 h-3.5" />
+                                <span>عرض الفاتورة</span>
+                            </button>
+                        </div>
 
-                        <button
-                            onClick={() => handlePrintInvoice()}
-                            className="w-full h-10 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-emerald-600 hover:border-emerald-600 font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all text-xs no-print active:scale-98"
-                        >
-                            <Receipt className="w-4 h-4" />
-                            <span>إصدار وعرض الفاتورة</span>
-                        </button>
-
-                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-200/50 dark:border-gray-700/40">
+                        {/* تسجيل مصروفات وإغلاق الوردية */}
+                        <div className="flex items-center justify-between text-[11px] font-bold pt-1 border-t border-gray-200/50 dark:border-gray-700/40 px-1">
                             <button
                                 onClick={() => setShowExpenseModal(true)}
-                                className="h-9 bg-rose-50 dark:bg-rose-950/20 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-black transition-all"
+                                className="text-rose-500 hover:text-rose-600 hover:underline"
                             >
-                                تسجيل مصروفات
+                                + تسجيل مصروف
                             </button>
                             <button
                                 onClick={() => {
                                     setShiftMode('close');
                                     setShowShiftModal(true);
                                 }}
-                                className="h-9 bg-amber-50 dark:bg-amber-950/20 text-amber-600 hover:bg-amber-100 rounded-xl text-xs font-black transition-all"
+                                className="text-amber-600 hover:text-amber-700 hover:underline"
                             >
                                 إغلاق الوردية
                             </button>
