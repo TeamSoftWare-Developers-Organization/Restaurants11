@@ -43,7 +43,7 @@ export default function TreasuryPage() {
 
     if (isLoading) {
         return (
-            <div className="flex bg-background min-h-screen" dir="rtl">
+            <div className="flex flex-col lg:flex-row bg-background min-h-screen min-w-0 w-full" dir="rtl">
                 <Sidebar />
                 <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-8 flex items-center justify-center transition-all duration-300`}>
                     <div className="w-10 h-10 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin" />

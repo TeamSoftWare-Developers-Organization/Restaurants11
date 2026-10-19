@@ -7,6 +7,7 @@ from .services.fingerprint_ml import extract_fingerprint_embedding
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.utils import timezone
 
 # إنشاء موجه (Router) خاص بتطبيق employees
 employee_router = Router(tags=["الموظفون"])

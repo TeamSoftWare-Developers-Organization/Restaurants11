@@ -323,7 +323,7 @@ export default function POSPage() {
     });
 
     return (
-        <div className="flex bg-gray-50/50 dark:bg-[#0b0f19] min-h-screen transition-colors duration-300" dir="rtl">
+        <div className="flex flex-col lg:flex-row bg-gray-50/50 dark:bg-[#0b0f19] min-h-screen transition-colors duration-300 min-w-0 w-full" dir="rtl">
             <Sidebar className="no-print" />
 
             <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen flex flex-col xl:flex-row gap-5 p-4 md:p-6 transition-all duration-300 min-w-0 w-full`}>

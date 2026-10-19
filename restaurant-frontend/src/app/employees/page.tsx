@@ -229,7 +229,8 @@ export default function EmployeesPage() {
             fetchEmployees();
         } catch (err: any) {
             console.error('Smartphone enrollment error:', err);
-            setEnrollMsg({ type: 'error', text: err.message || 'فشل مسح بصمة الهاتف أو تم إلغاؤها.' });
+            const errDetail = err.response?.data?.detail || err.response?.data?.message || err.message || 'فشل مسح بصمة الهاتف أو تم إلغاؤها.';
+            setEnrollMsg({ type: 'error', text: errDetail });
         } finally {
             setIsEnrollingFingerprint(false);
         }

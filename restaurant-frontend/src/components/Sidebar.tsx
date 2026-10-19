@@ -158,43 +158,48 @@ export default function Sidebar({ className }: SidebarProps) {
     return (
         <>
             {/* Top Navigation Bar - Visible only on Mobile and Tablets (< lg) */}
-            <div className="lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-card/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800/60 px-4 py-3 flex items-center justify-between w-full shadow-xs">
+            <div className="lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-card/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800/60 px-3.5 py-2.5 flex items-center justify-between w-full shadow-xs">
+                {/* Right Side (In RTL: Start): Menu Hamburger Button + Restaurant Brand */}
                 <div className="flex items-center gap-2.5 min-w-0">
-                    {logoUrl ? (
-                        <div className="w-8 h-8 rounded-lg overflow-hidden shadow-xs shrink-0 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 flex items-center justify-center p-0.5">
-                            <img src={logoUrl} alt={settings?.name || 'شعار المطعم'} className="w-full h-full object-contain" />
-                        </div>
-                    ) : (
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md shadow-indigo-600/20 shrink-0">
-                            <LayoutDashboard className="w-4 h-4 text-white" />
-                        </div>
-                    )}
-                    <div className="min-w-0">
-                        <h1 className="text-sm font-black text-gray-900 dark:text-white leading-tight truncate">
-                            {settings?.name || 'إدارة المطعم'}
-                        </h1>
-                        <p className="text-[10px] text-gray-400 font-bold truncate">
-                            {settings?.bio || 'نظام متكامل'}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                        type="button"
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                        aria-label="تبديل الوضع الليلي"
-                    >
-                        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                    </button>
                     <button
                         onClick={toggleMobileMenu}
                         type="button"
-                        className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 transition-all cursor-pointer"
+                        className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 transition-all cursor-pointer shrink-0"
                         aria-label="فتح القائمة الرئيسية"
                     >
                         {isMobileMenuOpen ? <X className="w-5 h-5 text-rose-500" /> : <Menu className="w-5 h-5" />}
+                    </button>
+
+                    <div className="flex items-center gap-2 min-w-0">
+                        {logoUrl ? (
+                            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-xs shrink-0 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 flex items-center justify-center p-0.5">
+                                <img src={logoUrl} alt={settings?.name || 'شعار المطعم'} className="w-full h-full object-contain" />
+                            </div>
+                        ) : (
+                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md shadow-indigo-600/20 shrink-0">
+                                <LayoutDashboard className="w-4 h-4 text-white" />
+                            </div>
+                        )}
+                        <div className="min-w-0">
+                            <h1 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white leading-tight truncate">
+                                {settings?.name || 'إدارة المطعم'}
+                            </h1>
+                            <p className="text-[9px] sm:text-[10px] text-gray-400 font-bold truncate">
+                                {settings?.bio || 'نظام متكامل'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Left Side (In RTL: End): Dark Mode Toggle */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                        type="button"
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        aria-label="تبديل الوضع الليلي"
+                    >
+                        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                     </button>
                 </div>
             </div>
