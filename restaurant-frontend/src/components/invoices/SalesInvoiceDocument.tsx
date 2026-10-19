@@ -357,54 +357,54 @@ export default function SalesInvoiceDocument({
             style={{ width: '80mm', fontSize: '11px', direction: 'rtl', color: '#000000' }}
         >
             {/* Header */}
-            <div className="text-center pb-3 border-b-2 border-dashed border-gray-400 space-y-1">
+            <div className="text-center pb-3 border-b-2 border-dashed border-black space-y-1 text-black">
                 {showLogo && settings?.logo && (
                     <img
                         src={getFullLogoUrl(settings.logo)}
                         alt="Logo"
-                        className="h-14 mx-auto object-contain mb-1.5"
+                        className="h-14 mx-auto object-contain mb-1.5 filter grayscale contrast-200"
                     />
                 )}
-                <h1 className="font-black text-sm tracking-tight">{settings?.name || 'مطعمنا'}</h1>
-                {settings?.address && <div className="text-[10px] text-gray-700">{settings.address}</div>}
-                {settings?.phone && <div className="text-[10px] font-bold">هاتف: {settings.phone}</div>}
+                <h1 className="font-black text-sm tracking-tight text-black">{settings?.name || 'مطعمنا'}</h1>
+                {settings?.address && <div className="text-[10.5px] font-bold text-black">{settings.address}</div>}
+                {settings?.phone && <div className="text-[10.5px] font-bold text-black">هاتف: {settings.phone}</div>}
                 {settings?.tax_number && (
-                    <div className="text-[9px] font-bold">الرقم الضريبي: {settings.tax_number}</div>
+                    <div className="text-[10px] font-black text-black">الرقم الضريبي: {settings.tax_number}</div>
                 )}
                 {settings?.commercial_record && (
-                    <div className="text-[9px] text-gray-700">السجل التجاري: {settings.commercial_record}</div>
+                    <div className="text-[10px] font-bold text-black">السجل التجاري: {settings.commercial_record}</div>
                 )}
-                <div className="mt-1 font-black text-[10px] border border-black px-2 py-0.5 rounded inline-block">
+                <div className="mt-1 font-black text-[10px] border border-black px-2 py-0.5 rounded inline-block text-black">
                     فاتورة ضريبية مبسطة
                 </div>
             </div>
 
             {/* Order Details */}
-            <div className="py-2 border-b border-dashed border-gray-400 text-[10px] space-y-1">
-                <div className="flex justify-between">
+            <div className="py-2 border-b-2 border-dashed border-black text-[10.5px] space-y-1 text-black">
+                <div className="flex justify-between font-black">
                     <span>رقم الفاتورة:</span>
-                    <span className="font-bold">#{invoiceData.orderId}</span>
+                    <span>#{invoiceData.orderId}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between font-bold">
                     <span>التاريخ والوقت:</span>
                     <span>{new Date(orderDate).toLocaleString('ar-LY', { dateStyle: 'short', timeStyle: 'short' })}</span>
                 </div>
                 {invoiceData.cashierName && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between font-bold">
                         <span>الكاشير:</span>
                         <span>{invoiceData.cashierName}</span>
                     </div>
                 )}
                 {invoiceData.tableNumber && (
-                    <div className="flex justify-between font-bold">
+                    <div className="flex justify-between font-black">
                         <span>الموقع / الطاولة:</span>
                         <span>{invoiceData.tableNumber}</span>
                     </div>
                 )}
                 {invoiceData.orderType && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between font-bold">
                         <span>نوع الطلب:</span>
-                        <span className="font-bold">
+                        <span className="font-black">
                             {invoiceData.orderType === 'dine_in' ? 'محلي' : invoiceData.orderType === 'takeaway' ? 'سفري' : 'توصيل'}
                         </span>
                     </div>
@@ -412,19 +412,19 @@ export default function SalesInvoiceDocument({
             </div>
 
             {/* Items */}
-            <div className="py-2 border-b-2 border-dashed border-gray-400">
-                <div className="flex justify-between font-bold text-[10px] border-b border-gray-300 pb-1 mb-1.5">
+            <div className="py-2 border-b-2 border-dashed border-black text-black">
+                <div className="flex justify-between font-black text-[11px] border-b-2 border-dashed border-black pb-1 mb-1.5">
                     <span>الصنف والكمية</span>
                     <span>الإجمالي</span>
                 </div>
                 <div className="space-y-1.5">
                     {invoiceData.items.map((item, idx) => (
                         <div key={idx}>
-                            <div className="flex justify-between text-[11px] leading-tight font-bold">
+                            <div className="flex justify-between text-[11.5px] leading-tight font-black text-black">
                                 <span className="truncate max-w-[48mm]">{item.name}</span>
                                 <span>{(item.price * item.quantity).toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-[9px] text-gray-600">
+                            <div className="flex justify-between text-[9.5px] font-bold text-black">
                                 <span>{item.quantity} × {item.price.toFixed(2)} {currency}</span>
                                 {item.notes && <span className="italic truncate max-w-[30mm]">*{item.notes}</span>}
                             </div>
@@ -434,37 +434,37 @@ export default function SalesInvoiceDocument({
             </div>
 
             {/* Totals */}
-            <div className="py-2 border-b-2 border-dashed border-gray-400 space-y-1 text-[10px]">
+            <div className="py-2 border-b-2 border-dashed border-black space-y-1 text-[10.5px] text-black font-bold">
                 <div className="flex justify-between">
                     <span>المجموع الفرعي:</span>
-                    <span className="font-bold">{invoiceData.subtotal.toFixed(2)} {currency}</span>
+                    <span className="font-mono font-black">{invoiceData.subtotal.toFixed(2)} {currency}</span>
                 </div>
                 {taxAmount > 0 && (
                     <div className="flex justify-between">
                         <span>ضريبة القيمة المضافة ({taxRate}%):</span>
-                        <span className="font-bold">{taxAmount.toFixed(2)} {currency}</span>
+                        <span className="font-mono font-black">{taxAmount.toFixed(2)} {currency}</span>
                     </div>
                 )}
                 {invoiceData.discount ? (
-                    <div className="flex justify-between text-red-600">
+                    <div className="flex justify-between">
                         <span>الخصم:</span>
-                        <span className="font-bold">-{invoiceData.discount.toFixed(2)} {currency}</span>
+                        <span className="font-mono font-black">-{invoiceData.discount.toFixed(2)} {currency}</span>
                     </div>
                 ) : null}
                 {invoiceData.deliveryFee ? (
                     <div className="flex justify-between">
                         <span>خدمة التوصيل:</span>
-                        <span className="font-bold">{invoiceData.deliveryFee.toFixed(2)} {currency}</span>
+                        <span className="font-mono font-black">{invoiceData.deliveryFee.toFixed(2)} {currency}</span>
                     </div>
                 ) : null}
-                <div className="flex justify-between text-sm font-black pt-1.5 border-t border-black mt-1">
+                <div className="flex justify-between text-sm font-black pt-1.5 border-t-2 border-black mt-1 text-black">
                     <span>الإجمالي المستحق:</span>
-                    <span>{invoiceData.total.toFixed(2)} {currency}</span>
+                    <span className="font-mono">{invoiceData.total.toFixed(2)} {currency}</span>
                 </div>
                 {invoiceData.paymentMethod && (
-                    <div className="flex justify-between text-[9px] text-gray-700 pt-0.5">
+                    <div className="flex justify-between text-[10px] font-bold pt-0.5 text-black">
                         <span>طريقة الدفع:</span>
-                        <span className="font-bold">
+                        <span className="font-black">
                             {invoiceData.paymentMethod === 'card'
                                 ? `بطاقة مصرفية (${invoiceData.cardProvider || 'إلكتروني'})`
                                 : invoiceData.paymentMethod === 'debt'
@@ -477,21 +477,21 @@ export default function SalesInvoiceDocument({
 
             {/* QR Code */}
             {showQR && (
-                <div className="py-3 text-center border-b border-dashed border-gray-400">
-                    <InvoiceQRCode value={tlvBase64} size={90} className="mx-auto" />
-                    <div className="text-[8px] text-gray-500 mt-1 font-sans">
+                <div className="py-3 text-center border-b-2 border-dashed border-black text-black">
+                    <InvoiceQRCode value={tlvBase64} size={110} className="mx-auto" />
+                    <div className="text-[9px] font-black text-black mt-1 font-sans">
                         رمز التحقق الضريبي المعتمد (ZATCA TLV)
                     </div>
                 </div>
             )}
 
             {/* Footer */}
-            <div className="text-center pt-2 text-[9px] space-y-1">
-                <p className="font-bold text-[10px]">{settings?.invoice_footer_message || 'شكراً لزيارتكم، نتمنى لكم يوماً سعيداً!'}</p>
+            <div className="text-center pt-2 text-[9.5px] space-y-1 text-black">
+                <p className="font-black text-[10.5px]">{settings?.invoice_footer_message || 'شكراً لزيارتكم، نتمنى لكم يوماً سعيداً!'}</p>
                 {settings?.sales_invoice_terms && (
-                    <p className="text-[8px] text-gray-600 leading-tight">{settings.sales_invoice_terms}</p>
+                    <p className="text-[9px] font-bold text-black leading-tight">{settings.sales_invoice_terms}</p>
                 )}
-                <p className="text-[7px] text-gray-400 pt-1">نظام إدارة المطاعم الذكي</p>
+                <p className="text-[8px] font-black text-black pt-1">*** نظام إدارة المطاعم الذكي ***</p>
             </div>
         </div>
     );

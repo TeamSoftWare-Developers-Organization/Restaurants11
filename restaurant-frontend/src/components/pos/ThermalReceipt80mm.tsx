@@ -148,8 +148,8 @@ export default function ThermalReceipt80mm({
                         width: 80mm !important;
                         margin: 0 !important;
                         padding: 0 !important;
-                        background: #fff !important;
-                        color: #000 !important;
+                        background: #ffffff !important;
+                        color: #000000 !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
@@ -158,6 +158,10 @@ export default function ThermalReceipt80mm({
                     }
                     #thermal-receipt-80mm, #thermal-receipt-80mm * {
                         visibility: visible !important;
+                        color: #000000 !important;
+                        border-color: #000000 !important;
+                        text-shadow: none !important;
+                        filter: none !important;
                     }
                     #thermal-receipt-80mm {
                         position: absolute !important;
@@ -166,11 +170,12 @@ export default function ThermalReceipt80mm({
                         width: 80mm !important;
                         max-width: 80mm !important;
                         margin: 0 !important;
-                        padding: 2.5mm 3mm !important;
+                        padding: 3mm 3mm !important;
                         border: none !important;
                         box-shadow: none !important;
-                        background: white !important;
+                        background: #ffffff !important;
                         font-family: 'Courier New', Courier, monospace !important;
+                        -webkit-font-smoothing: none !important;
                     }
                     .no-print {
                         display: none !important;
@@ -219,7 +224,7 @@ export default function ThermalReceipt80mm({
                         id="thermal-receipt-80mm"
                         ref={printRef}
                         className="w-[80mm] max-w-[80mm] bg-white text-black font-mono text-[12px] leading-tight p-3 sm:p-3.5 shadow-md border border-gray-200 select-none rounded-sm"
-                        style={{ color: '#000', backgroundColor: '#fff' }}
+                        style={{ color: '#000000', backgroundColor: '#ffffff' }}
                     >
                         {/* 1. Logo & Restaurant Header */}
                         <div className="text-center space-y-1 mb-2">
@@ -228,76 +233,76 @@ export default function ThermalReceipt80mm({
                                     <img
                                         src={getFullLogoUrl(settings.logo)}
                                         alt={sellerName}
-                                        className="max-h-14 max-w-[50mm] object-contain filter grayscale"
+                                        className="max-h-14 max-w-[50mm] object-contain filter grayscale contrast-200"
                                     />
                                 </div>
                             )}
 
-                            <h1 className="text-base font-black tracking-tight">{sellerName}</h1>
+                            <h1 className="text-base font-black tracking-tight text-black">{sellerName}</h1>
 
                             {settings?.bio && (
-                                <p className="text-[10px] text-gray-600 leading-none">{settings.bio}</p>
+                                <p className="text-[10.5px] font-bold text-black leading-tight">{settings.bio}</p>
                             )}
 
                             {settings?.address && (
-                                <p className="text-[10px] text-gray-600 leading-none">{settings.address}</p>
+                                <p className="text-[10.5px] font-bold text-black leading-tight">{settings.address}</p>
                             )}
 
-                            <div className="flex justify-center gap-2 text-[10px] text-gray-600">
+                            <div className="flex justify-center gap-2 text-[10.5px] font-bold text-black">
                                 {settings?.phone && <span>هاتف: {settings.phone}</span>}
                             </div>
 
                             {taxNumber && (
-                                <p className="text-[10px] font-bold mt-0.5">
-                                    الرقم الضريبي: <span className="font-mono">{taxNumber}</span>
+                                <p className="text-[10.5px] font-bold mt-0.5 text-black">
+                                    الرقم الضريبي: <span className="font-mono font-black">{taxNumber}</span>
                                 </p>
                             )}
 
                             {settings?.commercial_record && (
-                                <p className="text-[10px] text-gray-600">
-                                    السجل التجاري: {settings.commercial_record}
+                                <p className="text-[10.5px] font-bold text-black">
+                                    السجل التجاري: <span className="font-mono">{settings.commercial_record}</span>
                                 </p>
                             )}
                         </div>
 
                         {/* Dashed Separator */}
-                        <div className="border-t border-dashed border-black my-2" />
+                        <div className="border-t-2 border-dashed border-black my-2" />
 
                         {/* 2. Order Metadata */}
-                        <div className="text-[11px] space-y-0.5 mb-2">
-                            <div className="flex justify-between font-bold">
+                        <div className="text-[11px] space-y-1 mb-2 text-black">
+                            <div className="flex justify-between font-black text-[12px]">
                                 <span>فاتورة رقم: #{order.order_number || order.id}</span>
                                 <span>{order.table_number ? (order.table_number.includes('سفري') ? order.table_number : `طاولة ${order.table_number}`) : 'طلب مباشر'}</span>
                             </div>
 
-                            <div className="flex justify-between text-[10px] text-gray-700">
+                            <div className="flex justify-between text-[11px] font-bold">
                                 <span>التاريخ: {formattedDate}</span>
                             </div>
 
-                            <div className="flex justify-between text-[10px] text-gray-700">
+                            <div className="flex justify-between text-[11px] font-bold">
                                 <span>الكاشير: {cashierName}</span>
                                 {order.shift_id && <span>وردية: #{order.shift_id}</span>}
                             </div>
 
                             {order.payment_method && (
-                                <div className="flex justify-between text-[10px] text-gray-700">
+                                <div className="flex justify-between text-[11px] font-bold">
                                     <span>طريقة الدفع: {order.payment_method === 'cash' ? 'نقدي (كاش)' : (order.card_provider ? `بطاقة (${order.card_provider})` : 'إلكتروني')}</span>
                                 </div>
                             )}
                         </div>
 
                         {/* Dashed Separator */}
-                        <div className="border-t border-dashed border-black my-2" />
+                        <div className="border-t-2 border-dashed border-black my-2" />
 
                         {/* 3. Items Table */}
                         <div className="mb-2">
-                            <table className="w-full text-right text-[11px]">
+                            <table className="w-full text-right text-[11px] text-black">
                                 <thead>
-                                    <tr className="border-b border-dashed border-black text-[10px]">
-                                        <th className="py-1 text-right w-[48%]">الصنف</th>
+                                    <tr className="border-b-2 border-dashed border-black text-[11px] font-black">
+                                        <th className="py-1 text-right w-[46%]">الصنف</th>
                                         <th className="py-1 text-center w-[16%]">الكمية</th>
-                                        <th className="py-1 text-left w-[18%]">السعر</th>
-                                        <th className="py-1 text-left w-[18%]">الإجمالي</th>
+                                        <th className="py-1 text-left w-[19%]">السعر</th>
+                                        <th className="py-1 text-left w-[19%]">الإجمالي</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -308,23 +313,23 @@ export default function ThermalReceipt80mm({
 
                                         return (
                                             <React.Fragment key={idx}>
-                                                <tr className="border-b border-dotted border-gray-300">
-                                                    <td className="py-1 font-bold truncate max-w-[36mm]">
+                                                <tr className="border-b border-dashed border-black/40">
+                                                    <td className="py-1.5 font-black text-black truncate max-w-[36mm]">
                                                         {itemName}
                                                     </td>
-                                                    <td className="py-1 text-center font-bold">
+                                                    <td className="py-1.5 text-center font-black text-black">
                                                         {it.quantity}
                                                     </td>
-                                                    <td className="py-1 text-left font-mono">
+                                                    <td className="py-1.5 text-left font-mono font-bold text-black">
                                                         {price.toFixed(2)}
                                                     </td>
-                                                    <td className="py-1 text-left font-bold font-mono">
+                                                    <td className="py-1.5 text-left font-mono font-black text-black">
                                                         {itemTotal.toFixed(2)}
                                                     </td>
                                                 </tr>
                                                 {it.notes && (
                                                     <tr>
-                                                        <td colSpan={4} className="text-[9px] text-gray-600 pb-1 italic pr-2">
+                                                        <td colSpan={4} className="text-[9.5px] font-bold text-black pb-1 italic pr-2">
                                                             * {it.notes}
                                                         </td>
                                                     </tr>
@@ -337,77 +342,77 @@ export default function ThermalReceipt80mm({
                         </div>
 
                         {/* Dashed Separator */}
-                        <div className="border-t border-dashed border-black my-2" />
+                        <div className="border-t-2 border-dashed border-black my-2" />
 
                         {/* 4. Totals Breakdown */}
-                        <div className="space-y-1 text-[11px] mb-2 font-bold">
+                        <div className="space-y-1.5 text-[11px] mb-2 font-black text-black">
                             <div className="flex justify-between">
                                 <span>المجموع الفرعي:</span>
                                 <span className="font-mono">{subtotal.toFixed(2)} {currency}</span>
                             </div>
 
                             {discount > 0 && (
-                                <div className="flex justify-between text-gray-700">
+                                <div className="flex justify-between">
                                     <span>الخصم الممنوح:</span>
                                     <span className="font-mono">-{discount.toFixed(2)} {currency}</span>
                                 </div>
                             )}
 
                             {taxRate > 0 && (
-                                <div className="flex justify-between text-gray-700">
+                                <div className="flex justify-between">
                                     <span>ضريبة القيمة المضافة ({taxRate}%):</span>
                                     <span className="font-mono">{taxAmount.toFixed(2)} {currency}</span>
                                 </div>
                             )}
 
-                            <div className="border-t border-black pt-1 flex justify-between text-sm font-black">
+                            <div className="border-t-2 border-black pt-1.5 flex justify-between text-[13px] font-black">
                                 <span>الإجمالي النهائي:</span>
                                 <span className="font-mono">{total.toFixed(2)} {currency}</span>
                             </div>
                         </div>
 
                         {/* Dashed Separator */}
-                        <div className="border-t border-dashed border-black my-2" />
+                        <div className="border-t-2 border-dashed border-black my-2" />
 
                         {/* 5. ZATCA TLV QR Code */}
                         {showQR && (
-                            <div className="text-center my-2.5">
+                            <div className="text-center my-2 text-black">
                                 <div className="flex justify-center">
                                     {order.qr_image_url ? (
                                         <img
                                             src={order.qr_image_url}
                                             alt="ZATCA QR Code"
-                                            className="w-[36mm] h-[36mm] object-contain"
+                                            className="w-[38mm] h-[38mm] object-contain filter contrast-200"
                                         />
                                     ) : (
                                         <InvoiceQRCode
                                             value={qrValue}
-                                            size={135}
+                                            size={140}
                                             className="mx-auto"
                                         />
                                     )}
                                 </div>
-                                <p className="text-[9px] text-gray-700 font-bold mt-1">
+                                <p className="text-[9.5px] font-black text-black mt-1">
                                     فاتورة ضريبية مبسطة (ZATCA E-Invoice)
                                 </p>
                             </div>
                         )}
 
                         {/* 6. Footer Message & Policy Terms */}
-                        <div className="text-center space-y-1 mt-2 pt-1 border-t border-dashed border-black text-[10px]">
+                        <div className="text-center space-y-1 mt-2 pt-1 border-t-2 border-dashed border-black text-[10.5px] text-black">
                             {settings?.invoice_footer_message ? (
-                                <p className="font-bold text-[11px]">{settings.invoice_footer_message}</p>
+                                <p className="font-black text-[11px]">{settings.invoice_footer_message}</p>
                             ) : (
-                                <p className="font-bold text-[11px]">شكراً لزيارتكم! نتشرف بخدمتكم دائماً</p>
+                                <p className="font-black text-[11px]">شكراً لزيارتكم!</p>
                             )}
 
                             {settings?.sales_invoice_terms && (
-                                <p className="text-[8.5px] text-gray-600 leading-tight max-w-[70mm] mx-auto">
+                                <p className="text-[9px] font-bold text-black leading-tight max-w-[70mm] mx-auto">
                                     {settings.sales_invoice_terms}
                                 </p>
                             )}
 
-                            <p className="text-[8px] text-gray-400 font-mono pt-1">
+                            <p className="text-[8.5px] font-black text-black font-mono pt-1">
                                 *** نظام إدارة المطاعم الذكي ***
                             </p>
                         </div>
