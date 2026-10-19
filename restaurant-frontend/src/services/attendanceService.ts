@@ -55,4 +55,28 @@ export const attendanceService = {
         });
         return response.data;
     },
+
+    enrollBiometric: async (employeeId: number, data: {
+        biometric_type: 'webauthn' | 'hardware_scanner' | 'zkteco_terminal';
+        credential_id: string;
+        public_key?: string;
+        device_info?: string;
+        template_data?: Record<string, any>;
+    }) => {
+        const response = await api.post(`/employees/${employeeId}/enroll-biometric/`, data);
+        return response.data;
+    },
+
+    checkinBiometric: async (
+        credentialId: string,
+        punchType: 'CHECK_IN' | 'CHECK_OUT' = 'CHECK_IN',
+        deviceInfo?: string
+    ): Promise<CheckinResult> => {
+        const response = await api.post('/attendance/biometric-checkin/', {
+            credential_id: credentialId,
+            punch_type: punchType,
+            device_info: deviceInfo,
+        });
+        return response.data;
+    },
 };

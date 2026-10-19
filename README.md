@@ -85,7 +85,13 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
   $$\text{New Cost} = \frac{(\text{Current Qty} \times \text{Current Cost}) + (\text{New Qty} \times \text{Invoice Price})}{\text{Current Qty} + \text{New Qty}}$$
 - **Dynamic Recipe Costing & Profit Margin Pricing:** Direct binding of menu meals to inventory raw ingredients, live production cost updates, and automated stock deduction on sales.
 
-#### 8. 🧾 E-Invoicing & ZATCA Phase 2 Compliance
+#### 8. 📱 Ultra-Responsive Architecture (PC, Tablets & Mobile Devices)
+- **Fluid Multi-Device Layout:** Complete responsive redesign across all system pages (Dashboard, Salaries, POS, Employees, Inventory, Orders, Recipes, Settings).
+- **Off-Canvas Mobile Drawer Sidebar:** Replaces desktop fixed sidebar on screens $< 1024\text{px}$ with a touch-friendly slide-over drawer, dark backdrop overlay, and auto-dismiss on link navigation.
+- **Compact Mobile Top Bar:** Elegant sticky top navigation bar with restaurant branding, dark mode switcher, and hamburger menu button.
+- **Zero Horizontal Overflow:** Strict layout boundaries, responsive tables with horizontal swipe (`overflow-x-auto`), and responsive trial banners preventing UI clipping on smartphones.
+
+#### 9. 🧾 E-Invoicing & ZATCA Phase 2 Compliance
 - **Customizable Invoices:** Visual templates for Sales Invoices, Purchase Invoices, and Return Invoices with live preview.
 - **ZATCA TLV QR Codes:** Base64-encoded TLV QR codes complying with electronic billing regulations.
 - **A4 & Thermal 80mm Layouts:** Print-ready formatting for thermal roll printers and standard A4 sheets.
@@ -260,7 +266,13 @@ python manage.py seed_demo_users
 - **محرك متوسط التكلفة المرجح (Weighted Average Cost):** إعادة احتساب تكلفة الوحدة تلقائياً فور استلام البضاعة.
 - **هندسة الوصفات وتكاليف الوجبات:** ربط الوجبات بالمواد الخام، وحساب التكلفة اللحظي، والخصم التلقائي للمخزون فور البيع.
 
-#### 8. 🧾 الفوترة الإلكترونية وتوافق ZATCA المرحلة الثانية
+#### 8. 📱 تصميم متجاوب فائق المرونة لكافة الشاشات (الهواتف الذكية، الأجهزة اللوحية، والحواسيب)
+- **توافق كامل مع كافة الأجهزة (Full Responsiveness):** إعادة هيكلة مرنة لجميع صفحات النظام (لوحة التحكم، المرتبات، الكاشير، الموظفين، المخزون، الطلبات، الوصفات، والإعدادات).
+- **قائمة جانبية منزلقة للأجهزة المحمولة (Off-Canvas Mobile Drawer):** إخفاء القائمة الثابتة تلقائياً على الشاشات التي يقل عرضها عن 1024 بكسل واستبدالها بدرج جانبي سلس مع طبقة تعتيم ضبابية خلفية (Backdrop Overlay) وإغلاق فوري عند الضغط على أي رابط.
+- **شريط تنقل علوي مدمج للهواتف (Mobile Top Bar):** شريط علوي أنيق يحتوي على شعار واسم المطعم، زر التحويل للوضع الليلي، وزر القائمة (Hamburger Menu).
+- **منع التمدد الأفقي للشاشات (Zero Overflow):** ضبط دقيق لجميع الجداول وتأطيرها بخاصية التمرير الأفقي السلس (`overflow-x-auto`)، مع جعل شريط التنبيه التجريبي يتكيف بمرونة مع أصغر شاشات الهواتف.
+
+#### 9. 🧾 الفوترة الإلكترونية وتوافق ZATCA المرحلة الثانية
 - **نماذج فواتير قابلة للتخصيص:** تصاميم عصرية لفواتير المبيعات، المشتريات، والمرتجعات مع معاينة حية ومباشرة.
 - **توليد رمز الاستجابة السريعة (ZATCA TLV Base64 QR Code):** تشفير بيانات الفاتورة وفق المعايير الرسمية.
 - **خيارات الطباعة:** دعم مقاسات الورق A4 وإيصالات الرول الحراري 80mm.

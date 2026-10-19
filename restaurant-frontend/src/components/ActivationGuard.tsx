@@ -230,14 +230,14 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         <div className="relative min-h-screen flex flex-col">
             {!isBannerDismissed && license && license.is_trial_active && (
                 <div
-                    className="w-full bg-linear-to-r from-amber-600 via-amber-500 to-orange-600 text-white px-4 py-2 text-xs font-black shadow-md flex items-center justify-between z-50 transition-all"
+                    className="w-full bg-linear-to-r from-amber-600 via-amber-500 to-orange-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-black shadow-md flex flex-col sm:flex-row items-center justify-between gap-2 z-50 transition-all shrink-0"
                     dir="rtl"
                 >
-                    <div className="flex items-center gap-2 max-w-4xl mx-auto">
-                        <Clock className="w-4 h-4 shrink-0 animate-pulse text-amber-200" />
-                        <span>
+                    <div className="flex items-center gap-2 max-w-4xl text-center sm:text-right">
+                        <Clock className="w-4 h-4 shrink-0 animate-pulse text-amber-200 hidden sm:inline-block" />
+                        <span className="leading-relaxed">
                             نسخة تجريبية نشطة: متبقي لك{' '}
-                            <span className="underline decoration-2 font-mono text-sm px-1 bg-black/20 rounded mx-1">
+                            <span className="underline decoration-2 font-mono text-xs sm:text-sm px-1.5 py-0.5 bg-black/25 rounded mx-1">
                                 {license.remaining_trial_days} يوم
                             </span>{' '}
                             من أصل {license.trial_days} يوماً قبل قفل النظام التلقائي.
@@ -245,7 +245,7 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
                     </div>
                     <button
                         onClick={() => setIsBannerDismissed(true)}
-                        className="text-amber-100 hover:text-white text-[11px] font-bold px-2 py-0.5 rounded bg-black/10 hover:bg-black/20 transition-all shrink-0 mr-2"
+                        className="text-amber-100 hover:text-white text-[11px] font-bold px-3 py-1 rounded-lg bg-black/20 hover:bg-black/30 transition-all shrink-0 self-end sm:self-auto"
                         title="إخفاء الشريط مؤقتاً"
                     >
                         إخفاء

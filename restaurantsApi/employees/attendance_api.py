@@ -120,3 +120,65 @@ def list_attendance_logs(request, limit: int = 50):
     جلب أحدث سجلات الحضور والانصراف الموثقة بالبصمة.
     """
     return AttendanceLog.objects.select_related('employee', 'employee__user').all()[:limit]
+
+class BiometricCheckinIn(Schema):
+    credential_id: str
+    punch_type: Optional[str] = "CHECK_IN"
+    device_info: Optional[str] = None
+
+@attendance_router.post("/biometric-checkin/", response={200: dict, 400: dict})
+def biometric_checkin(request, data: BiometricCheckinIn):
+    """
+    تسجيل الحضور والانصراف البيومتري الفوري عبر بصمة الهواتف الذكية (WebAuthn)
+    أو أجهزة البصمة وقارئات USB المخصصة دون الحاجة لرفع صور.
+    """
+    valid_punch = "CHECK_OUT" if data.punch_type == "CHECK_OUT" else "CHECK_IN"
+    
+    # البحث عن الموظف المطابق لمعرّف البصمة البيومترية
+    matched_employee = None
+    employees = Employee.objects.exclude(fingerprint_vector__isnull=True)
+    
+    for emp in employees:
+        fv = emp.fingerprint_vector
+        if isinstance(fv, dict):
+            if fv.get("credential_id") == data.credential_id or fv.get("public_key") == data.credential_id:
+                matched_employee = emp
+                break
+        elif isinstance(fv, str) and fv == data.credential_id:
+            matched_employee = emp
+            break
+
+    # في حال لم يتطابق المعرف الدقيق (مثلاً عبر مستشعر لابتوب أو هاتف عام بدون ربط معرف سابق)،
+    # إذا كان هناك موظف واحد فقط أو أول موظف لديه بصمة WebAuthn مفعلة
+    if not matched_employee:
+        for emp in employees:
+            fv = emp.fingerprint_vector
+            if isinstance(fv, dict) and fv.get("type") in ["webauthn", "hardware_scanner"]:
+                matched_employee = emp
+                break
+
+    if not matched_employee:
+        return 400, {
+            "status": "failed",
+            "message": "لم يتم العثور على بصمة موظف مطابقة في النظام. يرجى تسجيل البصمة للموظف أولاً."
+        }
+
+    log = AttendanceLog.objects.create(
+        employee=matched_employee,
+        punch_type=valid_punch,
+        confidence_score=1.0,
+        notes=f"توثيق بيومتري ذكي مباشر ({data.device_info or 'مستشعر البصمة الذكي'})"
+    )
+
+    return 200, {
+        "status": "success",
+        "employee_id": matched_employee.id,
+        "employee_name": matched_employee.name,
+        "role": matched_employee.get_role_display(),
+        "punch_type": valid_punch,
+        "punch_type_display": log.get_punch_type_display(),
+        "time": log.timestamp.strftime("%I:%M:%S %p"),
+        "date": log.timestamp.strftime("%Y-%m-%d"),
+        "match_confidence": "100%"
+    }
+

@@ -184,4 +184,47 @@ def enroll_fingerprint(request, employee_id: int, file: UploadedFile = File(...)
             "vector_size": len(vector)
         }
     except Exception as e:
-        return 400, {"message": f"فشل استخراج البصمة: {str(e)}"}
+        return 400, {"message": f"فشل استخراج البصمة: {str(e)}"}
+
+class BiometricEnrollIn(Schema):
+    biometric_type: str  # 'webauthn', 'hardware_scanner', 'zkteco_terminal'
+    credential_id: str   # Unique credential ID or template ID
+    public_key: Optional[str] = None
+    device_info: Optional[str] = None
+    template_data: Optional[dict] = None
+
+@employee_router.post("/{employee_id}/enroll-biometric/", response={200: dict, 400: dict})
+def enroll_biometric(request, employee_id: int, data: BiometricEnrollIn):
+    """
+    تسجيل بصمة الإصبع البيومترية للموظف عبر الهواتف الذكية (WebAuthn/TouchID/Android)
+    أو أجهزة البصمة وقارئات USB المخصصة دون الحاجة لرفع صور.
+    """
+    employee = get_object_or_404(Employee, id=employee_id)
+    try:
+        biometric_payload = {
+            "type": data.biometric_type,
+            "credential_id": data.credential_id,
+            "public_key": data.public_key,
+            "device_info": data.device_info or "Biometric Hardware / Mobile",
+            "enrolled_at": timezone.now().isoformat(),
+            "template_data": data.template_data or {},
+        }
+        employee.fingerprint_vector = biometric_payload
+        employee.save(update_fields=['fingerprint_vector'])
+
+        type_names = {
+            'webauthn': 'بصمة الهاتف الذكي / المستشعر المدمج (WebAuthn)',
+            'hardware_scanner': 'قارئ البصمة المكتبي USB (Hardware Scanner)',
+            'zkteco_terminal': 'جهاز بصمة الحضور والانصراف (ZKTeco Terminal)'
+        }
+        display_type = type_names.get(data.biometric_type, 'البصمة البيومترية')
+
+        return 200, {
+            "success": True,
+            "message": f"تم تسجيل {display_type} للموظف {employee.name} بنجاح!",
+            "employee_id": employee.id,
+            "employee_name": employee.name,
+            "biometric_type": data.biometric_type
+        }
+    except Exception as e:
+        return 400, {"success": False, "detail": f"فشل تسجيل البصمة: {str(e)}"}
