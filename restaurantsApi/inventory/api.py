@@ -34,10 +34,12 @@ class IngredientIn(Schema):
     unit: str
     cost_per_unit: float = 0.00
     reorder_level: float = 0.00
+    barcode: Optional[str] = None
 
 class IngredientOut(Schema):
     id: int
     name: str
+    barcode: Optional[str] = None
     current_stock: float
     unit: str
     cost_per_unit: float
@@ -99,6 +101,16 @@ def delete_ingredient(request, ingredient_id: int):
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
     ingredient.delete()
     return {"success": True}
+
+@inventory_router.get("/ingredients/by-barcode/{barcode}/", response={200: IngredientOut, 404: dict})
+def get_ingredient_by_barcode(request, barcode: str):
+    """
+    البحث عن مادة في المخزون بالباركود المباشر.
+    """
+    item = Ingredient.objects.filter(barcode=barcode.strip()).first()
+    if not item:
+        return 404, {"message": f"لا توجد مادة في المخزون بهذا الباركود: {barcode}"}
+    return item
 
 # 2. تعريف المخططات (Schemas) لـ RecipeIngredient (الوصفات)
 

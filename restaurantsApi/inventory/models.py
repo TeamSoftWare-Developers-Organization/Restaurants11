@@ -18,6 +18,7 @@ class Ingredient(models.Model):
     
     cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00')) # تكلفة الوحدة الواحدة
     reorder_level = models.FloatField(default=0.0) # الحد الأدنى الذي يطلق التنبيه
+    barcode = models.CharField(max_length=100, blank=True, null=True, verbose_name="الباركود") # حقل الباركود
     image = models.ImageField(upload_to='inventory_images/', null=True, blank=True) # حقل الصورة
     last_updated = models.DateTimeField(auto_now=True) # متى تم آخر تحديث
 

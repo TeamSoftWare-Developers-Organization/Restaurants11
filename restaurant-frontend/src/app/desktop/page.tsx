@@ -588,7 +588,7 @@ export default function DesktopShowcasePage() {
                         {activeTab === 'specs' && (
                             <div className="space-y-4 animate-in fade-in duration-300 text-xs">
                                 <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-slate-800">
-                                    <table className="w-full text-right">
+                                    <table className="w-full min-w-[500px] text-right">
                                         <thead className="bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
                                             <tr>
                                                 <th className="p-3.5">المكون</th>

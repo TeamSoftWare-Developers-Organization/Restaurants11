@@ -14,12 +14,15 @@ import {
     Upload,
     Calendar,
     Sparkles,
-    Check
+    Check,
+    Smartphone,
+    Usb
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useRouter } from 'next/navigation';
 import { attendanceService, AttendanceRecord, CheckinResult } from '@/services/attendanceService';
+import { authenticateSmartphoneBiometrics, captureUsbHardwareFingerprint } from '@/lib/biometrics';
 
 export default function AttendancePage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -34,8 +37,6 @@ export default function AttendancePage() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [logs, setLogs] = useState<AttendanceRecord[]>([]);
     const [isLoadingLogs, setIsLoadingLogs] = useState(true);
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -68,26 +69,39 @@ export default function AttendancePage() {
         }
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
+    const handleSmartphoneBiometricPunch = async () => {
         setScanning(true);
         setErrorMsg(null);
         setResult(null);
 
         try {
-            const res = await attendanceService.checkinWithFingerprint(file, punchType);
+            const authData = await authenticateSmartphoneBiometrics();
+            const res = await attendanceService.checkinBiometric(authData.credential_id, punchType, authData.device_info);
             setResult(res);
             fetchLogs();
         } catch (err: any) {
-            const msg = err.response?.data?.message || 'فشلت مطابقة البصمة، يرجى المحاولة مجدداً.';
-            setErrorMsg(msg);
+            console.error('Smartphone biometric checkin error:', err);
+            setErrorMsg(err.message || 'فشلت مطابقة بصمة الهاتف، يرجى المحاولة مجدداً.');
         } finally {
             setScanning(false);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
+        }
+    };
+
+    const handleUsbHardwarePunch = async () => {
+        setScanning(true);
+        setErrorMsg(null);
+        setResult(null);
+
+        try {
+            const hwData = await captureUsbHardwareFingerprint(0, 'Attendance Checkin');
+            const res = await attendanceService.checkinBiometric(hwData.credential_id, punchType, hwData.device_info);
+            setResult(res);
+            fetchLogs();
+        } catch (err: any) {
+            console.error('USB hardware checkin error:', err);
+            setErrorMsg(err.message || 'فشل الاتصال بجهاز البصمة USB.');
+        } finally {
+            setScanning(false);
         }
     };
 
@@ -189,41 +203,43 @@ export default function AttendancePage() {
                         </div>
 
                         <h3 className="text-base font-black text-gray-900 dark:text-white mt-4 mb-1">
-                            {scanning ? 'جاري فحص ومطابقة البصمة...' : 'الماسح الضوئي للبصمة'}
+                            {scanning ? 'جاري قراءة ومطابقة البصمة...' : 'الماسح البيومتري المباشر'}
                         </h3>
                         <p className="text-xs text-gray-400 dark:text-gray-500 font-bold max-w-xs mb-6">
-                            ضع إصبع الموظف على الماسح أو قم برفع عينة البصمة للتعرف الفوري
+                            مسح البصمة فورياً عبر مستشعر الهاتف أو قارئ البصمة المكتبي USB
                         </p>
 
-                        {/* Hidden file input for USB/file capture */}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            className="hidden"
-                            disabled={scanning}
-                        />
+                        {/* Action Trigger Buttons */}
+                        <div className="w-full space-y-2.5">
+                            <button
+                                type="button"
+                                disabled={scanning}
+                                onClick={handleSmartphoneBiometricPunch}
+                                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                                {scanning ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>جاري التحقق من المستشعر...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Smartphone className="w-4 h-4" />
+                                        <span>مسح بصمة الهاتف / المستشعر الذكي</span>
+                                    </>
+                                )}
+                            </button>
 
-                        {/* Action Trigger Button */}
-                        <button
-                            type="button"
-                            disabled={scanning}
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-cyan-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                        >
-                            {scanning ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>جاري استخراج الميزات والمطابقة...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="w-4 h-4" />
-                                    <span>مسح البصمة الآن (ماسح USB / ملف)</span>
-                                </>
-                            )}
-                        </button>
+                            <button
+                                type="button"
+                                disabled={scanning}
+                                onClick={handleUsbHardwarePunch}
+                                className="w-full py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-750 disabled:opacity-50 text-gray-800 dark:text-gray-200 rounded-xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700"
+                            >
+                                <Usb className="w-4 h-4 text-cyan-500" />
+                                <span>مسح عبر قارئ البصمة USB</span>
+                            </button>
+                        </div>
 
                         {/* SUCCESS FEEDBACK CARD */}
                         {result && (

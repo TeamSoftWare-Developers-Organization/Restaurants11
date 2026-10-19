@@ -12,7 +12,8 @@ import {
     Activity,
     AlertTriangle,
     Save,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Barcode
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -27,12 +28,14 @@ export default function InventoryPage() {
     const [isClient, setIsClient] = useState(false);
     const [inventoryData, setInventoryData] = useState<Ingredient[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Modal & Form State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Ingredient | null>(null);
     const [formData, setFormData] = useState<Partial<Ingredient>>({
         name: '',
+        barcode: '',
         current_stock: 0,
         unit: 'KG',
         cost_per_unit: 0,
@@ -76,6 +79,7 @@ export default function InventoryPage() {
             setEditingItem(item);
             setFormData({
                 name: item.name,
+                barcode: item.barcode || '',
                 current_stock: item.current_stock,
                 unit: item.unit,
                 cost_per_unit: item.cost_per_unit,
@@ -85,6 +89,7 @@ export default function InventoryPage() {
             setEditingItem(null);
             setFormData({
                 name: '',
+                barcode: '',
                 current_stock: 0,
                 unit: 'KG',
                 cost_per_unit: 0,
@@ -95,6 +100,14 @@ export default function InventoryPage() {
         setPreviewUrl(item?.image ? (item.image.startsWith('http') ? item.image : `http://localhost:8000${item.image}`) : null);
         setIsModalOpen(true);
     };
+
+    const filteredInventory = inventoryData.filter(item => {
+        if (!searchQuery.trim()) return true;
+        const query = searchQuery.trim().toLowerCase();
+        const matchesName = item.name.toLowerCase().includes(query);
+        const matchesBarcode = item.barcode ? item.barcode.toLowerCase().includes(query) : false;
+        return matchesName || matchesBarcode;
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -184,21 +197,35 @@ export default function InventoryPage() {
 
                 <section className="bg-card dark:bg-card rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800/40 overflow-hidden">
                     <div className="p-4 sm:p-6 border-b border-gray-50 dark:border-gray-800/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="relative w-full sm:w-80 group">
-                            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-600 transition-colors" />
+                        <div className="relative w-full sm:w-96 group">
+                            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-600 transition-colors pointer-events-none" />
                             <input
                                 type="text"
-                                placeholder="بحث في المخزون..."
-                                className="w-full h-10 bg-gray-50/50 dark:bg-gray-900/40 border border-gray-100/50 dark:border-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-amber-600/10 rounded-xl pr-10 pl-4 text-sm font-bold transition-all outline-none"
+                                placeholder="بحث في المخزون بالاسم أو الباركود..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full h-10 bg-gray-50/50 dark:bg-gray-900/40 border border-gray-100/50 dark:border-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-amber-600/10 rounded-xl pr-10 pl-10 text-sm font-bold transition-all outline-none"
                             />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold hover:bg-rose-500 hover:text-white transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+                        <div className="text-xs font-bold text-gray-400">
+                            إجمالي المواد: <span className="font-black text-amber-600 dark:text-amber-400">{filteredInventory.length}</span> من {inventoryData.length}
                         </div>
                     </div>
 
                     <div className="overflow-x-auto text-sm">
-                        <table className="w-full min-w-[700px] text-right" dir="rtl">
+                        <table className="w-full min-w-[800px] text-right" dir="rtl">
                             <thead>
                                 <tr className="bg-gray-50/30 dark:bg-gray-900/20 border-b border-gray-50 dark:border-gray-800/40">
                                     <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">المادة</th>
+                                    <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">الباركود</th>
                                     <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">الكمية</th>
                                     <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">سعر تكلفة الوحدة</th>
                                     <th className="px-6 py-4 text-gray-400 font-bold text-[11px] uppercase tracking-widest leading-none">الوحدة</th>
@@ -209,8 +236,10 @@ export default function InventoryPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-gray-800/30">
                                 {isLoading ? (
-                                    <tr><td colSpan={6} className="p-8 text-center text-gray-400 font-bold italic">جاري التحميل...</td></tr>
-                                ) : inventoryData.map((item) => {
+                                    <tr><td colSpan={8} className="p-8 text-center text-gray-400 font-bold italic">جاري التحميل...</td></tr>
+                                ) : filteredInventory.length === 0 ? (
+                                    <tr><td colSpan={8} className="p-8 text-center text-gray-400 font-bold italic">لا توجد مواد مطابقة للبحث</td></tr>
+                                ) : filteredInventory.map((item) => {
                                     const isLowStock = item.current_stock <= item.reorder_level;
                                     return (
                                         <tr key={item.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-900/20 transition-colors group">
@@ -229,6 +258,16 @@ export default function InventoryPage() {
                                                     )}
                                                     {item.name}
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-4 font-mono text-xs">
+                                                {item.barcode ? (
+                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold border border-gray-200/60 dark:border-gray-700/50">
+                                                        <Barcode className="w-3.5 h-3.5 text-amber-600" />
+                                                        <span>{item.barcode}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-300 dark:text-gray-600 font-sans text-xs">-</span>
+                                                )}
                                             </td>
                                             <td className={`px-6 py-4 font-black tabular-nums transition-colors text-base ${isLowStock ? 'text-rose-500' : 'text-gray-900 dark:text-white'}`}>
                                                 {item.current_stock}
@@ -283,15 +322,31 @@ export default function InventoryPage() {
                 size="lg"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">اسم المادة</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/10"
-                            required
-                        />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">اسم المادة *</label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/10"
+                                placeholder="مثال: دقيق فاخر"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">الباركود (Barcode)</label>
+                            <div className="relative group">
+                                <Barcode className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-600 transition-colors pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={formData.barcode || ''}
+                                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                                    className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl pr-10 pl-4 font-mono text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/10"
+                                    placeholder="امسح أو اكتب الباركود..."
+                                />
+                            </div>
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">

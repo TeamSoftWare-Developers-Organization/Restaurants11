@@ -3,6 +3,7 @@ import api from '@/lib/api';
 export interface Ingredient {
     id: number;
     name: string;
+    barcode?: string;
     current_stock: number;
     unit: string;
     cost_per_unit: number;
@@ -22,6 +23,14 @@ export const inventoryService = {
     getIngredients: async (): Promise<Ingredient[]> => {
         const response = await api.get('/inventory/ingredients/');
         return response.data;
+    },
+    getIngredientByBarcode: async (barcode: string): Promise<Ingredient | null> => {
+        try {
+            const response = await api.get(`/inventory/ingredients/by-barcode/${encodeURIComponent(barcode)}/`);
+            return response.data;
+        } catch {
+            return null;
+        }
     },
     createIngredient: async (data: FormData): Promise<Ingredient> => {
         const response = await api.post('/inventory/ingredients/', data, {

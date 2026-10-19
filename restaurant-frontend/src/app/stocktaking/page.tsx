@@ -328,10 +328,10 @@ export default function StocktakingPage() {
     if (!isClient) return null;
 
     return (
-        <div className="flex h-screen bg-gray-50 dark:bg-gray-950 font-sans overflow-hidden" dir="rtl">
+        <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50 dark:bg-gray-950 font-sans min-w-0 w-full" dir="rtl">
             <Sidebar />
 
-            <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'mr-20' : 'mr-64'} p-4 md:p-8 space-y-6`}>
+            <main className={`flex-1 overflow-y-auto transition-all duration-300 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} p-3.5 sm:p-6 lg:p-8 space-y-6 min-w-0 w-full`}>
                 {/* Header Topbar */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800/60 pb-5">
                     <div>

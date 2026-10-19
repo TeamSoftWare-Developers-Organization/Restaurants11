@@ -468,7 +468,7 @@ export default function PurchasesPage() {
         {/* Invoices Table */}
         <div className="bg-white dark:bg-card border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm print:hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
+            <table className="w-full min-w-[700px] text-right text-xs">
               <thead className="bg-gray-50/70 dark:bg-slate-900/60 text-gray-400 font-bold border-b border-gray-100 dark:border-gray-800">
                 <tr>
                   <th className="p-4">رقم الفاتورة</th>

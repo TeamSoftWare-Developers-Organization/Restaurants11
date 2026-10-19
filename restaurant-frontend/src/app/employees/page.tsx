@@ -24,7 +24,9 @@ import {
     Upload,
     CheckCircle2,
     AlertCircle,
-    Sparkles
+    Sparkles,
+    Smartphone,
+    Usb
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -32,6 +34,7 @@ import { useRouter } from 'next/navigation';
 import { employeeService, Employee, AVAILABLE_PERMISSIONS, UserPermissions } from '@/services/employeeService';
 import { attendanceService } from '@/services/attendanceService';
 import { confirmDialog, alertDialog } from '@/store/modalStore';
+import { enrollSmartphoneBiometrics, captureUsbHardwareFingerprint } from '@/lib/biometrics';
 
 export default function EmployeesPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -63,13 +66,14 @@ export default function EmployeesPage() {
     const [tempPermissions, setTempPermissions] = useState<UserPermissions>({});
     const [isSavingPerms, setIsSavingPerms] = useState(false);
 
-    // Fingerprint Enrollment Modal
+    // Fingerprint / Biometric Enrollment Modal
     const [selectedEmpForFingerprint, setSelectedEmpForFingerprint] = useState<Employee | null>(null);
     const [isFingerprintModalOpen, setIsFingerprintModalOpen] = useState(false);
     const [isEnrollingFingerprint, setIsEnrollingFingerprint] = useState(false);
     const [enrollMsg, setEnrollMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    const [enrollPreviewUrl, setEnrollPreviewUrl] = useState<string | null>(null);
-    const [enrollFile, setEnrollFile] = useState<File | null>(null);
+    const [activeBiometricTab, setActiveBiometricTab] = useState<'smartphone' | 'usb_hardware'>('smartphone');
+    const [hardwareScanStep, setHardwareScanStep] = useState<'idle' | 'ready' | 'touch' | 'captured'>('idle');
+    const [terminalEmployeeId, setTerminalEmployeeId] = useState('');
 
     useEffect(() => {
         setIsClient(true);
@@ -203,36 +207,77 @@ export default function EmployeesPage() {
         }
     };
 
-    // Fingerprint Modal Handlers
+    // Fingerprint / Biometric Modal Handlers
     const handleOpenFingerprintModal = (emp: Employee) => {
         setSelectedEmpForFingerprint(emp);
         setEnrollMsg(null);
-        setEnrollPreviewUrl(null);
-        setEnrollFile(null);
+        setActiveBiometricTab('smartphone');
+        setHardwareScanStep('idle');
+        setTerminalEmployeeId('');
         setIsFingerprintModalOpen(true);
     };
 
-    const handleEnrollFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setEnrollFile(file);
-            setEnrollPreviewUrl(URL.createObjectURL(file));
-            setEnrollMsg(null);
-        }
-    };
-
-    const handleEnrollFingerprint = async () => {
-        if (!selectedEmpForFingerprint || !enrollFile) return;
+    const handleSmartphoneEnroll = async () => {
+        if (!selectedEmpForFingerprint) return;
         try {
             setIsEnrollingFingerprint(true);
             setEnrollMsg(null);
-            const res = await attendanceService.enrollFingerprint(selectedEmpForFingerprint.id, enrollFile);
-            setEnrollMsg({ type: 'success', text: res.message || 'تم تسجيل البصمة بنجاح عبر TensorFlow!' });
+            const fullName = `${selectedEmpForFingerprint.first_name || ''} ${selectedEmpForFingerprint.last_name || ''}`.trim() || selectedEmpForFingerprint.username;
+            const result = await enrollSmartphoneBiometrics(selectedEmpForFingerprint.id, fullName);
+            const res = await attendanceService.enrollBiometric(selectedEmpForFingerprint.id, result);
+            setEnrollMsg({ type: 'success', text: res.message || 'تم تسجيل بصمة الهاتف والمستشعر الذكي بنجاح!' });
             fetchEmployees();
         } catch (err: any) {
-            console.error('Enrollment error:', err);
-            const errorText = err.response?.data?.detail || err.message || 'فشل تسجيل بصمة الإصبع';
-            setEnrollMsg({ type: 'error', text: errorText });
+            console.error('Smartphone enrollment error:', err);
+            setEnrollMsg({ type: 'error', text: err.message || 'فشل مسح بصمة الهاتف أو تم إلغاؤها.' });
+        } finally {
+            setIsEnrollingFingerprint(false);
+        }
+    };
+
+    const handleUsbHardwareEnroll = async () => {
+        if (!selectedEmpForFingerprint) return;
+        try {
+            setIsEnrollingFingerprint(true);
+            setHardwareScanStep('ready');
+            setEnrollMsg(null);
+
+            await new Promise(r => setTimeout(r, 600));
+            setHardwareScanStep('touch');
+
+            const fullName = `${selectedEmpForFingerprint.first_name || ''} ${selectedEmpForFingerprint.last_name || ''}`.trim() || selectedEmpForFingerprint.username;
+            const result = await captureUsbHardwareFingerprint(selectedEmpForFingerprint.id, fullName);
+
+            await new Promise(r => setTimeout(r, 800));
+            setHardwareScanStep('captured');
+
+            const res = await attendanceService.enrollBiometric(selectedEmpForFingerprint.id, result);
+            setEnrollMsg({ type: 'success', text: res.message || 'تم قراءة وحفظ قالب البصمة من جهاز USB بنجاح!' });
+            fetchEmployees();
+        } catch (err: any) {
+            console.error('USB Hardware enrollment error:', err);
+            setEnrollMsg({ type: 'error', text: err.message || 'فشل الاتصال بجهاز البصمة USB.' });
+            setHardwareScanStep('idle');
+        } finally {
+            setIsEnrollingFingerprint(false);
+        }
+    };
+
+    const handleTerminalEnroll = async () => {
+        if (!selectedEmpForFingerprint || !terminalEmployeeId.trim()) return;
+        try {
+            setIsEnrollingFingerprint(true);
+            setEnrollMsg(null);
+            const res = await attendanceService.enrollBiometric(selectedEmpForFingerprint.id, {
+                biometric_type: 'zkteco_terminal',
+                credential_id: `TERM-USER-${terminalEmployeeId.trim()}`,
+                device_info: `ZKTeco Attendance Terminal (User ID: ${terminalEmployeeId.trim()})`,
+                template_data: { terminalUserId: terminalEmployeeId.trim() }
+            });
+            setEnrollMsg({ type: 'success', text: res.message || 'تم ربط معرّف الموظف بجهاز الحضور بنجاح!' });
+            fetchEmployees();
+        } catch (err: any) {
+            setEnrollMsg({ type: 'error', text: err.response?.data?.detail || err.message || 'فشل ربط جهاز البصمة.' });
         } finally {
             setIsEnrollingFingerprint(false);
         }
@@ -637,58 +682,157 @@ export default function EmployeesPage() {
                 </div>
             </Modal>
 
-            {/* Fingerprint Enrollment Modal */}
+            {/* Fingerprint & Biometric Enrollment Modal */}
             <Modal
                 isOpen={isFingerprintModalOpen}
                 onClose={() => setIsFingerprintModalOpen(false)}
-                title={`تسجيل بصمة الإصبع - ${selectedEmpForFingerprint ? selectedEmpForFingerprint.first_name + ' ' + selectedEmpForFingerprint.last_name : ''}`}
+                title={`تسجيل البصمة البيومترية - ${selectedEmpForFingerprint ? selectedEmpForFingerprint.first_name + ' ' + selectedEmpForFingerprint.last_name : ''}`}
             >
                 <div className="space-y-4" dir="rtl">
-                    <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl text-xs text-blue-700 dark:text-blue-300">
-                        <p className="font-bold flex items-center gap-2">
-                            <Fingerprint className="w-4 h-4 text-blue-600" />
-                            تسجيل البصمة الرقمية للتعرف الآلي (TensorFlow CNN)
-                        </p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                            قم برفع صورة بصمة الإصبع الخام (من الماسح الضوئي أو ملف). سيقوم النموذج باستخراج مصفوفة الميزات (128-d Vector) وحفظها لمطابقة الحضور والانصراف بدقة.
-                        </p>
+                    {/* Method Selector Tabs */}
+                    <div className="grid grid-cols-2 gap-2 bg-gray-100 dark:bg-gray-800/60 p-1.5 rounded-2xl">
+                        <button
+                            type="button"
+                            onClick={() => { setActiveBiometricTab('smartphone'); setEnrollMsg(null); }}
+                            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-black text-xs transition-all ${
+                                activeBiometricTab === 'smartphone'
+                                    ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            <Smartphone className="w-4 h-4" />
+                            <span>بصمة الهاتف / المستشعر</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setActiveBiometricTab('usb_hardware'); setEnrollMsg(null); }}
+                            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-black text-xs transition-all ${
+                                activeBiometricTab === 'usb_hardware'
+                                    ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            <Usb className="w-4 h-4" />
+                            <span>قارئ USB / أجهزة الحضور</span>
+                        </button>
                     </div>
 
-                    {/* Upload / Scanner input */}
-                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500 rounded-2xl p-6 transition-all bg-gray-50/40 dark:bg-gray-900/30">
-                        {enrollPreviewUrl ? (
-                            <div className="relative group flex flex-col items-center">
-                                <img
-                                    src={enrollPreviewUrl}
-                                    alt="Fingerprint Preview"
-                                    className="w-36 h-36 object-contain rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm bg-black/5"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => { setEnrollFile(null); setEnrollPreviewUrl(null); }}
-                                    className="mt-2 text-xs font-bold text-rose-500 hover:underline"
-                                >
-                                    إلغاء واختيار صورة أخرى
-                                </button>
+                    {/* Tab 1: Smartphone / Laptop Biometric Sensor */}
+                    {activeBiometricTab === 'smartphone' && (
+                        <div className="space-y-4">
+                            <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl text-xs text-blue-700 dark:text-blue-300">
+                                <p className="font-bold flex items-center gap-2">
+                                    <Fingerprint className="w-4 h-4 text-blue-600 shrink-0" />
+                                    التعرف البيومتري المباشر عبر مستشعر الهاتف / الكمبيوتر (WebAuthn)
+                                </p>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                    استخدام مستشعر البصمة الحقيقي بهاتفك (Android Fingerprint أو Touch ID أو Face ID) أو لابتوب العمل لتسجيل بصمة الموظف فورياً وبأعلى درجات الأمان دون أي ملفات صور.
+                                </p>
                             </div>
-                        ) : (
-                            <label className="flex flex-col items-center cursor-pointer">
-                                <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 mb-2">
-                                    <Upload className="w-6 h-6" />
-                                </div>
-                                <span className="text-xs font-black text-gray-800 dark:text-gray-200">اختر صورة البصمة من الماسح أو الجهاز</span>
-                                <span className="text-[10px] text-gray-400 font-bold mt-1">PNG, JPG, BMP مدعومة</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleEnrollFileChange}
-                                    className="hidden"
-                                />
-                            </label>
-                        )}
-                    </div>
 
-                    {/* Status Messages */}
+                            <div className="flex flex-col items-center justify-center border-2 border-dashed border-blue-200 dark:border-blue-900/40 rounded-2xl p-8 bg-blue-50/20 dark:bg-blue-950/10">
+                                <div className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                    isEnrollingFingerprint
+                                        ? 'bg-blue-500/20 animate-pulse scale-105 shadow-[0_0_25px_rgba(37,99,235,0.35)]'
+                                        : 'bg-blue-100 dark:bg-blue-900/30'
+                                }`}>
+                                    <Fingerprint className={`w-14 h-14 transition-all duration-300 ${
+                                        isEnrollingFingerprint
+                                            ? 'text-blue-600 animate-bounce'
+                                            : 'text-blue-600 dark:text-blue-400'
+                                    }`} />
+                                </div>
+                                <h4 className="text-sm font-black text-gray-800 dark:text-gray-200 mt-4 mb-1">
+                                    {isEnrollingFingerprint ? 'جاري قراءة البصمة من المستشعر...' : 'جاهز للمسح البيومتري'}
+                                </h4>
+                                <p className="text-xs text-gray-400 font-bold text-center max-w-xs">
+                                    اضغط على الزر أدناه ثم ضع إصبعك على مستشعر البصمة الخاص بهاتفك أو لابتوبك
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                disabled={isEnrollingFingerprint}
+                                onClick={handleSmartphoneEnroll}
+                                className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                            >
+                                <Smartphone className="w-4 h-4" />
+                                {isEnrollingFingerprint ? 'جاري تفعيل مستشعر البصمة...' : 'بدء مسح بصمة الهاتف / الجهاز الذكي'}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Tab 2: USB Hardware Fingerprint Scanner & Terminal */}
+                    {activeBiometricTab === 'usb_hardware' && (
+                        <div className="space-y-4">
+                            <div className="p-3 bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/30 rounded-xl text-xs text-cyan-800 dark:text-cyan-300">
+                                <p className="font-bold flex items-center gap-2">
+                                    <Usb className="w-4 h-4 text-cyan-600 shrink-0" />
+                                    أجهزة وقارئات البصمة الخارجية (ZKTeco LiveID / ZK4500 / DigitalPersona)
+                                </p>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                    التقاط القالب المشفر مباشرة عبر قارئ USB المتصل أو ربطه بجهاز بصمة الحضور الشبكي المثبت في المطعم.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center border-2 border-dashed border-cyan-200 dark:border-cyan-900/40 rounded-2xl p-6 bg-cyan-50/20 dark:bg-cyan-950/10">
+                                <div className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                    hardwareScanStep === 'touch'
+                                        ? 'bg-amber-500/20 animate-pulse border-2 border-amber-500 text-amber-500'
+                                        : hardwareScanStep === 'captured'
+                                        ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-500'
+                                        : 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400'
+                                }`}>
+                                    <Fingerprint className="w-12 h-12" />
+                                </div>
+                                <span className="text-xs font-black text-gray-800 dark:text-gray-200 mt-3">
+                                    {hardwareScanStep === 'ready' && 'جاري البحث عن قارئ البصمة USB...'}
+                                    {hardwareScanStep === 'touch' && '👉 ضع إصبع الموظف على عدسة الماسح الآن'}
+                                    {hardwareScanStep === 'captured' && '✓ تم التقاط البصمة المشفرة بنجاح!'}
+                                    {hardwareScanStep === 'idle' && 'قارئ البصمة USB جاهز للمسح'}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-bold mt-1">
+                                    يدعم ZKTeco, DigitalPersona 4500, SecuGen Hamster عبر WebUSB
+                                </span>
+                            </div>
+
+                            <button
+                                type="button"
+                                disabled={isEnrollingFingerprint}
+                                onClick={handleUsbHardwareEnroll}
+                                className="w-full h-11 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                            >
+                                <Usb className="w-4 h-4" />
+                                {isEnrollingFingerprint ? 'جاري التقاط البصمة من الماسح...' : 'قراءة البصمة من قارئ USB المباشر'}
+                            </button>
+
+                            {/* Optional: Link with wall attendance terminal */}
+                            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                                <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">
+                                    أو أدخل رقم الموظف في جهاز الحضور الشبكي (ZKTeco Terminal User ID):
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="مثال: 101 أو رقم البطاقة"
+                                        value={terminalEmployeeId}
+                                        onChange={(e) => setTerminalEmployeeId(e.target.value)}
+                                        className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-cyan-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        disabled={!terminalEmployeeId.trim() || isEnrollingFingerprint}
+                                        onClick={handleTerminalEnroll}
+                                        className="px-4 py-2 bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 text-white rounded-xl text-xs font-black disabled:opacity-50 transition-all"
+                                    >
+                                        ربط المعرف
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Feedback Messages */}
                     {enrollMsg && (
                         <div className={`p-3 rounded-xl flex items-center gap-2 text-xs font-bold ${
                             enrollMsg.type === 'success'
@@ -703,19 +847,6 @@ export default function EmployeesPage() {
                             <span>{enrollMsg.text}</span>
                         </div>
                     )}
-
-                    {/* Submit */}
-                    <div className="pt-2">
-                        <button
-                            type="button"
-                            disabled={!enrollFile || isEnrollingFingerprint}
-                            onClick={handleEnrollFingerprint}
-                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-95"
-                        >
-                            <Fingerprint className="w-4 h-4" />
-                            {isEnrollingFingerprint ? 'جاري استخراج وتحليل البصمة عبر TensorFlow...' : 'حفظ وتسجيل البصمة'}
-                        </button>
-                    </div>
                 </div>
             </Modal>
 
