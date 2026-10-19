@@ -205,7 +205,7 @@ export const authenticateSmartphoneBiometrics = async (
         };
     } catch (err: any) {
         if (err.name === 'NotAllowedError') {
-            throw new Error('تم إلغاء عملية مسح البصمة أو تعذر التحقق منها.');
+            throw new Error('لم يتم العثور على بصمة مسجلة لهذا الهاتف بعد. يرجى أولاً الذهاب إلى صفحة (الموظفين) وتسجيل بصمة الموظف على هذا الجهاز ليتعرف عليها الهاتف تلقائياً.');
         }
         throw new Error(err.message || 'تعذر مطابقة البصمة البيومترية.');
     }

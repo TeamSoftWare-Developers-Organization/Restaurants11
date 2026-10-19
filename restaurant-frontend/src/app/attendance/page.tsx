@@ -266,11 +266,23 @@ export default function AttendancePage() {
 
                         {/* ERROR FEEDBACK CARD */}
                         {errorMsg && (
-                            <div className="w-full mt-5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/50 text-right flex items-start gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                                <div className="text-xs font-bold text-rose-800 dark:text-rose-300">
-                                    {errorMsg}
+                            <div className="w-full mt-5 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/50 text-right flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-start gap-2.5">
+                                    <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                                    <div className="text-xs font-bold text-rose-800 dark:text-rose-300 leading-relaxed">
+                                        {errorMsg}
+                                    </div>
                                 </div>
+                                {errorMsg.includes('الموظفين') && (
+                                    <button
+                                        type="button"
+                                        onClick={() => router.push('/employees')}
+                                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                                    >
+                                        <User className="w-3.5 h-3.5" />
+                                        <span>الانتقال لصفحة الموظفين لتسجيل بصمة هذا الهاتف</span>
+                                    </button>
+                                )}
                             </div>
                         )}
                     </section>
