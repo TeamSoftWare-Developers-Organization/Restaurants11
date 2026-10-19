@@ -138,7 +138,7 @@ export default function Sidebar({ className }: SidebarProps) {
     const getFullLogoUrl = (path?: string) => {
         if (!path) return null;
         if (path.startsWith('http://') || path.startsWith('https://')) return path;
-        const baseApi = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+        const baseApi = process.env.NEXT_PUBLIC_API_URL || 'https://restaurants11.onrender.com/api';
         const baseUrl = baseApi.replace(/\/api\/?$/, '');
         return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
     };

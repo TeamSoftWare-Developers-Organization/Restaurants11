@@ -228,6 +228,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:3002',
     'http://127.0.0.1:3005',
     'https://*.onrender.com',
+    'https://restaurants11.onrender.com',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True

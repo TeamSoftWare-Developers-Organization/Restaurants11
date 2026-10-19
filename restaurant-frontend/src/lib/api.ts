@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://restaurants11.onrender.com/api',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -80,7 +80,7 @@ api.interceptors.response.use(
 export const getFullUrl = (path: string | undefined): string => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace('/api', '');
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://restaurants11.onrender.com/api').replace('/api', '');
     return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 };
 
