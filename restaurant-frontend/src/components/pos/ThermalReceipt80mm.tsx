@@ -1,29 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { Printer, X, CheckCircle2, QrCode } from 'lucide-react';
+import { Printer, X, CheckCircle2 } from 'lucide-react';
 import { RestaurantSettings } from '@/services/settingsService';
-import InvoiceQRCode from '@/components/invoices/InvoiceQRCode';
-
-function generateZatcaBase64TLV(
-    sellerName: string,
-    vatNumber: string,
-    timestamp: string,
-    total: number,
-    taxAmount: number
-): string {
-    const fields = [sellerName, vatNumber, timestamp, total.toFixed(2), taxAmount.toFixed(2)];
-    const bytes: number[] = [];
-
-    fields.forEach((value, index) => {
-        const encoded = new TextEncoder().encode(value);
-        bytes.push(index + 1, encoded.length, ...encoded);
-    });
-
-    let binary = '';
-    bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
-    return btoa(binary);
-}
 
 export interface ThermalOrderItem {
     id?: number | string;
@@ -84,7 +63,6 @@ export default function ThermalReceipt80mm({
     const taxNumber = settings?.tax_number || '';
     const currency = settings?.currency || 'د.ل';
     const showLogo = settings?.show_logo_sales !== false;
-    const showQR = settings?.show_qr_code !== false;
 
     const subtotal = order.items.reduce((sum, it) => {
         const price = Number(it.unit_price ?? it.price ?? it.menu_item?.price ?? 0);
@@ -111,15 +89,6 @@ export default function ThermalReceipt80mm({
             ? `${order.employee.user.first_name} ${order.employee.user.last_name || ''}`.trim()
             : order.employee?.user?.username) ||
         'كاشير عام';
-
-    // TLV Base64 QR payload
-    const qrValue = order.qr_code_base64 || generateZatcaBase64TLV(
-        sellerName,
-        taxNumber || '300000000000003',
-        new Date(orderDateStr).toISOString(),
-        total,
-        taxAmount
-    );
 
     const handlePrint = () => {
         window.print();
@@ -371,32 +340,7 @@ export default function ThermalReceipt80mm({
                             </div>
                         </div>
 
-                        {/* Dashed Separator */}
-                        <div className="border-t-2 border-dashed border-black my-2" />
 
-                        {/* 5. ZATCA TLV QR Code */}
-                        {showQR && (
-                            <div className="text-center my-2 text-black">
-                                <div className="flex justify-center">
-                                    {order.qr_image_url ? (
-                                        <img
-                                            src={order.qr_image_url}
-                                            alt="ZATCA QR Code"
-                                            className="w-[38mm] h-[38mm] object-contain filter contrast-200"
-                                        />
-                                    ) : (
-                                        <InvoiceQRCode
-                                            value={qrValue}
-                                            size={140}
-                                            className="mx-auto"
-                                        />
-                                    )}
-                                </div>
-                                <p className="text-[9.5px] font-black text-black mt-1">
-                                    فاتورة ضريبية مبسطة (ZATCA E-Invoice)
-                                </p>
-                            </div>
-                        )}
 
                         {/* 6. Footer Message & Policy Terms */}
                         <div className="text-center space-y-1 mt-2 pt-1 border-t-2 border-dashed border-black text-[10.5px] text-black">

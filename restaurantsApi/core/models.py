@@ -33,7 +33,7 @@ class RestaurantSettings(models.Model):
     show_logo_sales = models.BooleanField(default=True, verbose_name="إظهار الشعار في فواتير المبيعات")
     show_logo_purchases = models.BooleanField(default=True, verbose_name="إظهار الشعار في فواتير المشتريات")
     show_logo_returns = models.BooleanField(default=True, verbose_name="إظهار الشعار في سندات المرتجع")
-    show_qr_code = models.BooleanField(default=True, verbose_name="إظهار رمز الاستجابة السريعة QR Code")
+    show_qr_code = models.BooleanField(default=False, verbose_name="إظهار رمز الاستجابة السريعة QR Code")
     sales_invoice_terms = models.TextField(null=True, blank=True, default="الأسعار تشمل ضريبة القيمة المضافة إن وجدت • البضاعة المباعة تستبدل خلال 24 ساعة", verbose_name="شروط وسياسة فاتورة المبيعات")
     purchase_invoice_terms = models.TextField(null=True, blank=True, default="تم فحص واستلام البضاعة بحالة جيدة ومطابقتها لأمر الشراء", verbose_name="ملاحظات وشروط فاتورة الشراء")
     purchase_return_terms = models.TextField(null=True, blank=True, default="يعتبر هذا السند إشعار خصم رسمي معتمد لتسوية حساب المورد", verbose_name="شروط سند مرتجع المشتريات")

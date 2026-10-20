@@ -28,7 +28,8 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 #### 1. ⚡ High-Performance Point of Sale (POS) & Checkout Engine
 - **Ergonomic, Touch-Optimized Cashier Bar:** Ultra-compact, fast layout for POS cashiers with unified responsive heights and keyboard navigation.
 - **Instant Payment Modalities:** One-touch buttons for Cash (`نقدي`), Card/Mada (`بطاقة`), and Credit/Deferred (`آجل`) payments.
-- **Hold Orders & Fast Invoice Viewer:** Side-by-side quick buttons for parking pending tickets (`طلب معلق`) and instantly previewing/printing thermal invoices.
+- **Hold Orders & Fast Invoice Viewer:** Side-by-side quick buttons for parking pending tickets (`طلب معلق`) and instantly previewing/printing thermal invoices in a streamlined pop-up modal without leaving POS.
+- **Expanded Items & Cart Workspace:** Optimized ergonomic layout maximizing item selection and cart area for high-volume checkout.
 - **Inline Shift & Expense Quick-Actions:** Direct inline links to register on-the-fly shift expenses (`+ تسجيل مصروف`) or initiate shift handover/closing (`إغلاق الوردية`).
 - **Barcode & Fast Scan Engine:** Automatic barcode scanning for retail packs and menu items with instant cart incrementation.
 - **Smart Recommendations (Market Basket Analysis):** On-the-fly cross-selling suggestions based on transaction history and item co-occurrence matrices.
@@ -57,6 +58,8 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
   - **OpenCV & CLAHE Preprocessing:** Cleans raw scanner inputs, crops regions of interest, resizes to $128 \times 128$, and applies *Contrast Limited Adaptive Histogram Equalization*.
   - **TensorFlow CNN Embeddings:** Maps fingerprint ridge structures into 128-dimensional embedding vectors for instant cosine similarity matching.
   - **Hardware Bridge:** Native serial and USB integration with ZKTeco desktop readers (ZK4500, ZK7500, ZK9500) and optical serial sensors (AS608, R307, R503).
+  - **Role-Based Biometric Access & Fraud Prevention:** Smartphone WebAuthn biometrics are restricted exclusively to Managers (`manager` / `admin`). Regular staff (cashiers, waiters, chefs) are prevented from punching in via personal phones, enforcing physical attendance via on-premise USB desktop readers.
+  - **Granular Attendance Permissions:** Integrated `attendance` permission key in the RBAC matrix and sidebar navigation.
 - **📈 AI Stock Depletion & Demand Forecasting:** Dynamic consumption analysis using linear regression and rolling averages. Generates predictive depletion timelines (e.g., "Ingredient X will run out in 3 days").
 - **🛒 Market Basket Analysis (Cross-Selling Engine):** Association rule mining on past orders to identify correlated purchases (e.g., Burger + Fries + Drink).
 - **🛡️ AI Financial Fraud & Cash Anomaly Detector:** Automated risk scoring for cashier shifts evaluating cash variances, abnormal discount ratios, and excessive order cancellations.
@@ -80,6 +83,7 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 - **Itemized closing reconciliation receipt and printable shift handover digest.**
 
 #### 7. 📦 Inventory, Stocktaking & Recipes
+- **Barcode Engine for Raw Materials & Inventory Items:** Added barcode support to `Ingredient` models, indexed API lookup (`GET /api/inventory/ingredients/by-barcode/{barcode}/`), dedicated barcode badges, and instant dual search (by barcode or item name).
 - **Real-Time Stock Audit:** Periodic physical count entry, automated variance calculation between actual and system stock, and one-click reconciliation.
 - **Weighted Average Costing Engine:** On receiving goods, unit costs are dynamically re-evaluated atomically:
   $$\text{New Cost} = \frac{(\text{Current Qty} \times \text{Current Cost}) + (\text{New Qty} \times \text{Invoice Price})}{\text{Current Qty} + \text{New Qty}}$$
@@ -214,7 +218,8 @@ python manage.py seed_demo_users
 #### 1. 🛒 نقطة البيع السريعة (POS) وشريط الكاشير الذكي
 - **شريط دفع متناسق ومريح:** إعادة هيكلة منطقة الدفع والعمليات لتكون ذات ارتفاع موحد وشديدة السلاسة لشاشات اللمس وأجهزة الكاشير.
 - **أزرار الدفع الفوري بنقرة واحدة:** أزرار سريعة ومميزة بصرياً للدفع **النقدي (`نقدي`)**، **البطاقات المصرفية (`بطاقة`)**، و**الدفع الآجل للمديونيات (`آجل`)**.
-- **إدارة الطلبات المعلقة والفواتير السريعة:** زران متجاوران لحفظ الطلب كمعلق في ثوانٍ (`طلب معلق`) ومعاينة وطباعة الفاتورة الفورية (`عرض الفاتورة`).
+- **إدارة الطلبات المعلقة والفواتير السريعة (نافذة منبثقة Popup):** زران متجاوران لحفظ الطلب كمعلق (`طلب معلق`) ومعاينة الفاتورة الحرارية 80mm وطباعتها عبر شاشة منبثقة سريعة دون مغادرة صفحة البيع.
+- **توسيع مساحة الأصناف والسلة:** تحسين واجهة نقطة البيع بزيادة مساحة استعراض الأصناف وسلة المشتريات لتسهيل العمل السريع لكاشيرات المطعم.
 - **إجراءات الوردية والمصروفات المباشرة:** روابط مدمجة أسفل السلة لتسجيل المصروفات النثرية الفورية (`+ تسجيل مصروف`) أو إغلاق وتسليم الوردية (`إغلاق الوردية`).
 - **دعم الباركود الشامل:** قراءة ومسح باركود المنتجات والوجبات آلياً وإضافتها للسلة بضغطة زر.
 - **اقتراحات سلة المشتريات بالذكاء الاصطناعي:** اقتراح منتجات مكملة للزبون أثناء تحضير الطلب بناءً على سجل الطلبات السابقة (Cross-Selling).
@@ -237,10 +242,12 @@ python manage.py seed_demo_users
 - **تجربة تصفح نظيفة:** واجهة مستخدم نظيفة وخالية من الإشعارات الجانبية غير المرغوبة.
 
 #### 4. 🤖 حزمة الذكاء الاصطناعي وتعلم الآلة (AI & ML)
-- **👆 الحضور والانصراف بالبصمة البيومترية:**
+- **👆 الحضور والانصراف بالبصمة البيومترية والحوكمة الأمنية:**
   - معالجة صور البصمات بمرشحات **OpenCV & CLAHE** لتنقية التشويش والرطوبة.
   - استخراج متجهات الخصائص بدقة 128 بُعداً عبر شبكات **TensorFlow CNN** والمقارنة الفورية عبر Cosine Similarity.
   - جسر عتادي يربط أجهزة **ZKTeco USB** (ZK4500 / ZK7500 / ZK9500) وحساسات **Serial COM** (AS608 / R307 / R503).
+  - **حصر بصمة الهاتف الذكي بالمدير ومنع الحضور عن بُعد:** قصر ميزة مسح بصمة الهاتف الذكي (`WebAuthn`) حصرياً على صلاحية المدير والمشرفين، وإلزام الموظفين العاديين بالحضور عبر قارئ البصمة المكتبي USB داخل المنشأة لمنع تسجيل الحضور الوهمي من خارج المطعم.
+  - **صلاحية حضور مخصصة (`attendance`):** إدراج صلاحية مستقلة لشاشة الحضور وتسجيل البصمة ضمن مصفوفة الصلاحيات مع حجبها تلقائياً عن المستخدمين العاديين في القائمة الجانبية.
 - **📈 التنبؤ باستهلاك المخزون (AI Stock Forecasting):** تحليل معدلات استهلاك المواد الخام عبر الانحدار الخطي والمتوسط المتحرك وتنبيهات مسبقة بنفاد المواد.
 - **🛒 تحليل سلة المشتريات (Market Basket Analysis):** استنتاج الوجبات المترابطة آلياً وعرضها في كرت تفاعلي بشاشة الكاشير لزيادة متوسط قيمة الفاتورة.
 - **🛡️ كشف التلاعب المالي وعجز الخزينة (AI Fraud Detection):** تقييم ذكي لمخاطر الورديات بناءً على الفروقات النقدية، نسب الخصومات غير الطبيعية، ومعدل إلغاء الطلبات المشبوه.
@@ -262,6 +269,7 @@ python manage.py seed_demo_users
 - **نافذة إغلاق الوردية الذكية (`CloseShiftModal.tsx`):** حساب الفارق مباشرة أثناء كتابة المبلغ المعدود، تمييز لوني ديناميكي، تسجيل الملاحظات وطباعة ملخص الاستلام والتسليم.
 
 #### 7. 📦 المخزون، الجرد، والمشتريات
+- **دعم الباركود الشامل للمخزون والمواد الخام:** إضافة حقل الباركود لنموذج المواد الخام والمخزون (`Ingredient`)، ونقطة نهاية API للبحث السريع، مع إبراز كود الباركود في الجدول وتفعيل البحث والمسح الفوري.
 - **جرد المنتجات والمخزون الحي:** واجهة متخصصة لإجراء الجرد الفعلي للمنتجات، مقارنة الرصيد الدفتري بالفعلي، واحتساب الفروقات والتسوية بنقرة واحدة.
 - **محرك متوسط التكلفة المرجح (Weighted Average Cost):** إعادة احتساب تكلفة الوحدة تلقائياً فور استلام البضاعة.
 - **هندسة الوصفات وتكاليف الوجبات:** ربط الوجبات بالمواد الخام، وحساب التكلفة اللحظي، والخصم التلقائي للمخزون فور البيع.

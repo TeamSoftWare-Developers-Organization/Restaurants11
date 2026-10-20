@@ -26,7 +26,14 @@ import { authenticateSmartphoneBiometrics, captureUsbHardwareFingerprint } from 
 
 export default function AttendancePage() {
     const { isSidebarCollapsed } = useUIStore();
-    const { isLoggedIn } = useAuthStore();
+    const { isLoggedIn, user, hasPermission } = useAuthStore();
+
+    const isManager = 
+        user?.role?.toUpperCase() === 'ADMIN' || 
+        user?.role?.toLowerCase() === 'admin' || 
+        user?.role?.toLowerCase() === 'manager' || 
+        (user as any)?.is_superuser ||
+        (user as any)?.is_staff;
     const router = useRouter();
 
     const [isClient, setIsClient] = useState(false);
@@ -42,6 +49,12 @@ export default function AttendancePage() {
         setIsClient(true);
         if (!isLoggedIn) {
             router.push('/login');
+            return;
+        }
+
+        // Restrict attendance page access to Manager or users with attendance permission
+        if (user && !isManager && !hasPermission('attendance')) {
+            router.push('/');
             return;
         }
 
@@ -70,6 +83,10 @@ export default function AttendancePage() {
     };
 
     const handleSmartphoneBiometricPunch = async () => {
+        if (!isManager) {
+            setErrorMsg('عذراً، مسح بصمة الهاتف الذكي محصور بصلاحية المدير والمشرفين فقط.');
+            return;
+        }
         setScanning(true);
         setErrorMsg(null);
         setResult(null);
@@ -206,30 +223,44 @@ export default function AttendancePage() {
                             {scanning ? 'جاري قراءة ومطابقة البصمة...' : 'الماسح البيومتري المباشر'}
                         </h3>
                         <p className="text-xs text-gray-400 dark:text-gray-500 font-bold max-w-xs mb-6">
-                            مسح البصمة فورياً عبر مستشعر الهاتف أو قارئ البصمة المكتبي USB
+                            {isManager 
+                                ? 'مسح البصمة فورياً عبر مستشعر الهاتف أو قارئ البصمة المكتبي USB'
+                                : 'مسح البصمة المعتمد عبر قارئ البصمة المكتبي USB الموصول بالنظام'
+                            }
                         </p>
 
                         {/* Action Trigger Buttons */}
                         <div className="w-full space-y-2.5">
-                            <button
-                                type="button"
-                                disabled={scanning}
-                                onClick={handleSmartphoneBiometricPunch}
-                                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                            >
-                                {scanning ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span>جاري التحقق من المستشعر...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Smartphone className="w-4 h-4" />
-                                        <span>مسح بصمة الهاتف / المستشعر الذكي</span>
-                                    </>
-                                )}
-                            </button>
+                            {/* زر بصمة الهاتف الذكي: ظاهر فقط لصلاحية المدير ومخفي عن صلاحية المستخدم العادي */}
+                            {isManager ? (
+                                <button
+                                    type="button"
+                                    disabled={scanning}
+                                    onClick={handleSmartphoneBiometricPunch}
+                                    className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    {scanning ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span>جاري التحقق من المستشعر...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Smartphone className="w-4 h-4" />
+                                            <span>مسح بصمة الهاتف / المستشعر الذكي (صلاحية المدير)</span>
+                                        </>
+                                    )}
+                                </button>
+                            ) : (
+                                <div className="p-3 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40 rounded-xl text-right">
+                                    <p className="text-[11px] text-blue-800 dark:text-blue-300 font-bold flex items-center gap-1.5">
+                                        <Shield className="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                                        <span>بصمة الهاتف الذكي محصورة بصلاحية المدير. يرجى توثيق حضورك عبر قارئ البصمة المكتبي USB أدناه.</span>
+                                    </p>
+                                </div>
+                            )}
 
+                            {/* قارئ البصمة المكتبي USB متاح دائماً لتسجيل حضور الموظفين بالفرع */}
                             <button
                                 type="button"
                                 disabled={scanning}
@@ -273,7 +304,7 @@ export default function AttendancePage() {
                                         {errorMsg}
                                     </div>
                                 </div>
-                                {errorMsg.includes('الموظفين') && (
+                                {errorMsg.includes('الموظفين') && isManager && (
                                     <button
                                         type="button"
                                         onClick={() => router.push('/employees')}

@@ -40,7 +40,8 @@ class Employee(models.Model):
             'expenses': True,
             'salaries': True,
             'employees': True,
-            'settings': True
+            'settings': True,
+            'attendance': True
         }
         if role == 'manager':
             return all_perms.copy()
@@ -59,7 +60,8 @@ class Employee(models.Model):
                 'inventory': False,
                 'salaries': False,
                 'employees': False,
-                'settings': False
+                'settings': False,
+                'attendance': False
             }
         elif role == 'waiter':
             return {
@@ -76,7 +78,8 @@ class Employee(models.Model):
                 'inventory': False,
                 'salaries': False,
                 'employees': False,
-                'settings': False
+                'settings': False,
+                'attendance': False
             }
         elif role == 'chef':
             return {
@@ -93,7 +96,8 @@ class Employee(models.Model):
                 'inventory': True,
                 'salaries': False,
                 'employees': False,
-                'settings': False
+                'settings': False,
+                'attendance': False
             }
         else:
             return {
@@ -110,7 +114,8 @@ class Employee(models.Model):
                 'inventory': False,
                 'salaries': False,
                 'employees': False,
-                'settings': False
+                'settings': False,
+                'attendance': False
             }
 
     def get_effective_permissions(self) -> dict:
@@ -159,4 +164,4 @@ class AttendanceLog(models.Model):
         ordering = ['-timestamp']
 
     def __str__(self):
-        return f"{self.employee.name} - {self.get_punch_type_display()} ({self.timestamp.strftime('%Y-%m-%d %H:%M')})"
+        return f"{self.employee.name} - {self.get_punch_type_display()} ({self.timestamp.strftime('%Y-%m-%d %H:%M')})"

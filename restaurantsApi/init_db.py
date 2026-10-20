@@ -16,7 +16,8 @@ def seed():
         settings = RestaurantSettings.load()
         if not settings.name:
             settings.name = "RestoERP Restaurant"
-            settings.save()
+        settings.show_qr_code = False
+        settings.save()
         print("✅ Restaurant settings loaded successfully.")
     except Exception as e:
         print(f"⚠️ Settings load error: {e}")

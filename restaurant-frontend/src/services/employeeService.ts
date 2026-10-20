@@ -14,6 +14,7 @@ export interface UserPermissions {
     expenses?: boolean;
     salaries?: boolean;
     employees?: boolean;
+    attendance?: boolean;
     settings?: boolean;
     [key: string]: boolean | undefined;
 }
@@ -43,6 +44,7 @@ export const AVAILABLE_PERMISSIONS = [
     { key: 'treasury', label: 'الخزينة والحسابات', description: 'حركات الإيداع والسحب والسيولة النقدية', group: 'المالية' },
     { key: 'expenses', label: 'المصروفات', description: 'تسجيل وتصنيف المصروفات التشغيلية', group: 'المالية' },
     { key: 'salaries', label: 'المرتبات والسلف', description: 'إدارة رواتب الموظفين والسلف المالية', group: 'المالية' },
+    { key: 'attendance', label: 'حضور وبصمة الموظفين', description: 'الوصول لشاشة الحضور الذكي وتسجيل البصمة', group: 'الإدارة' },
     { key: 'employees', label: 'الموظفون والصلاحيات', description: 'إدارة المستخدمين ومنح وتعديل الصلاحيات', group: 'الإدارة' },
     { key: 'settings', label: 'إعدادات النظام', description: 'إعدادات المطعم، الضرائب، ومعلومات الفاتورة', group: 'الإدارة' },
 ];

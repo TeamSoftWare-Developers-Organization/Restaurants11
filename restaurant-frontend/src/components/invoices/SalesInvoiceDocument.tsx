@@ -2,27 +2,6 @@
 
 import React from 'react';
 import { RestaurantSettings } from '@/services/settingsService';
-import InvoiceQRCode from './InvoiceQRCode';
-
-function generateZatcaBase64TLV(
-    sellerName: string,
-    vatNumber: string,
-    timestamp: string,
-    total: number,
-    taxAmount: number
-): string {
-    const fields = [sellerName, vatNumber, timestamp, total.toFixed(2), taxAmount.toFixed(2)];
-    const bytes: number[] = [];
-
-    fields.forEach((value, index) => {
-        const encoded = new TextEncoder().encode(value);
-        bytes.push(index + 1, encoded.length, ...encoded);
-    });
-
-    let binary = '';
-    bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
-    return btoa(binary);
-}
 
 export interface SalesInvoiceItem {
     id: number | string;
@@ -64,7 +43,6 @@ export default function SalesInvoiceDocument({
 }: SalesInvoiceDocumentProps) {
     const template = templateOverride || settings?.sales_invoice_template || 'thermal_80mm';
     const showLogo = settings?.show_logo_sales !== false;
-    const showQR = settings?.show_qr_code !== false;
     const currency = settings?.currency || 'د.ل';
     const orderDate = invoiceData.orderDate || new Date().toISOString();
 
@@ -80,15 +58,6 @@ export default function SalesInvoiceDocument({
     const taxAmount = invoiceData.taxAmount !== undefined 
         ? invoiceData.taxAmount 
         : (taxRate > 0 ? (invoiceData.subtotal * taxRate) / 100 : 0);
-
-    // Generate ZATCA TLV Base64
-    const tlvBase64 = generateZatcaBase64TLV(
-        settings?.name || 'مطعمنا',
-        settings?.tax_number || '300000000000003',
-        orderDate,
-        invoiceData.total,
-        taxAmount
-    );
 
     // ==========================================
     // 1. THERMAL 58MM TEMPLATE (Mobile POS)
@@ -186,14 +155,6 @@ export default function SalesInvoiceDocument({
                     </div>
                 </div>
 
-                {/* QR Code */}
-                {showQR && (
-                    <div className="py-2 text-center border-b border-dashed border-gray-400">
-                        <InvoiceQRCode value={tlvBase64} size={75} className="mx-auto" />
-                        <div className="text-[7px] text-gray-500 mt-0.5">رمز التحقق الضريبي</div>
-                    </div>
-                )}
-
                 {/* Footer */}
                 <div className="text-center pt-2 text-[8px] space-y-0.5">
                     <p className="font-bold">{settings?.invoice_footer_message || 'شكراً لزيارتكم!'}</p>
@@ -239,7 +200,7 @@ export default function SalesInvoiceDocument({
 
                     <div className="text-left space-y-2">
                         <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 font-black text-xs rounded-lg border border-indigo-200">
-                            فاتورة ضريبية مبسطة
+                            فاتورة مبيعات
                         </span>
                         <div className="text-sm font-black text-gray-800">
                             رقم الفاتورة: <span className="font-mono text-indigo-600">#{invoiceData.orderId}</span>
@@ -293,21 +254,14 @@ export default function SalesInvoiceDocument({
                     </table>
                 </div>
 
-                {/* Bottom Row: Summary & QR */}
+                {/* Bottom Row: Summary & Terms */}
                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-200 items-start">
-                    {/* QR Code and Terms */}
-                    <div className="flex items-start gap-4">
-                        {showQR && (
-                            <div className="p-2 border border-gray-200 rounded-xl bg-gray-50 shrink-0">
-                                <InvoiceQRCode value={tlvBase64} size={95} />
-                            </div>
-                        )}
-                        <div className="space-y-1.5 text-xs text-gray-600">
-                            <p className="font-bold text-gray-800">{settings?.invoice_footer_message || 'شكراً لزيارتكم ونسعد بخدمتكم دائماً!'}</p>
-                            <p className="text-[11px] leading-relaxed text-gray-500">
-                                {settings?.sales_invoice_terms || 'الأسعار تشمل ضريبة القيمة المضافة إن وجدت.'}
-                            </p>
-                        </div>
+                    {/* Terms */}
+                    <div className="space-y-1.5 text-xs text-gray-600">
+                        <p className="font-bold text-gray-800">{settings?.invoice_footer_message || 'شكراً لزيارتكم ونسعد بخدمتكم دائماً!'}</p>
+                        <p className="text-[11px] leading-relaxed text-gray-500">
+                            {settings?.sales_invoice_terms || 'الأسعار تشمل ضريبة القيمة المضافة إن وجدت.'}
+                        </p>
                     </div>
 
                     {/* Totals Box */}
@@ -375,7 +329,7 @@ export default function SalesInvoiceDocument({
                     <div className="text-[10px] font-bold text-black">السجل التجاري: {settings.commercial_record}</div>
                 )}
                 <div className="mt-1 font-black text-[10px] border border-black px-2 py-0.5 rounded inline-block text-black">
-                    فاتورة ضريبية مبسطة
+                    فاتورة مبيعات
                 </div>
             </div>
 
@@ -474,16 +428,6 @@ export default function SalesInvoiceDocument({
                     </div>
                 )}
             </div>
-
-            {/* QR Code */}
-            {showQR && (
-                <div className="py-3 text-center border-b-2 border-dashed border-black text-black">
-                    <InvoiceQRCode value={tlvBase64} size={110} className="mx-auto" />
-                    <div className="text-[9px] font-black text-black mt-1 font-sans">
-                        رمز التحقق الضريبي المعتمد (ZATCA TLV)
-                    </div>
-                </div>
-            )}
 
             {/* Footer */}
             <div className="text-center pt-2 text-[9.5px] space-y-1 text-black">

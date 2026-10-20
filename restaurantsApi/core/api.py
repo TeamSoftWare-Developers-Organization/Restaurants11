@@ -29,7 +29,7 @@ class RestaurantSettingsIn(Schema):
     show_logo_sales: bool = True
     show_logo_purchases: bool = True
     show_logo_returns: bool = True
-    show_qr_code: bool = True
+    show_qr_code: bool = False
     sales_invoice_terms: Optional[str] = None
     purchase_invoice_terms: Optional[str] = None
     purchase_return_terms: Optional[str] = None
