@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Printer, X, CheckCircle2 } from 'lucide-react';
 import { RestaurantSettings } from '@/services/settingsService';
+import './ThermalReceipt80mm.css';
 
 export interface ThermalOrderItem {
     id?: number | string;
@@ -106,51 +107,6 @@ export default function ThermalReceipt80mm({
 
     return (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto" dir="rtl">
-            {/* Print Styles for 80mm Roll */}
-            <style jsx global>{`
-                @media print {
-                    @page {
-                        size: 80mm auto;
-                        margin: 0;
-                    }
-                    html, body {
-                        width: 80mm !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        background: #ffffff !important;
-                        color: #000000 !important;
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
-                    body * {
-                        visibility: hidden !important;
-                    }
-                    #thermal-receipt-80mm, #thermal-receipt-80mm * {
-                        visibility: visible !important;
-                        color: #000000 !important;
-                        border-color: #000000 !important;
-                        text-shadow: none !important;
-                        filter: none !important;
-                    }
-                    #thermal-receipt-80mm {
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
-                        width: 80mm !important;
-                        max-width: 80mm !important;
-                        margin: 0 !important;
-                        padding: 3mm 3mm !important;
-                        border: none !important;
-                        box-shadow: none !important;
-                        background: #ffffff !important;
-                        font-family: 'Courier New', Courier, monospace !important;
-                        -webkit-font-smoothing: none !important;
-                    }
-                    .no-print {
-                        display: none !important;
-                    }
-                }
-            `}</style>
 
             <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 max-w-[420px] w-full max-h-[94vh] flex flex-col overflow-hidden my-auto animate-in zoom-in-95 duration-200">
                 {/* Onscreen Header Action Bar */}

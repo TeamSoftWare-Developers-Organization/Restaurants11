@@ -129,10 +129,10 @@ export default function RecipesPage() {
             await alertDialog({
                 title: 'تنبيه: لا توجد مكونات في المخزون',
                 message: 'يجب إضافة المواد الخام والمكونات في صفحة المخزون أولاً لتتمكن من إضافتها للوصفة.',
-                type: 'warning',
-                confirmText: 'الذهاب إلى المخزون',
-                onConfirm: () => router.push('/inventory')
+                variant: 'warning',
+                buttonText: 'الذهاب إلى المخزون',
             });
+            router.push('/inventory');
             return;
         }
         if (!selectedMenuItem || !newIngredientId || !newQuantity || parseFloat(newQuantity) <= 0) return;

@@ -112,13 +112,13 @@ export default function MenuPage() {
                 }
 
                 if (!currentIngredients || currentIngredients.length === 0) {
-                    alertDialog({
+                    await alertDialog({
                         title: 'تنبيه: يجب إضافة مكونات المخزون أولاً',
                         message: 'لا يمكن إضافة صنف جديد إلى قائمة الطعام قبل إدخال المواد الخام والمكونات في صفحة المخزون أولاً، وذلك لضمان ربط التكاليف وحساب الأرباح والخصم الآلي للكميات بدقة.',
-                        type: 'warning',
-                        confirmText: 'الذهاب إلى المخزون',
-                        onConfirm: () => router.push('/inventory')
+                        variant: 'warning',
+                        buttonText: 'الذهاب إلى المخزون',
                     });
+                    router.push('/inventory');
                     return;
                 }
             } catch (err) {
@@ -232,13 +232,13 @@ export default function MenuPage() {
             setRecipeIngredients(recipe);
             setAvailableIngredients(ingredients);
             if (!ingredients || ingredients.length === 0) {
-                alertDialog({
+                await alertDialog({
                     title: 'تنبيه: لا توجد مكونات في المخزون',
                     message: 'يجب إضافة المواد الخام والمكونات في صفحة المخزون أولاً لتتمكن من إضافتها وربطها بوصفة هذا الصنف.',
-                    type: 'warning',
-                    confirmText: 'الذهاب إلى المخزون',
-                    onConfirm: () => router.push('/inventory')
+                    variant: 'warning',
+                    buttonText: 'الذهاب إلى المخزون',
                 });
+                router.push('/inventory');
                 return;
             }
             setNewRecipeData({
