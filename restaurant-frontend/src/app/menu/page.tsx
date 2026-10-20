@@ -79,14 +79,16 @@ export default function MenuPage() {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [items, cats, recipes] = await Promise.all([
+            const [items, cats, recipes, ings] = await Promise.all([
                 menuService.getMenuItems(),
                 menuService.getCategories(),
-                inventoryService.getAllRecipes().catch(() => [])
+                inventoryService.getAllRecipes().catch(() => []),
+                inventoryService.getIngredients().catch(() => [])
             ]);
             setMenuData(items);
             setCategories(cats);
             setAllRecipes(recipes);
+            setAvailableIngredients(ings);
         } catch (err) {
             console.error('Failed to fetch data', err);
         } finally {
@@ -99,7 +101,31 @@ export default function MenuPage() {
         return itemRecipes.reduce((sum, r) => sum + ((r.ingredient?.cost_per_unit || 0) * (r.quantity_needed || 0)), 0);
     };
 
-    const handleOpenModal = (item?: MenuItem) => {
+    const handleOpenModal = async (item?: MenuItem) => {
+        if (!item) {
+            // Check if ingredients exist in inventory before allowing to add new menu item
+            try {
+                let currentIngredients = availableIngredients;
+                if (!currentIngredients || currentIngredients.length === 0) {
+                    currentIngredients = await inventoryService.getIngredients();
+                    setAvailableIngredients(currentIngredients);
+                }
+
+                if (!currentIngredients || currentIngredients.length === 0) {
+                    alertDialog({
+                        title: 'تنبيه: يجب إضافة مكونات المخزون أولاً',
+                        message: 'لا يمكن إضافة صنف جديد إلى قائمة الطعام قبل إدخال المواد الخام والمكونات في صفحة المخزون أولاً، وذلك لضمان ربط التكاليف وحساب الأرباح والخصم الآلي للكميات بدقة.',
+                        type: 'warning',
+                        confirmText: 'الذهاب إلى المخزون',
+                        onConfirm: () => router.push('/inventory')
+                    });
+                    return;
+                }
+            } catch (err) {
+                console.error('Failed to verify ingredients count', err);
+            }
+        }
+
         if (item) {
             setEditingItem(item);
             setFormData({
@@ -205,6 +231,16 @@ export default function MenuPage() {
             ]);
             setRecipeIngredients(recipe);
             setAvailableIngredients(ingredients);
+            if (!ingredients || ingredients.length === 0) {
+                alertDialog({
+                    title: 'تنبيه: لا توجد مكونات في المخزون',
+                    message: 'يجب إضافة المواد الخام والمكونات في صفحة المخزون أولاً لتتمكن من إضافتها وربطها بوصفة هذا الصنف.',
+                    type: 'warning',
+                    confirmText: 'الذهاب إلى المخزون',
+                    onConfirm: () => router.push('/inventory')
+                });
+                return;
+            }
             setNewRecipeData({
                 ingredient_id: ingredients[0]?.id || 0,
                 quantity_needed: 0
