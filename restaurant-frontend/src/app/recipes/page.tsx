@@ -125,6 +125,16 @@ export default function RecipesPage() {
 
     const handleAddIngredient = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (ingredients.length === 0) {
+            await alertDialog({
+                title: 'تنبيه: لا توجد مكونات في المخزون',
+                message: 'يجب إضافة المواد الخام والمكونات في صفحة المخزون أولاً لتتمكن من إضافتها للوصفة.',
+                type: 'warning',
+                confirmText: 'الذهاب إلى المخزون',
+                onConfirm: () => router.push('/inventory')
+            });
+            return;
+        }
         if (!selectedMenuItem || !newIngredientId || !newQuantity || parseFloat(newQuantity) <= 0) return;
 
         try {
@@ -480,65 +490,92 @@ export default function RecipesPage() {
                                     </div>
 
                                     {/* Add Ingredient Form */}
-                                    <form onSubmit={handleAddIngredient} className="pt-6">
-                                        <h3 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <Plus className="w-4 h-4 text-amber-500" />
-                                            إضافة مادة خام من المخزون إلى الوصفة
-                                        </h3>
-                                        
-                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                                            <div className="md:col-span-6 relative">
-                                                <label className="text-[10px] font-black text-gray-400 block mb-1">اختر المادة الخام</label>
-                                                <div className="relative">
-                                                    <select
-                                                        value={newIngredientId}
-                                                        onChange={(e) => setNewIngredientId(parseInt(e.target.value))}
-                                                        className="w-full h-11 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/20 appearance-none cursor-pointer"
-                                                        required
-                                                    >
-                                                        {ingredients.map(ing => (
-                                                            <option key={ing.id} value={ing.id}>
-                                                                {ing.name} (المتوفر: {ing.current_stock} {ing.unit} | سعر الوحدة: {ing.cost_per_unit} د.ل)
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    {ingredients.length === 0 ? (
+                                        <div className="pt-4 pb-2">
+                                            <div className="p-4 rounded-xl border border-amber-300/80 bg-amber-50/70 dark:bg-amber-950/20 dark:border-amber-700/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shrink-0">
+                                                        <Package className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xs font-black text-amber-900 dark:text-amber-200">
+                                                            لا توجد مواد خام ومكونات في المخزون
+                                                        </h4>
+                                                        <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                                                            يجب إضافة المواد الخام والمقادير في صفحة المخزون أولاً لتتمكن من بناية وصفة الطعام وربط التكاليف.
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                            </div>
-
-                                            <div className="md:col-span-4">
-                                                <label className="text-[10px] font-black text-gray-400 block mb-1">
-                                                    الكمية المطلوبة ({ingredients.find(i => i.id === newIngredientId)?.unit || ''})
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    step="0.001"
-                                                    placeholder="مثال: 0.25"
-                                                    value={newQuantity}
-                                                    onChange={(e) => setNewQuantity(e.target.value)}
-                                                    className="w-full h-11 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/20"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div className="md:col-span-2 flex items-end">
                                                 <button
-                                                    type="submit"
-                                                    disabled={isSubmitting || ingredients.length === 0}
-                                                    className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black text-xs shadow-lg shadow-amber-600/20 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+                                                    type="button"
+                                                    onClick={() => router.push('/inventory')}
+                                                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black transition-all shadow-md shrink-0"
                                                 >
-                                                    {isSubmitting ? (
-                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                                    ) : (
-                                                        <>
-                                                            <Plus className="w-4 h-4" />
-                                                            إضافة
-                                                        </>
-                                                    )}
+                                                    إضافة مكونات في المخزون
                                                 </button>
                                             </div>
                                         </div>
-                                    </form>
+                                    ) : (
+                                        <form onSubmit={handleAddIngredient} className="pt-6">
+                                            <h3 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                <Plus className="w-4 h-4 text-amber-500" />
+                                                إضافة مادة خام من المخزون إلى الوصفة
+                                            </h3>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                                <div className="md:col-span-6 relative">
+                                                    <label className="text-[10px] font-black text-gray-400 block mb-1">اختر المادة الخام</label>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={newIngredientId}
+                                                            onChange={(e) => setNewIngredientId(parseInt(e.target.value))}
+                                                            className="w-full h-11 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/20 appearance-none cursor-pointer"
+                                                            required
+                                                        >
+                                                            {ingredients.map(ing => (
+                                                                <option key={ing.id} value={ing.id}>
+                                                                    {ing.name} (المتوفر: {ing.current_stock} {ing.unit} | سعر الوحدة: {ing.cost_per_unit} د.ل)
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                                    </div>
+                                                </div>
+
+                                                <div className="md:col-span-4">
+                                                    <label className="text-[10px] font-black text-gray-400 block mb-1">
+                                                        الكمية المطلوبة ({ingredients.find(i => i.id === newIngredientId)?.unit || ''})
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.001"
+                                                        placeholder="مثال: 0.25"
+                                                        value={newQuantity}
+                                                        onChange={(e) => setNewQuantity(e.target.value)}
+                                                        className="w-full h-11 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/20"
+                                                        required
+                                                    />
+                                                </div>
+
+                                                <div className="md:col-span-2 flex items-end">
+                                                    <button
+                                                        type="submit"
+                                                        disabled={isSubmitting || ingredients.length === 0}
+                                                        className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black text-xs shadow-lg shadow-amber-600/20 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+                                                    >
+                                                        {isSubmitting ? (
+                                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                        ) : (
+                                                            <>
+                                                                <Plus className="w-4 h-4" />
+                                                                إضافة
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    )}
                                 </div>
 
                                 {/* Ingredients Table for Active Recipe */}
