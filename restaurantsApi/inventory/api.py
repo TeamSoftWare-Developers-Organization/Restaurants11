@@ -141,11 +141,14 @@ def get_recipe_for_item(request, menu_item_id: int):
     menu_item = get_object_or_404(MenuItem, id=menu_item_id)
     return RecipeIngredient.objects.filter(menu_item=menu_item)
 
-@inventory_router.post("/recipes/{menu_item_id}/", response=RecipeIngredientOut)
+@inventory_router.post("/recipes/{menu_item_id}/", response={200: RecipeIngredientOut, 400: dict})
 def add_ingredient_to_recipe(request, menu_item_id: int, recipe_data: RecipeIngredientIn):
     """
     إضافة مكون إلى وصفة صنف قائمة.
     """
+    if not Ingredient.objects.exists():
+        return 400, {"message": "لا توجد مكونات في المخزون لإضافتها إلى الوصفة."}
+
     menu_item = get_object_or_404(MenuItem, id=menu_item_id)
     ingredient = get_object_or_404(Ingredient, id=recipe_data.ingredient_id)
 

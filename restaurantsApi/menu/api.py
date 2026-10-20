@@ -8,6 +8,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 from .models import Category, MenuItem
+from inventory.models import Ingredient
 
 # إنشاء موجه (Router) خاص بتطبيق menu
 menu_router = Router(tags=["القائمة (الأصناف والفئات)"])
@@ -121,11 +122,14 @@ def list_menu_items(request):
     items = MenuItem.objects.all()
     return items
 
-@menu_router.post("/items/", response=MenuItemOut)
+@menu_router.post("/items/", response={200: MenuItemOut, 400: dict})
 def create_menu_item(request, item_data: MenuItemIn):
     """
     إنشاء صنف قائمة جديد.
     """
+    if not Ingredient.objects.exists():
+        return 400, {"message": "لا يمكن إضافة صنف جديد قبل إدخال المكونات والمواد الخام في المخزون أولاً."}
+
     category = None
     if item_data.category_id:
         try:
