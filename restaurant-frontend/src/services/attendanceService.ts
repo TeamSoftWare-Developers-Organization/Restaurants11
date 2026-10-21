@@ -78,11 +78,24 @@ export const attendanceService = {
         end_date?: string;
     }): Promise<AttendanceRecord[]> => {
         const query = new URLSearchParams();
-        if (params?.limit) query.append('limit', params.limit.toString());
-        if (params?.employee_id) query.append('employee_id', params.employee_id.toString());
-        if (params?.punch_type) query.append('punch_type', params.punch_type);
-        if (params?.start_date) query.append('start_date', params.start_date);
-        if (params?.end_date) query.append('end_date', params.end_date);
+        if (params) {
+            for (const [key, value] of Object.entries(params)) {
+                if (value === undefined || value === null || value === '') continue;
+                switch (key) {
+                    case 'limit':
+                    case 'employee_id':
+                        query.append(key, value.toString());
+                        break;
+                    case 'punch_type':
+                    case 'start_date':
+                    case 'end_date':
+                        query.append(key, String(value));
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
 
         const queryString = query.toString();
         const url = `/attendance/logs/${queryString ? `?${queryString}` : ''}`;
