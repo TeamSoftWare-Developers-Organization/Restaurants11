@@ -215,6 +215,7 @@ class SalaryPayment(models.Model):
     absence_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="قيمة خصم الغياب")
     bonus_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="مكافآت وإضافي")
     deduction_reason = models.CharField(max_length=255, blank=True, null=True, verbose_name="سبب / إذن الخصم")
+    absence_dates_detail = models.TextField(blank=True, null=True, verbose_name="تفاصيل وتواريخ أيام الغياب")
     deduction_approved_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='approved_salary_deductions',

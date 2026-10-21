@@ -54,11 +54,16 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 - **Safe Browser Experience:** Clean, standalone web interface with unnecessary browser prompts and PWA installation pills completely removed for a cleaner workflow.
 
 #### 4. 🤖 AI & Machine Learning Suite
-- **👆 Biometric Attendance & Hardware Scanner Bridge:**
+- **👆 Biometric Attendance & Ethernet Cable Hardware Bridge:**
   - **OpenCV & CLAHE Preprocessing:** Cleans raw scanner inputs, crops regions of interest, resizes to $128 \times 128$, and applies *Contrast Limited Adaptive Histogram Equalization*.
   - **TensorFlow CNN Embeddings:** Maps fingerprint ridge structures into 128-dimensional embedding vectors for instant cosine similarity matching.
-  - **Hardware Bridge:** Native serial and USB integration with ZKTeco desktop readers (ZK4500, ZK7500, ZK9500) and optical serial sensors (AS608, R307, R503).
-  - **Role-Based Biometric Access & Fraud Prevention:** Smartphone WebAuthn biometrics are restricted exclusively to Managers (`manager` / `admin`). Regular staff (cashiers, waiters, chefs) are prevented from punching in via personal phones, enforcing physical attendance via on-premise USB desktop readers.
+  - **Dedicated Ethernet Cable Integration (Cable EtherNet / LAN):** USB cables have been phased out in favor of robust direct Ethernet Cable networking (RJ45 / TCP/IP) using the `pyzk` library for wall-mounted ZKTeco standalone attendance terminals.
+  - **Multi-Port Communication & Failover Architecture:** Native support for key biometric ports with automatic fallback:
+    - **Port 4370:** Standard ZKTeco standalone terminal protocol (Default).
+    - **Port 4444:** Bridge daemon & listener service.
+    - **Port 8888:** Cloud sync & ADMS Push SDK port.
+    - **Port 5003:** Dedicated emergency backup / fallback port (منفذ احتياطي).
+  - **Role-Based Biometric Access & Fraud Prevention:** Smartphone WebAuthn biometrics are restricted exclusively to Managers (`manager` / `admin`). Regular staff are required to authenticate through the verified physical Ethernet terminal on the restaurant's local area network.
   - **Granular Attendance Permissions:** Integrated `attendance` permission key in the RBAC matrix and sidebar navigation.
 - **📈 AI Stock Depletion & Demand Forecasting:** Dynamic consumption analysis using linear regression and rolling averages. Generates predictive depletion timelines (e.g., "Ingredient X will run out in 3 days").
 - **🛒 Market Basket Analysis (Cross-Selling Engine):** Association rule mining on past orders to identify correlated purchases (e.g., Burger + Fries + Drink).
@@ -242,11 +247,15 @@ python manage.py seed_demo_users
 - **تجربة تصفح نظيفة:** واجهة مستخدم نظيفة وخالية من الإشعارات الجانبية غير المرغوبة.
 
 #### 4. 🤖 حزمة الذكاء الاصطناعي وتعلم الآلة (AI & ML)
-- **👆 الحضور والانصراف بالبصمة البيومترية والحوكمة الأمنية:**
-  - معالجة صور البصمات بمرشحات **OpenCV & CLAHE** لتنقية التشويش والرطوبة.
-  - استخراج متجهات الخصائص بدقة 128 بُعداً عبر شبكات **TensorFlow CNN** والمقارنة الفورية عبر Cosine Similarity.
-  - جسر عتادي يربط أجهزة **ZKTeco USB** (ZK4500 / ZK7500 / ZK9500) وحساسات **Serial COM** (AS608 / R307 / R503).
-  - **حصر بصمة الهاتف الذكي بالمدير ومنع الحضور عن بُعد:** قصر ميزة مسح بصمة الهاتف الذكي (`WebAuthn`) حصرياً على صلاحية المدير والمشرفين، وإلزام الموظفين العاديين بالحضور عبر قارئ البصمة المكتبي USB داخل المنشأة لمنع تسجيل الحضور الوهمي من خارج المطعم.
+- **👆 الحضور والانصراف بالبصمة البيومترية عبر كابل الإيثرنت (Cable EtherNet):**
+  - **استبدال كابلات USB بكابل الإيثرنت (Cable EtherNet):** إلغاء التوصيل عبر كابل USB بالكامل واعتماد الربط الشبكي المباشر والمستقر عبر كابل الإيثرنت (RJ45 LAN) لأجهزة ZKTeco الجدارية والمكتبية عبر مكتبة `pyzk` المتخصصة.
+  - **دعم المنافذ الشبكية المتعددة والمنفذ الاحتياطي:** بنية اتصال ذكية مع التبديل التلقائي في حال انقطاع أي منفذ:
+    - **المنفذ 4370:** المنفذ القياسي الافتراضي لأجهزة ZKTeco Standalone.
+    - **المنفذ 4444:** منفذ خادم الجسر الشبكي ومستمع الحركات الفوري (Daemon Listener).
+    - **المنفذ 8888:** منفذ المزامنة السحابية والتحميل التلقائي (ADMS Push SDK).
+    - **المنفذ 5003:** منفذ احتياطي بديل ومخصص للطوارئ (Backup Port).
+  - **معالجة متقدمة بالذكاء الاصطناعي:** استخراج متجهات الخصائص بدقة 128 بُعداً عبر شبكات **TensorFlow CNN** والمقارنة الفورية.
+  - **حصر بصمة الهاتف الذكي بالمدير ومنع الحضور عن بُعد:** قصر ميزة مسح بصمة الهاتف الذكي (`WebAuthn`) حصرياً على صلاحية المدير، وإلزام الموظفين العاديين بالحضور عبر جهاز البصمة الشبكي المتصل بكابل الإيثرنت داخل المنشأة.
   - **صلاحية حضور مخصصة (`attendance`):** إدراج صلاحية مستقلة لشاشة الحضور وتسجيل البصمة ضمن مصفوفة الصلاحيات مع حجبها تلقائياً عن المستخدمين العاديين في القائمة الجانبية.
 - **📈 التنبؤ باستهلاك المخزون (AI Stock Forecasting):** تحليل معدلات استهلاك المواد الخام عبر الانحدار الخطي والمتوسط المتحرك وتنبيهات مسبقة بنفاد المواد.
 - **🛒 تحليل سلة المشتريات (Market Basket Analysis):** استنتاج الوجبات المترابطة آلياً وعرضها في كرت تفاعلي بشاشة الكاشير لزيادة متوسط قيمة الفاتورة.

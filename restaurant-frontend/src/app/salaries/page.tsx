@@ -59,6 +59,7 @@ export default function SalariesPage() {
     const [bonusAmount, setBonusAmount] = useState<string>('0');
     const [netAmount, setNetAmount] = useState<string>('0');
     const [deductionReason, setDeductionReason] = useState<string>('');
+    const [absenceDatesDetail, setAbsenceDatesDetail] = useState<string>('');
     const [notes, setNotes] = useState('');
 
     // Absence detection details from backend
@@ -76,6 +77,19 @@ export default function SalariesPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const getArabicDayName = (dateStr?: string) => {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            return days[d.getDay()];
+        } catch {
+            return '';
+        }
+    };
+
+    const todayArabicDayName = getArabicDayName(new Date().toISOString());
+
 
     useEffect(() => {
         fetchData();
@@ -131,6 +145,8 @@ export default function SalariesPage() {
             setBonusAmount('0');
             setNetAmount(net.toString());
             setDeductionReason(calc.absence_days > 0 ? `خصم غياب ${calc.absence_days} أيام خلال شهر ${targetMonth}` : '');
+            const datesText = calc.absence_dates_list?.map(d => `${d.day_name} ${d.date}`).join('، ') || '';
+            setAbsenceDatesDetail(datesText);
         } catch (err) {
             console.error('Failed to calculate absence', err);
         } finally {
@@ -225,6 +241,8 @@ export default function SalariesPage() {
                 absence_deduction: deductionNum,
                 bonus_amount: parseFloat(bonusAmount) || 0,
                 deduction_reason: deductionReason || (deductionNum > 0 ? `خصم غياب ${absenceDays} أيام` : undefined),
+                absence_dates_detail: absenceDatesDetail || undefined,
+                payment_day_name: todayArabicDayName,
                 admin_username: !isCurrentUserAdmin && verifiedAdminName ? adminUsername : undefined,
                 admin_password: !isCurrentUserAdmin && verifiedAdminName ? adminPassword : undefined,
                 notes: notes
@@ -475,8 +493,13 @@ export default function SalariesPage() {
                                                 <td className="px-4 py-4 font-black text-emerald-600 font-mono text-sm tabular-nums">
                                                     {Number(h.amount).toLocaleString('ar-LY')} د.ل
                                                 </td>
-                                                <td className="px-4 py-4 text-xs font-bold text-gray-400">
-                                                    {new Date(h.payment_date).toLocaleDateString('ar-LY')}
+                                                <td className="px-4 py-4 text-xs font-bold">
+                                                    <span className="text-emerald-700 dark:text-emerald-400 font-black block">
+                                                        {h.payment_day_name || getArabicDayName(h.payment_date)}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-400 font-mono">
+                                                        {new Date(h.payment_date).toLocaleDateString('ar-LY')}
+                                                    </span>
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <button
@@ -528,8 +551,16 @@ export default function SalariesPage() {
                             </div>
                         </div>
 
-                        <div className="w-full sm:w-auto">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">عن شهر</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-1.5 rounded-xl text-center">
+                                <span className="text-[9px] font-bold text-gray-400 block">يوم وتاريخ الصرف</span>
+                                <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">
+                                    {todayArabicDayName}، {new Date().toLocaleDateString('ar-LY')}
+                                </span>
+                            </div>
+
+                            <div className="w-full sm:w-auto">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">عن شهر</label>
                             <div className="relative">
                                 <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <input
@@ -540,6 +571,7 @@ export default function SalariesPage() {
                                     required
                                 />
                             </div>
+                        </div>
                         </div>
                     </div>
 
@@ -584,6 +616,30 @@ export default function SalariesPage() {
                                     <strong className="text-xs font-black text-gray-800 dark:text-gray-200 font-mono">
                                         {absenceInfo.daily_rate} د.ل
                                     </strong>
+                                </div>
+                            </div>
+                        )}
+
+                        {absenceInfo?.absence_dates_list && absenceInfo.absence_dates_list.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-amber-200/60 dark:border-amber-900/40">
+                                <span className="text-[10px] font-black text-amber-900 dark:text-amber-200 block mb-1.5 flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-amber-600" />
+                                    أيام وتواريخ الغياب المرصودة ({absenceInfo.absence_dates_list.length} يوم):
+                                </span>
+                                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 bg-white/70 dark:bg-gray-900/70 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                                    {absenceInfo.absence_dates_list.map((d, idx) => (
+                                        <span
+                                            key={idx}
+                                            className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg font-bold border ${
+                                                d.is_friday
+                                                    ? 'bg-amber-100/60 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/40'
+                                                    : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/40'
+                                            }`}
+                                        >
+                                            <strong>{d.day_name}</strong>
+                                            <span className="font-mono text-[9px] opacity-80">{d.date}</span>
+                                        </span>
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -883,9 +939,10 @@ export default function SalariesPage() {
                                     <span className="font-mono font-black text-gray-800 dark:text-gray-200">#SAL-{selectedSalaryForSlip.id}</span>
                                 </div>
                                 <div className="text-left">
-                                    <span className="text-gray-400 font-bold block">تاريخ العملية:</span>
-                                    <span className="font-mono font-bold text-gray-800 dark:text-gray-200">
-                                        {new Date(selectedSalaryForSlip.payment_date).toLocaleDateString('ar-LY')}
+                                    <span className="text-gray-400 font-bold block">يوم وتاريخ الصرف:</span>
+                                    <span className="font-black text-gray-800 dark:text-gray-200">
+                                        {selectedSalaryForSlip.payment_day_name || getArabicDayName(selectedSalaryForSlip.payment_date)}،{' '}
+                                        <span className="font-mono">{new Date(selectedSalaryForSlip.payment_date).toLocaleDateString('ar-LY')}</span>
                                     </span>
                                 </div>
                             </div>
@@ -939,6 +996,12 @@ export default function SalariesPage() {
                             {selectedSalaryForSlip.deduction_reason && (
                                 <div className="p-2 bg-rose-50 dark:bg-rose-950/30 rounded-lg text-[10.5px] text-rose-700 dark:text-rose-300 font-bold">
                                     سبب / مبرر الخصم: {selectedSalaryForSlip.deduction_reason}
+                                </div>
+                            )}
+
+                            {selectedSalaryForSlip.absence_dates_detail && (
+                                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-[10.5px] text-amber-800 dark:text-amber-200 font-bold">
+                                    بيان أيام الغياب المعتمدة: {selectedSalaryForSlip.absence_dates_detail}
                                 </div>
                             )}
 

@@ -12,6 +12,12 @@ export interface TreasuryTransaction {
     created_at: string;
 }
 
+export interface AbsenceDayItem {
+    date: string;
+    day_name: string;
+    is_friday?: boolean;
+}
+
 export interface SalaryPayment {
     id: number;
     employee_id: number;
@@ -23,8 +29,10 @@ export interface SalaryPayment {
     absence_deduction?: number;
     bonus_amount?: number;
     deduction_reason?: string;
+    absence_dates_detail?: string;
     deduction_approved_by_name?: string;
     payment_date: string;
+    payment_day_name?: string;
     month_covered: string;
     notes?: string;
 }
@@ -39,6 +47,8 @@ export interface SalaryPaymentPayload {
     absence_deduction?: number;
     bonus_amount?: number;
     deduction_reason?: string;
+    absence_dates_detail?: string;
+    payment_day_name?: string;
     admin_username?: string;
     admin_password?: string;
     notes?: string;
@@ -48,6 +58,8 @@ export interface AbsenceCalculation {
     employee_id: number;
     employee_name: string;
     month: string;
+    today_date?: string;
+    current_day_name?: string;
     basic_salary: number;
     total_days: number;
     effective_days: number;
@@ -56,6 +68,7 @@ export interface AbsenceCalculation {
     daily_rate: number;
     suggested_deduction: number;
     suggested_net: number;
+    absence_dates_list?: AbsenceDayItem[];
 }
 
 export interface AdminVerifyResult {

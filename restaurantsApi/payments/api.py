@@ -108,6 +108,8 @@ class SalaryPaymentIn(Schema):
     absence_deduction: Optional[float] = 0.0
     bonus_amount: Optional[float] = 0.0
     deduction_reason: Optional[str] = None
+    absence_dates_detail: Optional[str] = None
+    payment_day_name: Optional[str] = None
     admin_username: Optional[str] = None
     admin_password: Optional[str] = None
     notes: Optional[str] = None
@@ -123,10 +125,34 @@ class SalaryPaymentOut(Schema):
     absence_deduction: float = 0.0
     bonus_amount: float = 0.0
     deduction_reason: Optional[str] = None
+    absence_dates_detail: Optional[str] = None
     deduction_approved_by_name: Optional[str] = None
     payment_date: Any
+    payment_day_name: Optional[str] = None
     month_covered: str
     notes: Optional[str] = None
+
+    @staticmethod
+    def resolve_payment_day_name(obj):
+        if getattr(obj, 'payment_date', None):
+            ARABIC_DAYS = {
+                0: 'الإثنين',
+                1: 'الثلاثاء',
+                2: 'الأربعاء',
+                3: 'الخميس',
+                4: 'الجمعة',
+                5: 'السبت',
+                6: 'الأحد'
+            }
+            try:
+                p_date = obj.payment_date
+                if isinstance(p_date, str):
+                    p_date = datetime.strptime(p_date, '%Y-%m-%d').date()
+                weekday = p_date.weekday()
+                return ARABIC_DAYS.get(weekday, '')
+            except Exception:
+                return ''
+        return ''
 
     @staticmethod
     def resolve_employee_name(obj):
@@ -141,10 +167,17 @@ class SalaryPaymentOut(Schema):
             return full or obj.deduction_approved_by.username
         return None
 
+class AbsenceDayItem(Schema):
+    date: str
+    day_name: str
+    is_friday: bool = False
+
 class AbsenceCalculationOut(Schema):
     employee_id: int
     employee_name: str
     month: str
+    today_date: str
+    current_day_name: str
     basic_salary: float
     total_days: int
     effective_days: int
@@ -153,6 +186,7 @@ class AbsenceCalculationOut(Schema):
     daily_rate: float
     suggested_deduction: float
     suggested_net: float
+    absence_dates_list: List[AbsenceDayItem] = []
 
 class VerifyAdminIn(Schema):
     admin_username: str
@@ -417,6 +451,27 @@ def calculate_employee_absence(request, employee_id: int, month: str):
         punch_type='CHECK_IN'
     ).values_list('timestamp__date', flat=True))
 
+    ARABIC_DAYS = {
+        0: 'الإثنين',
+        1: 'الثلاثاء',
+        2: 'الأربعاء',
+        3: 'الخميس',
+        4: 'الجمعة',
+        5: 'السبت',
+        6: 'الأحد'
+    }
+
+    absence_dates_list = []
+    for day_i in range(1, effective_days + 1):
+        cur_date = date(year, month_num, day_i)
+        if cur_date not in attended_dates:
+            weekday = cur_date.weekday()
+            absence_dates_list.append({
+                "date": cur_date.isoformat(),
+                "day_name": ARABIC_DAYS.get(weekday, ''),
+                "is_friday": (weekday == 4)
+            })
+
     attended_days = len(attended_dates)
     absence_days = max(0, effective_days - attended_days)
     basic_salary = float(getattr(employee, 'basic_salary', 0.0) or 0.0)
@@ -424,10 +479,15 @@ def calculate_employee_absence(request, employee_id: int, month: str):
     suggested_deduction = round(absence_days * daily_rate, 2)
     suggested_net = max(0.0, round(basic_salary - suggested_deduction, 2))
 
+    today_str = today.isoformat()
+    current_day_name = ARABIC_DAYS.get(today.weekday(), '')
+
     return {
         "employee_id": employee.id,
         "employee_name": employee.name,
         "month": month,
+        "today_date": today_str,
+        "current_day_name": current_day_name,
         "basic_salary": basic_salary,
         "total_days": days_in_month,
         "effective_days": effective_days,
@@ -435,7 +495,8 @@ def calculate_employee_absence(request, employee_id: int, month: str):
         "absence_days": absence_days,
         "daily_rate": daily_rate,
         "suggested_deduction": suggested_deduction,
-        "suggested_net": suggested_net
+        "suggested_net": suggested_net,
+        "absence_dates_list": absence_dates_list
     }
 
 @payments_router.post("/salaries/verify-admin", response={200: VerifyAdminOut, 400: VerifyAdminOut, 403: VerifyAdminOut}, auth=JWTAuth())
@@ -505,6 +566,7 @@ def record_salary_payment(request, data: SalaryPaymentIn):
         absence_deduction=absence_deduction,
         bonus_amount=data.bonus_amount or 0.0,
         deduction_reason=data.deduction_reason,
+        absence_dates_detail=data.absence_dates_detail,
         deduction_approved_by=approved_by_admin,
         month_covered=data.month_covered,
         notes=data.notes
