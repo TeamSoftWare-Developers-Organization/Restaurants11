@@ -1,8 +1,8 @@
 # payments/api.py
 
 from ninja import Router, Schema
-from typing import List, Optional
-from datetime import datetime
+from typing import List, Optional, Any, Union
+from datetime import datetime, date
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
 
@@ -102,15 +102,67 @@ class SalaryPaymentIn(Schema):
     employee_id: int
     amount: float
     month_covered: str
+    basic_salary: Optional[float] = 0.0
+    absence_days: Optional[int] = 0
+    daily_rate: Optional[float] = 0.0
+    absence_deduction: Optional[float] = 0.0
+    bonus_amount: Optional[float] = 0.0
+    deduction_reason: Optional[str] = None
+    admin_username: Optional[str] = None
+    admin_password: Optional[str] = None
     notes: Optional[str] = None
 
 class SalaryPaymentOut(Schema):
     id: int
     employee_id: int
+    employee_name: Optional[str] = None
     amount: float
-    payment_date: datetime
+    basic_salary: float = 0.0
+    absence_days: int = 0
+    daily_rate: float = 0.0
+    absence_deduction: float = 0.0
+    bonus_amount: float = 0.0
+    deduction_reason: Optional[str] = None
+    deduction_approved_by_name: Optional[str] = None
+    payment_date: Any
     month_covered: str
     notes: Optional[str] = None
+
+    @staticmethod
+    def resolve_employee_name(obj):
+        if getattr(obj, 'employee', None):
+            return obj.employee.name
+        return f"موظف #{obj.employee_id}"
+
+    @staticmethod
+    def resolve_deduction_approved_by_name(obj):
+        if getattr(obj, 'deduction_approved_by', None):
+            full = f"{obj.deduction_approved_by.first_name} {obj.deduction_approved_by.last_name}".strip()
+            return full or obj.deduction_approved_by.username
+        return None
+
+class AbsenceCalculationOut(Schema):
+    employee_id: int
+    employee_name: str
+    month: str
+    basic_salary: float
+    total_days: int
+    effective_days: int
+    attended_days: int
+    absence_days: int
+    daily_rate: float
+    suggested_deduction: float
+    suggested_net: float
+
+class VerifyAdminIn(Schema):
+    admin_username: str
+    admin_password: str
+
+class VerifyAdminOut(Schema):
+    success: bool
+    admin_id: Optional[int] = None
+    admin_name: Optional[str] = None
+    message: Optional[str] = None
 
 class TreasurySummaryOut(Schema):
     total_balance: float
@@ -308,37 +360,166 @@ def record_general_expense(request, data: TreasuryTransactionIn):
     )
     return transaction
 
+def is_user_admin_or_manager(user) -> bool:
+    if not user:
+        return False
+    if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
+        return True
+    if hasattr(user, 'employee_profile'):
+        role = (user.employee_profile.role or '').lower()
+        if role in ['admin', 'manager']:
+            return True
+        perms = user.employee_profile.get_effective_permissions()
+        if perms.get('salaries') and perms.get('employees'):
+            return True
+    return False
+
 @payments_router.get("/salaries", response=List[SalaryPaymentOut], auth=JWTAuth())
 def list_salaries(request):
     """
-    عرض سجل صرف المرتبات.
+    عرض سجل صرف المرتبات مع تفاصيل الخصومات.
     """
-    return SalaryPayment.objects.all()
+    return SalaryPayment.objects.select_related('employee', 'employee__user', 'deduction_approved_by').all()
 
-@payments_router.post("/salaries", response=SalaryPaymentOut, auth=JWTAuth())
+@payments_router.get("/salaries/calculate-absence", response=AbsenceCalculationOut, auth=JWTAuth())
+def calculate_employee_absence(request, employee_id: int, month: str):
+    """
+    حساب تفاصيل حضور وغياب الموظف لشهر محدد وحساب قيمة الخصم المقترحة.
+    """
+    import calendar
+    from datetime import date
+    from employees.models import AttendanceLog
+
+    employee = get_object_or_404(Employee, id=employee_id)
+    try:
+        parts = month.split('-')
+        year = int(parts[0])
+        month_num = int(parts[1])
+    except (ValueError, IndexError):
+        today = date.today()
+        year, month_num = today.year, today.month
+        month = f"{year:04d}-{month_num:02d}"
+
+    days_in_month = calendar.monthrange(year, month_num)[1]
+    today = date.today()
+
+    if year == today.year and month_num == today.month:
+        effective_days = min(today.day, days_in_month)
+    elif date(year, month_num, 1) < today:
+        effective_days = days_in_month
+    else:
+        effective_days = 0
+
+    attended_dates = set(AttendanceLog.objects.filter(
+        employee=employee,
+        timestamp__year=year,
+        timestamp__month=month_num,
+        punch_type='CHECK_IN'
+    ).values_list('timestamp__date', flat=True))
+
+    attended_days = len(attended_dates)
+    absence_days = max(0, effective_days - attended_days)
+    basic_salary = float(getattr(employee, 'basic_salary', 0.0) or 0.0)
+    daily_rate = round(basic_salary / 30.0, 2) if basic_salary > 0 else 0.0
+    suggested_deduction = round(absence_days * daily_rate, 2)
+    suggested_net = max(0.0, round(basic_salary - suggested_deduction, 2))
+
+    return {
+        "employee_id": employee.id,
+        "employee_name": employee.name,
+        "month": month,
+        "basic_salary": basic_salary,
+        "total_days": days_in_month,
+        "effective_days": effective_days,
+        "attended_days": attended_days,
+        "absence_days": absence_days,
+        "daily_rate": daily_rate,
+        "suggested_deduction": suggested_deduction,
+        "suggested_net": suggested_net
+    }
+
+@payments_router.post("/salaries/verify-admin", response={200: VerifyAdminOut, 400: VerifyAdminOut, 403: VerifyAdminOut}, auth=JWTAuth())
+def verify_admin_for_salary(request, data: VerifyAdminIn):
+    """
+    التحقق من إذن المشرف أو المدير (Admin) لاعتماد خصم المرتبات.
+    """
+    from django.contrib.auth import authenticate
+    user = authenticate(username=data.admin_username, password=data.admin_password)
+    if not user:
+        return 400, {
+            "success": False,
+            "message": "اسم المستخدم أو كلمة المرور للمشرف غير صحيحة."
+        }
+    if not is_user_admin_or_manager(user):
+        return 403, {
+            "success": False,
+            "message": "المستخدم المدخل لا يمتلك صلاحيات المدير (Admin) لاعتماد الخصم."
+        }
+    admin_name = f"{user.first_name} {user.last_name}".strip() or user.username
+    return 200, {
+        "success": True,
+        "admin_id": user.id,
+        "admin_name": admin_name,
+        "message": f"تم التحقق واعتماد الإذن بواسطة {admin_name} بنجاح."
+    }
+
+@payments_router.post("/salaries", response={200: SalaryPaymentOut, 400: dict, 403: dict}, auth=JWTAuth())
 def record_salary_payment(request, data: SalaryPaymentIn):
     """
-    تسجيل صرف مرتب لموظف.
+    تسجيل صرف مرتب لموظف مع تحديد وخصم الغياب بإذن واعتماد Admin.
     """
+    from django.contrib.auth import authenticate
     employee = get_object_or_404(Employee, id=data.employee_id)
     
+    absence_deduction = float(data.absence_deduction or 0.0)
+    approved_by_admin = None
+
+    # التحقق من إذن واعتماد الأدمن إذا وجد خصم غياب
+    if absence_deduction > 0:
+        if is_user_admin_or_manager(request.auth):
+            approved_by_admin = request.auth
+        elif data.admin_username and data.admin_password:
+            admin_user = authenticate(username=data.admin_username, password=data.admin_password)
+            if not admin_user:
+                return 400, {"message": "بيانات اعتماد المشرف (Admin) غير صحيحة."}
+            if not is_user_admin_or_manager(admin_user):
+                return 403, {"message": "المستخدم المدخل لا يمتلك صلاحية المدير (Admin) لاعتماد الخصم."}
+            approved_by_admin = admin_user
+        else:
+            return 403, {
+                "message": "تحديد أو تطبيق خصم الغياب يتطلب إذن واعتماد المشرف أو المدير (Admin)."
+            }
+
+    # إذا كان للموظف مرتب أساسي ولم يكن محفوظاً في البروفايل، نحدثه
+    if data.basic_salary and data.basic_salary > 0 and (not employee.basic_salary or employee.basic_salary == 0):
+        employee.basic_salary = data.basic_salary
+        employee.save(update_fields=['basic_salary'])
+
     # 1. إنشاء سجل صرف المرتب
     salary = SalaryPayment.objects.create(
         employee=employee,
         amount=data.amount,
+        basic_salary=data.basic_salary or 0.0,
+        absence_days=data.absence_days or 0,
+        daily_rate=data.daily_rate or 0.0,
+        absence_deduction=absence_deduction,
+        bonus_amount=data.bonus_amount or 0.0,
+        deduction_reason=data.deduction_reason,
+        deduction_approved_by=approved_by_admin,
         month_covered=data.month_covered,
         notes=data.notes
     )
     
     # 2. تسجيل العملية في الخزينة كحركة خروج
+    deduction_note = f" (خصم غياب: {absence_deduction} د.ل)" if absence_deduction > 0 else ""
     TreasuryTransaction.objects.create(
         amount=data.amount,
         transaction_type='out',
         reference_type='salary',
         reference_id=salary.id,
-        description=f"صرف مرتب {employee.user.username} لشهر {data.month_covered}"
+        description=f"صرف مرتب {employee.user.username} لشهر {data.month_covered}{deduction_note}"
     )
-    return salary
+    return 200, salary
 
 
 # ==========================================
@@ -362,4 +543,4 @@ def list_cash_anomalies(request):
     استرجاع تنبيهات الذكاء الاصطناعي الخاصة بالتلاعب المالي وعجز الخزينة
     """
     from ml_services.fraud_detector import FinancialAnomalyDetector
-    return FinancialAnomalyDetector.get_recent_anomalies(limit=15)
+    return FinancialAnomalyDetector.get_recent_anomalies(limit=15)

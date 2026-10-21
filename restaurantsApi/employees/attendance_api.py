@@ -114,6 +114,139 @@ def fingerprint_checkin(request, file: UploadedFile = File(...), punch_type: Opt
     }
 
 
+class EmployeeAttendanceSummaryOut(Schema):
+    employee_id: int
+    employee_name: str
+    role: str
+    phone_number: Optional[str] = None
+    status: str  # 'PRESENT', 'CHECKED_OUT', 'ABSENT'
+    status_display: str
+    first_check_in: Optional[str] = None
+    last_check_out: Optional[str] = None
+    work_duration_formatted: str
+    work_duration_minutes: int
+    punch_count: int
+    latest_punch_time: Optional[str] = None
+
+class OverallAttendanceOverviewOut(Schema):
+    date: str
+    total_employees: int
+    present_count: int
+    checked_out_count: int
+    absent_count: int
+    attendance_rate: str
+    employees_summary: List[EmployeeAttendanceSummaryOut]
+
+@attendance_router.get("/overview/", response=OverallAttendanceOverviewOut)
+def get_attendance_overview(request, target_date: Optional[str] = None):
+    """
+    متابعة الحضور والانصراف في مجمل الحالات لجميع الموظفين لتاريخ محدد (افتراضياً اليوم):
+    - تحديد حالة كل موظف: حاضر حالياً (لم ينصرف بعد)، انصرف (أتم الدوام)، أو غائب (لم يسجل حضور).
+    - توقيت أول حضور، توقيت آخر انصراف، ومدة العمل الفعلية بالساعات والدقائق.
+    """
+    today_date_str = target_date if target_date else timezone.now().strftime("%Y-%m-%d")
+    employees = Employee.objects.select_related('user').all()
+    total_employees = employees.count()
+
+    # جلب جميع حركات ذلك اليوم مرتبة زمنياً
+    day_logs = AttendanceLog.objects.filter(timestamp__date=today_date_str).select_related('employee').order_by('timestamp')
+
+    # تجميع الحركات لكل موظف
+    from collections import defaultdict
+    emp_logs_map = defaultdict(list)
+    for l in day_logs:
+        emp_logs_map[l.employee_id].append(l)
+
+    summaries = []
+    present_count = 0
+    checked_out_count = 0
+    absent_count = 0
+
+    for emp in employees:
+        logs_for_emp = emp_logs_map.get(emp.id, [])
+        if not logs_for_emp:
+            absent_count += 1
+            summaries.append({
+                "employee_id": emp.id,
+                "employee_name": emp.name,
+                "role": emp.get_role_display(),
+                "phone_number": emp.phone_number or "",
+                "status": "ABSENT",
+                "status_display": "غائب / لم يسجل حضور",
+                "first_check_in": None,
+                "last_check_out": None,
+                "work_duration_formatted": "0 س 0 د",
+                "work_duration_minutes": 0,
+                "punch_count": 0,
+                "latest_punch_time": None
+            })
+            continue
+
+        # يوجد حركات حضور اليوم
+        first_in = next((l for l in logs_for_emp if l.punch_type == 'CHECK_IN'), None)
+        last_punch = logs_for_emp[-1]
+        last_out = next((l for l in reversed(logs_for_emp) if l.punch_type == 'CHECK_OUT'), None)
+
+        # حساب إجمالي الدقائق المحسوبة
+        # نقوم بمطابقة كل CHECK_IN مع الـ CHECK_OUT اللاحق
+        total_seconds = 0
+        current_in = None
+        for l in logs_for_emp:
+            if l.punch_type == 'CHECK_IN':
+                current_in = l.timestamp
+            elif l.punch_type == 'CHECK_OUT' and current_in:
+                diff = (l.timestamp - current_in).total_seconds()
+                if diff > 0:
+                    total_seconds += diff
+                current_in = None
+
+        # إذا كانت آخر حركة CHECK_IN وما زال بالعمل
+        if current_in and today_date_str == timezone.now().strftime("%Y-%m-%d"):
+            diff = (timezone.now() - current_in).total_seconds()
+            if diff > 0:
+                total_seconds += diff
+
+        total_mins = int(total_seconds // 60)
+        hours = total_mins // 60
+        mins = total_mins % 60
+        duration_str = f"{hours} س {mins} د"
+
+        if last_punch.punch_type == 'CHECK_IN':
+            status = 'PRESENT'
+            status_display = 'على رأس العمل (حاضر)'
+            present_count += 1
+        else:
+            status = 'CHECKED_OUT'
+            status_display = 'تم الانصراف (أتم الوردية)'
+            checked_out_count += 1
+
+        summaries.append({
+            "employee_id": emp.id,
+            "employee_name": emp.name,
+            "role": emp.get_role_display(),
+            "phone_number": emp.phone_number or "",
+            "status": status,
+            "status_display": status_display,
+            "first_check_in": first_in.timestamp.strftime("%I:%M %p") if first_in else None,
+            "last_check_out": last_out.timestamp.strftime("%I:%M %p") if last_out else None,
+            "work_duration_formatted": duration_str,
+            "work_duration_minutes": total_mins,
+            "punch_count": len(logs_for_emp),
+            "latest_punch_time": last_punch.timestamp.strftime("%I:%M %p")
+        })
+
+    attendance_rate = f"{round((present_count + checked_out_count) / max(total_employees, 1) * 100, 1)}%"
+
+    return 200, {
+        "date": today_date_str,
+        "total_employees": total_employees,
+        "present_count": present_count,
+        "checked_out_count": checked_out_count,
+        "absent_count": absent_count,
+        "attendance_rate": attendance_rate,
+        "employees_summary": summaries
+    }
+
 class ManualAttendanceIn(Schema):
     employee_id: int
     punch_type: str  # CHECK_IN or CHECK_OUT

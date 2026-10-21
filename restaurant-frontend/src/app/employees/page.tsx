@@ -26,7 +26,8 @@ import {
     AlertCircle,
     Sparkles,
     Smartphone,
-    Usb
+    Network,
+    Cable
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -34,7 +35,7 @@ import { useRouter } from 'next/navigation';
 import { employeeService, Employee, AVAILABLE_PERMISSIONS, UserPermissions } from '@/services/employeeService';
 import { attendanceService } from '@/services/attendanceService';
 import { confirmDialog, alertDialog } from '@/store/modalStore';
-import { enrollSmartphoneBiometrics, captureUsbHardwareFingerprint } from '@/lib/biometrics';
+import { enrollSmartphoneBiometrics, captureEthernetTerminalFingerprint, DEFAULT_ETHERNET_IP, DEFAULT_ETHERNET_PORT, BACKUP_ETHERNET_PORT, ETHERNET_PORTS } from '@/lib/biometrics';
 
 export default function EmployeesPage() {
     const { isSidebarCollapsed } = useUIStore();
@@ -56,6 +57,7 @@ export default function EmployeesPage() {
         last_name: '',
         role: 'waiter',
         phone_number: '',
+        basic_salary: 0,
         username: '',
         password: ''
     });
@@ -71,9 +73,13 @@ export default function EmployeesPage() {
     const [isFingerprintModalOpen, setIsFingerprintModalOpen] = useState(false);
     const [isEnrollingFingerprint, setIsEnrollingFingerprint] = useState(false);
     const [enrollMsg, setEnrollMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    const [activeBiometricTab, setActiveBiometricTab] = useState<'smartphone' | 'usb_hardware'>('smartphone');
+    const [activeBiometricTab, setActiveBiometricTab] = useState<'smartphone' | 'ethernet_terminal'>('ethernet_terminal');
     const [hardwareScanStep, setHardwareScanStep] = useState<'idle' | 'ready' | 'touch' | 'captured'>('idle');
     const [terminalEmployeeId, setTerminalEmployeeId] = useState('');
+    const [ethernetIp, setEthernetIp] = useState(DEFAULT_ETHERNET_IP);
+    const [ethernetPort, setEthernetPort] = useState<number>(DEFAULT_ETHERNET_PORT);
+    const [isTestingEthernet, setIsTestingEthernet] = useState(false);
+    const [ethernetStatus, setEthernetStatus] = useState<{ status: 'idle' | 'online' | 'offline'; msg?: string; openPorts?: number[] }>({ status: 'idle' });
 
     useEffect(() => {
         setIsClient(true);
@@ -105,6 +111,7 @@ export default function EmployeesPage() {
                 last_name: item.last_name,
                 role: item.role,
                 phone_number: cleanPhone,
+                basic_salary: item.basic_salary || 0,
                 username: item.username,
                 password: '' // Don't show password
             });
@@ -115,6 +122,7 @@ export default function EmployeesPage() {
                 last_name: '',
                 role: 'waiter',
                 phone_number: '',
+                basic_salary: 0,
                 username: '',
                 password: ''
             });
@@ -211,9 +219,10 @@ export default function EmployeesPage() {
     const handleOpenFingerprintModal = (emp: Employee) => {
         setSelectedEmpForFingerprint(emp);
         setEnrollMsg(null);
-        setActiveBiometricTab('smartphone');
+        setActiveBiometricTab('ethernet_terminal');
         setHardwareScanStep('idle');
         setTerminalEmployeeId('');
+        setEthernetStatus({ status: 'idle' });
         setIsFingerprintModalOpen(true);
     };
 
@@ -236,31 +245,58 @@ export default function EmployeesPage() {
         }
     };
 
-    const handleUsbHardwareEnroll = async () => {
+    const handleEthernetEnroll = async () => {
         if (!selectedEmpForFingerprint) return;
         try {
             setIsEnrollingFingerprint(true);
             setHardwareScanStep('ready');
             setEnrollMsg(null);
 
-            await new Promise(r => setTimeout(r, 600));
+            await new Promise(r => setTimeout(r, 400));
             setHardwareScanStep('touch');
 
             const fullName = `${selectedEmpForFingerprint.first_name || ''} ${selectedEmpForFingerprint.last_name || ''}`.trim() || selectedEmpForFingerprint.username;
-            const result = await captureUsbHardwareFingerprint(selectedEmpForFingerprint.id, fullName);
+            const result = await captureEthernetTerminalFingerprint(
+                selectedEmpForFingerprint.id,
+                fullName,
+                ethernetIp,
+                ethernetPort,
+                terminalEmployeeId
+            );
 
-            await new Promise(r => setTimeout(r, 800));
+            await new Promise(r => setTimeout(r, 600));
             setHardwareScanStep('captured');
 
             const res = await attendanceService.enrollBiometric(selectedEmpForFingerprint.id, result);
-            setEnrollMsg({ type: 'success', text: res.message || 'تم قراءة وحفظ قالب البصمة من جهاز USB بنجاح!' });
+            setEnrollMsg({ type: 'success', text: res.message || 'تم ربط واعتماد بصمة الموظف عبر كابل الإيثرنت (Cable EtherNet) بنجاح!' });
             fetchEmployees();
         } catch (err: any) {
-            console.error('USB Hardware enrollment error:', err);
-            setEnrollMsg({ type: 'error', text: err.message || 'فشل الاتصال بجهاز البصمة USB.' });
+            console.error('Ethernet enrollment error:', err);
+            setEnrollMsg({ type: 'error', text: err.message || 'فشل ربط البصمة بجهاز كابل الإيثرنت.' });
             setHardwareScanStep('idle');
         } finally {
             setIsEnrollingFingerprint(false);
+        }
+    };
+
+    const handleTestEthernetConnection = async () => {
+        setIsTestingEthernet(true);
+        setEthernetStatus({ status: 'idle' });
+        try {
+            const res = await attendanceService.testEthernetDevice(ethernetIp, ethernetPort);
+            setEthernetStatus({
+                status: 'online',
+                msg: res.message || `تم التحقق بنجاح! الجهاز متصل عبر كابل الإيثرنت على المنفذ ${res.port}.`,
+                openPorts: res.open_ports
+            });
+        } catch (err: any) {
+            const errMsg = err.response?.data?.message || err.message || 'تعذر الاتصال بجهاز البصمة عبر كابل الإيثرنت.';
+            setEthernetStatus({
+                status: 'offline',
+                msg: errMsg
+            });
+        } finally {
+            setIsTestingEthernet(false);
         }
     };
 
@@ -706,15 +742,15 @@ export default function EmployeesPage() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => { setActiveBiometricTab('usb_hardware'); setEnrollMsg(null); }}
+                            onClick={() => { setActiveBiometricTab('ethernet_terminal'); setEnrollMsg(null); }}
                             className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-black text-xs transition-all ${
-                                activeBiometricTab === 'usb_hardware'
+                                activeBiometricTab === 'ethernet_terminal'
                                     ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
                             }`}
                         >
-                            <Usb className="w-4 h-4" />
-                            <span>قارئ USB / أجهزة الحضور</span>
+                            <Network className="w-4 h-4" />
+                            <span>جهاز البصمة الشبكي (Cable EtherNet)</span>
                         </button>
                     </div>
 
@@ -763,73 +799,123 @@ export default function EmployeesPage() {
                         </div>
                     )}
 
-                    {/* Tab 2: USB Hardware Fingerprint Scanner & Terminal */}
-                    {activeBiometricTab === 'usb_hardware' && (
+                    {/* Tab 2: Ethernet Cable Network Biometric Terminal (Cable EtherNet) */}
+                    {activeBiometricTab === 'ethernet_terminal' && (
                         <div className="space-y-4">
-                            <div className="p-3 bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/30 rounded-xl text-xs text-cyan-800 dark:text-cyan-300">
-                                <p className="font-bold flex items-center gap-2">
-                                    <Usb className="w-4 h-4 text-cyan-600 shrink-0" />
-                                    أجهزة وقارئات البصمة الخارجية (ZKTeco LiveID / ZK4500 / DigitalPersona)
+                            <div className="p-3 bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/40 rounded-xl text-xs text-cyan-900 dark:text-cyan-200">
+                                <p className="font-black flex items-center gap-2 text-cyan-800 dark:text-cyan-300">
+                                    <Network className="w-4 h-4 text-cyan-600 shrink-0" />
+                                    <span>جهاز البصمة الشبكي عبر كابل الإيثرنت (Cable EtherNet / LAN)</span>
                                 </p>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                                    التقاط القالب المشفر مباشرة عبر قارئ USB المتصل أو ربطه بجهاز بصمة الحضور الشبكي المثبت في المطعم.
+                                <p className="text-[11px] text-cyan-800/80 dark:text-cyan-300/80 mt-1 leading-relaxed font-bold">
+                                    ربط واعتماد بصمة الموظف بجهاز البصمة الشبكي المعلق بالفرع عبر كابل الشبكة RJ45.
+                                    يدعم المنافذ: 4370، 4444، 8888، والمنفذ الاحتياطي 5003.
                                 </p>
                             </div>
 
-                            <div className="flex flex-col items-center justify-center border-2 border-dashed border-cyan-200 dark:border-cyan-900/40 rounded-2xl p-6 bg-cyan-50/20 dark:bg-cyan-950/10">
-                                <div className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
-                                    hardwareScanStep === 'touch'
-                                        ? 'bg-amber-500/20 animate-pulse border-2 border-amber-500 text-amber-500'
-                                        : hardwareScanStep === 'captured'
-                                        ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-500'
-                                        : 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400'
-                                }`}>
-                                    <Fingerprint className="w-12 h-12" />
+                            {/* Network Terminal Configuration Box */}
+                            <div className="p-3 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-xl space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-right">
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-500 dark:text-gray-400 block mb-1">
+                                            عنوان IP للجهاز (كابل الإيثرنت):
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={ethernetIp}
+                                            onChange={(e) => setEthernetIp(e.target.value)}
+                                            placeholder="192.168.1.201"
+                                            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-mono text-xs text-center font-bold"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-500 dark:text-gray-400 block mb-1">
+                                            رقم الموظف على الجهاز (PIN / User ID):
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={terminalEmployeeId}
+                                            onChange={(e) => setTerminalEmployeeId(e.target.value)}
+                                            placeholder={String(selectedEmpForFingerprint?.id || '1')}
+                                            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-mono text-xs text-center font-bold"
+                                        />
+                                    </div>
                                 </div>
-                                <span className="text-xs font-black text-gray-800 dark:text-gray-200 mt-3">
-                                    {hardwareScanStep === 'ready' && 'جاري البحث عن قارئ البصمة USB...'}
-                                    {hardwareScanStep === 'touch' && '👉 ضع إصبع الموظف على عدسة الماسح الآن'}
-                                    {hardwareScanStep === 'captured' && '✓ تم التقاط البصمة المشفرة بنجاح!'}
-                                    {hardwareScanStep === 'idle' && 'قارئ البصمة USB جاهز للمسح'}
-                                </span>
-                                <span className="text-[10px] text-gray-400 font-bold mt-1">
-                                    يدعم ZKTeco, DigitalPersona 4500, SecuGen Hamster عبر WebUSB
-                                </span>
+
+                                {/* Supported Ports Badges */}
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-500 dark:text-gray-400 block mb-1.5">
+                                        اختر منفذ الشبكة المعتمد:
+                                    </label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                        {[
+                                            { p: 4370, label: '4370 (ZKTeco)', desc: 'افتراضي' },
+                                            { p: 4444, label: '4444 (الجسر)', desc: 'Daemon' },
+                                            { p: 8888, label: '8888 (Push SDK)', desc: 'سحابي' },
+                                            { p: 5003, label: '5003 (احتياطي)', desc: 'طوارئ', backup: true },
+                                        ].map(({ p, label, desc, backup }) => (
+                                            <button
+                                                key={p}
+                                                type="button"
+                                                onClick={() => setEthernetPort(p)}
+                                                className={`py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer border ${
+                                                    ethernetPort === p
+                                                        ? backup
+                                                            ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                                                            : 'bg-cyan-600 text-white border-cyan-600 shadow-xs'
+                                                        : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-cyan-400'
+                                                }`}
+                                            >
+                                                <div className="text-[11px] font-black font-mono">{p}</div>
+                                                <div className="text-[8px] opacity-80">{desc}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Test Connection Button */}
+                                <button
+                                    type="button"
+                                    disabled={isTestingEthernet}
+                                    onClick={handleTestEthernetConnection}
+                                    className="w-full py-2 bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                                >
+                                    <Cable className={`w-3.5 h-3.5 ${isTestingEthernet ? 'animate-spin' : ''}`} />
+                                    <span>{isTestingEthernet ? 'جاري فحص كابل الإيثرنت والمنافذ...' : 'فحص اتصال كابل الإيثرنت (Test Connection)'}</span>
+                                </button>
+
+                                {ethernetStatus.status !== 'idle' && (
+                                    <div className={`p-2.5 rounded-lg text-[11px] font-bold text-right flex items-start gap-2 ${
+                                        ethernetStatus.status === 'online'
+                                            ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
+                                            : 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40'
+                                    }`}>
+                                        {ethernetStatus.status === 'online' ? (
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                        ) : (
+                                            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                        )}
+                                        <div className="leading-relaxed">
+                                            {ethernetStatus.msg}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
+                            {/* Main Action Button */}
                             <button
                                 type="button"
                                 disabled={isEnrollingFingerprint}
-                                onClick={handleUsbHardwareEnroll}
-                                className="w-full h-11 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                                onClick={handleEthernetEnroll}
+                                className="w-full h-11 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
                             >
-                                <Usb className="w-4 h-4" />
-                                {isEnrollingFingerprint ? 'جاري التقاط البصمة من الماسح...' : 'قراءة البصمة من قارئ USB المباشر'}
+                                <Network className="w-4 h-4" />
+                                {isEnrollingFingerprint 
+                                    ? 'جاري الربط مع جهاز البصمة الشبكي...' 
+                                    : `اعتماد وربط البصمة عبر كابل الإيثرنت (منفذ ${ethernetPort}${ethernetPort === 5003 ? ' احتياطي' : ''})`
+                                }
                             </button>
-
-                            {/* Optional: Link with wall attendance terminal */}
-                            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-                                <label className="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">
-                                    أو أدخل رقم الموظف في جهاز الحضور الشبكي (ZKTeco Terminal User ID):
-                                </label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="مثال: 101 أو رقم البطاقة"
-                                        value={terminalEmployeeId}
-                                        onChange={(e) => setTerminalEmployeeId(e.target.value)}
-                                        className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-cyan-500"
-                                    />
-                                    <button
-                                        type="button"
-                                        disabled={!terminalEmployeeId.trim() || isEnrollingFingerprint}
-                                        onClick={handleTerminalEnroll}
-                                        className="px-4 py-2 bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 text-white rounded-xl text-xs font-black disabled:opacity-50 transition-all"
-                                    >
-                                        ربط المعرف
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     )}
 
@@ -918,6 +1004,17 @@ export default function EmployeesPage() {
                             autoComplete="tel"
                             className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10"
                             placeholder="09XXXXXXXX (اختياري)"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">المرتب الأساسي الشهري (د.ل)</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={formData.basic_salary || ''}
+                            onChange={(e) => setFormData({ ...formData, basic_salary: parseFloat(e.target.value) || 0 })}
+                            className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-600/10 font-mono"
+                            placeholder="مثال: 1800.00"
                         />
                     </div>
                     <div className="space-y-1">

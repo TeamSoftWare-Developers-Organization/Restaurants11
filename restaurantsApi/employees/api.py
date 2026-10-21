@@ -22,6 +22,7 @@ class EmployeeIn(Schema):
     username: str
     password: Optional[str] = None # ستتم معالجتها لتشفيرها قبل الحفظ
     permissions: Optional[dict] = None
+    basic_salary: Optional[float] = 0.0
 
 class EmployeePermissionsIn(Schema):
     permissions: dict
@@ -37,7 +38,9 @@ class EmployeeOut(Schema):
     username: str
     email: Optional[str] = None
     permissions: Optional[dict] = None
+    basic_salary: Optional[float] = 0.0
     has_fingerprint: bool = False
+    basic_salary: Optional[float] = 0.0
 
     @staticmethod
     def resolve_email(obj):
@@ -62,6 +65,10 @@ class EmployeeOut(Schema):
     @staticmethod
     def resolve_permissions(obj):
         return obj.get_effective_permissions()
+
+    @staticmethod
+    def resolve_basic_salary(obj):
+        return float(getattr(obj, 'basic_salary', 0.0) or 0.0)
 
     @staticmethod
     def resolve_has_fingerprint(obj):
@@ -107,6 +114,7 @@ def create_employee(request, employee_data: EmployeeIn):
                 user=user,
                 role=employee_data.role,
                 phone_number=employee_data.phone_number,
+                basic_salary=employee_data.basic_salary or 0.0,
                 permissions=employee_data.permissions or {}
             )
             return 200, employee
@@ -132,6 +140,8 @@ def update_employee(request, employee_id: int, employee_data: EmployeeIn):
 
             employee.role = employee_data.role
             employee.phone_number = employee_data.phone_number
+            if employee_data.basic_salary is not None:
+                employee.basic_salary = employee_data.basic_salary
             if employee_data.permissions is not None:
                 employee.permissions = employee_data.permissions
             employee.save()
@@ -228,4 +238,4 @@ def enroll_biometric(request, employee_id: int, data: BiometricEnrollIn):
             "biometric_type": data.biometric_type
         }
     except Exception as e:
-        return 400, {"success": False, "detail": f"فشل تسجيل البصمة: {str(e)}"}
+        return 400, {"success": False, "detail": f"فشل تسجيل البصمة: {str(e)}"}

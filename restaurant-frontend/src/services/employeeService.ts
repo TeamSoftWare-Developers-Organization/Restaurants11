@@ -25,6 +25,7 @@ export interface Employee {
     last_name: string;
     role: string;
     phone_number?: string;
+    basic_salary?: number;
     hire_date: string;
     username: string;
     permissions?: UserPermissions;

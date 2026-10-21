@@ -12,6 +12,59 @@ export interface TreasuryTransaction {
     created_at: string;
 }
 
+export interface SalaryPayment {
+    id: number;
+    employee_id: number;
+    employee_name?: string;
+    amount: number;
+    basic_salary?: number;
+    absence_days?: number;
+    daily_rate?: number;
+    absence_deduction?: number;
+    bonus_amount?: number;
+    deduction_reason?: string;
+    deduction_approved_by_name?: string;
+    payment_date: string;
+    month_covered: string;
+    notes?: string;
+}
+
+export interface SalaryPaymentPayload {
+    employee_id: number;
+    amount: number;
+    month_covered: string;
+    basic_salary?: number;
+    absence_days?: number;
+    daily_rate?: number;
+    absence_deduction?: number;
+    bonus_amount?: number;
+    deduction_reason?: string;
+    admin_username?: string;
+    admin_password?: string;
+    notes?: string;
+}
+
+export interface AbsenceCalculation {
+    employee_id: number;
+    employee_name: string;
+    month: string;
+    basic_salary: number;
+    total_days: number;
+    effective_days: number;
+    attended_days: number;
+    absence_days: number;
+    daily_rate: number;
+    suggested_deduction: number;
+    suggested_net: number;
+}
+
+export interface AdminVerifyResult {
+    success: boolean;
+    admin_id?: number;
+    admin_name?: string;
+    message?: string;
+}
+
 export const treasuryService = {
     getCurrentShift: async (): Promise<Shift | null> => {
         const response = await api.get('/payments/shifts/current');
@@ -41,11 +94,19 @@ export const treasuryService = {
         const response = await api.get('/payments/transactions/general');
         return response.data;
     },
-    getSalaries: async (): Promise<any[]> => {
+    getSalaries: async (): Promise<SalaryPayment[]> => {
         const response = await api.get('/payments/salaries');
         return response.data;
     },
-    recordSalaryPayment: async (data: { employee_id: number; amount: number; month_covered: string; notes?: string }): Promise<any> => {
+    calculateAbsence: async (employeeId: number, month: string): Promise<AbsenceCalculation> => {
+        const response = await api.get(`/payments/salaries/calculate-absence?employee_id=${employeeId}&month=${month}`);
+        return response.data;
+    },
+    verifyAdminApproval: async (credentials: { admin_username: string; admin_password: string }): Promise<AdminVerifyResult> => {
+        const response = await api.post('/payments/salaries/verify-admin', credentials);
+        return response.data;
+    },
+    recordSalaryPayment: async (data: SalaryPaymentPayload): Promise<SalaryPayment> => {
         const response = await api.post('/payments/salaries', data);
         return response.data;
     }

@@ -18,6 +18,7 @@ class Employee(models.Model):
     ]
     role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='waiter')
     phone_number = models.CharField(max_length=20, blank=True, null=True)
+    basic_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="المرتب الأساسي")
     hire_date = models.DateField(auto_now_add=True)
     permissions = models.JSONField(default=dict, blank=True, null=True)
     # مصفوفة الميزات المستخرجة لبصمة الإصبع بواسطة الذكاء الاصطناعي (TensorFlow)

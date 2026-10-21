@@ -1,24 +1,28 @@
 """
-خادم الجسر والربط بين ماسح البصمة المادي (USB / Serial) ونظام المطعم
-Hardware Scanner Bridge Service for Restaurant Attendance
+خادم الجسر والربط الشبكي لأجهزة البصمة عبر كابل الإيثرنت (Cable EtherNet / LAN) لنظام المطعم
+Hardware Ethernet Scanner Bridge Service for Restaurant Attendance
 
 يدعم هذا البرنامج:
-1. قارئات البصمة المكتبية بنظام USB من ZKTeco (ZK4500, ZK7500, ZK9500) عبر مكتبة pyzkfp
-2. المستشعرات الضوئية التسلسلية (AS608, R307, R503, FPM10A) عبر منفذ COM/Serial ومكتبة pyserial
-3. المعالجة الرقمية للصورة عبر OpenCV ومرشحات تحسين خطوط التلال (CLAHE / Normalization)
-4. التمرير الفوري لنموذج TensorFlow Lite أو إرسال الحركة مباشرة إلى خادم Django
+1. الاتصال المباشر بأجهزة البصمة الشبكية (ZKTeco Standalone Terminals) عبر كابل الإيثرنت (Cable EtherNet - RJ45)
+2. استخدام بروتوكول الشبكة ZKTeco TCP/IP عبر مكتبة pyzk
+3. دعم المنافذ الرئيسية:
+   - المنفذ 4370 (المنفذ القياسي الافتراضي لـ ZKTeco Standalone)
+   - المنفذ 4444 (منفذ خادم الجسر والربط Daemon Listener)
+   - المنفذ 8888 (منفذ السحابة والتحميل التلقائي ADMS Push SDK)
+   - المنفذ 5003 (المنفذ الاحتياطي البديل للطوارئ Backup Port)
+4. محاولة الاتصال التلقائي عبر المنافذ البديلة والاحتياطية في حال انقطاع المنفذ الرئيسي
+5. التمرير الفوري لبيانات الحضور إلى خادم النظام (Django Ninja API)
 """
 
 import sys
 import time
-import io
-import os
+import socket
 import argparse
 import urllib.request
 import urllib.parse
 import urllib.error
 import json
-from typing import Optional, Any
+from typing import Optional, List, Dict, Any
 
 if sys.platform == "win32":
     try:
@@ -29,94 +33,46 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-# محاولة استيراد مكتبات المعالجة
-try:
-    import numpy as np
-except ImportError:
-    np = None
-
-try:
-    import cv2
-except ImportError:
-    cv2 = None
-
-try:
-    from PIL import Image
-except ImportError:
-    Image = None
-
-# إعدادات الاتصال الافتراضية
-DEFAULT_API_URL = "http://127.0.0.1:8000/api/attendance/fingerprint-checkin/"
+# المنافذ المعتمدة لجهاز البصمة الشبكي عبر كابل الإيثرنت
+SUPPORTED_PORTS = [4370, 4444, 8888, 5003]
+DEFAULT_PORT = 4370
+BACKUP_PORT = 5003
+DEFAULT_DEVICE_IP = "192.168.1.201"
+DEFAULT_API_URL = "http://127.0.0.1:8000/api/attendance/biometric-checkin/"
 
 
-def preprocess_captured_buffer(raw_bytes: bytes, width: Optional[int] = None, height: Optional[int] = None) -> bytes:
+def check_tcp_connectivity(ip: str, port: int, timeout: float = 2.0) -> bool:
     """
-    تحسين ومعالجة البصمة الخام عبر OpenCV وإرجاعها كصورة JPEG/PNG معيارية بمقاس 128x128
+    فحص سريع لجاهزية واستجابة منفذ الشبكة عبر كابل الإيثرنت
     """
-    if cv2 is not None and np is not None:
-        try:
-            if width and height and len(raw_bytes) == width * height:
-                img = np.frombuffer(raw_bytes, dtype=np.uint8).reshape((height, width))
-            else:
-                nparr = np.frombuffer(raw_bytes, np.uint8)
-                img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
-
-            if img is not None:
-                # 1. توحيد المقاس إلى 128x128
-                img_resized = cv2.resize(img, (128, 128), interpolation=cv2.INTER_AREA)
-                # 2. تنقية وتحسين تباين أخاديد البصمة (CLAHE)
-                clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
-                img_enhanced = clahe.apply(img_resized)
-                # 3. ترميز الصورة إلى PNG
-                _, encoded = cv2.imencode(".png", img_enhanced)
-                return encoded.tobytes()
-        except Exception as e:
-            print(f"⚠️ تحذير: فشلت معالجة OpenCV ({e})، جاري استخدام المعالجة الافتراضية...")
-
-    # Fallback to Pillow
-    if Image is not None:
-        try:
-            if width and height and len(raw_bytes) == width * height:
-                image = Image.frombytes('L', (width, height), raw_bytes)
-            else:
-                image = Image.open(io.BytesIO(raw_bytes)).convert('L')
-            image = image.resize((128, 128))
-            buf = io.BytesIO()
-            image.save(buf, format='PNG')
-            return buf.getvalue()
-        except Exception:
-            pass
-
-    return raw_bytes
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        res = s.connect_ex((ip, port))
+        s.close()
+        return res == 0
+    except Exception:
+        return False
 
 
-def send_to_django_api(image_bytes: bytes, punch_type: str = "CHECK_IN", api_url: str = DEFAULT_API_URL) -> dict:
+def send_punch_to_api(credential_id: str, punch_type: str = "CHECK_IN", device_info: str = "Ethernet Terminal", api_url: str = DEFAULT_API_URL) -> dict:
     """
-    إرسال صورة البصمة المعالجة عبر HTTP Multipart POST إلى خادم Django
+    إرسال حركة الحضور المسجلة عبر كابل الإيثرنت إلى واجهة برمجة تطبيقات المطعم
     """
-    boundary = "----WebKitFormBoundary" + hex(int(time.time() * 1000))[2:]
-    
-    body = bytearray()
-    # punch_type field
-    body.extend(f"--{boundary}\r\n".encode("utf-8"))
-    body.extend(f'Content-Disposition: form-data; name="punch_type"\r\n\r\n{punch_type}\r\n'.encode("utf-8"))
-    
-    # file field
-    body.extend(f"--{boundary}\r\n".encode("utf-8"))
-    body.extend(f'Content-Disposition: form-data; name="file"; filename="fingerprint.png"\r\n'.encode("utf-8"))
-    body.extend(b"Content-Type: image/png\r\n\r\n")
-    body.extend(image_bytes)
-    body.extend(b"\r\n")
-    body.extend(f"--{boundary}--\r\n".encode("utf-8"))
+    payload = json.dumps({
+        "credential_id": str(credential_id),
+        "punch_type": punch_type,
+        "device_info": device_info
+    }).encode("utf-8")
 
     req = urllib.request.Request(
-        f"{api_url}?punch_type={punch_type}",
-        data=body,
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
+        api_url,
+        data=payload,
+        headers={"Content-Type": "application/json"}
     )
 
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return {"success": True, "status_code": resp.status, "data": data}
     except urllib.error.HTTPError as e:
@@ -129,133 +85,164 @@ def send_to_django_api(image_bytes: bytes, punch_type: str = "CHECK_IN", api_url
         return {"success": False, "status_code": 500, "error": str(e)}
 
 
-# ----------------------------------------------------
-# 1. مشغل ماسح ZKTeco USB عبر مكتبة pyzkfp
-# ----------------------------------------------------
-class ZKTecoScanner:
-    def __init__(self):
+class ZKTecoEthernetBridge:
+    """
+    مشغل ومستمع أجهزة البصمة الشبكية عبر كابل الإيثرنت ومكتبة pyzk
+    """
+    def __init__(self, ip: str = DEFAULT_DEVICE_IP, port: int = DEFAULT_PORT, timeout: int = 5):
+        self.ip = ip
+        self.port = port
+        self.timeout = timeout
+        self.active_port: Optional[int] = None
         self.zk: Any = None
-        self.device: Any = None
+        self.conn: Any = None
+
+    def find_working_port(self) -> Optional[int]:
+        """
+        فحص المنفذ الأساسي ثم المنافذ البديلة (4370، 4444، 8888) والاحتياطي (5003)
+        """
+        ports_order = [self.port] + [p for p in SUPPORTED_PORTS if p != self.port]
+        print(f"🔍 فحص اتصال كابل الإيثرنت بالجهاز {self.ip} عبر المنافذ: {ports_order}...")
+
+        for p in ports_order:
+            is_backup = (p == BACKUP_PORT)
+            tag = " (المنفذ الاحتياطي للطوارئ)" if is_backup else ""
+            if check_tcp_connectivity(self.ip, p, timeout=1.5):
+                print(f"✅ تم اكتشاف المنفذ {p}{tag} مفتوح ومستجيب عبر كابل الإيثرنت!")
+                return p
+            else:
+                print(f"  - المنفذ {p} غير مستجيب...")
+
+        return None
+
+    def connect(self) -> bool:
         try:
-            from pyzkfp import ZKFP2  # type: ignore
-            self.zk = ZKFP2()
+            from zk import ZK, const
         except ImportError:
-            self.zk = None
-            self.device = None
+            raise RuntimeError("حزمة pyzk غير مثبتة. يرجى تثبيتها عبر: pip install pyzk")
 
-    def initialize(self):
-        if not self.zk:
-            raise RuntimeError("حزمة pyzkfp غير مثبتة. قم بتثبيتها عبر: pip install pyzkfp")
-        self.zk.Init()
-        count = self.zk.GetDeviceCount()
-        if count <= 0:
-            raise RuntimeError("لم يتم العثور على أي ماسح بصمة ZKTeco USB متصل بالجهاز.")
-        self.device = self.zk.OpenDevice(0)
-        print(f"✅ تم الاتصال بمازح ZKTeco بنجاح! عدد الأجهزة المتصلة: {count}")
+        # 1. البحث عن المنفذ المستجيب
+        detected_port = self.find_working_port() or self.port
+        self.active_port = detected_port
 
-    def listen_loop(self, api_url=DEFAULT_API_URL):
-        if not self.zk:
-            print("⚠️ ماسح ZKTeco غير مهيأ")
-            return
-        print("🎯 قارئ ZKTeco في وضع الاستماع... ضع إصبعك على الماسح...")
+        is_backup = (detected_port == BACKUP_PORT)
+        print(f"🔌 جاري إنشاء جلسة ZKTeco الشبكية مع {self.ip}:{detected_port}" + (" [منفذ احتياطي]" if is_backup else "") + "...")
+
+        try:
+            self.zk = ZK(self.ip, port=detected_port, timeout=self.timeout, password=0, force_udp=False, ommit_ping=False)
+            self.conn = self.zk.connect()
+            if self.conn:
+                print(f"🎉 تم الاتصال بجهاز البصمة الشبكي بنجاح عبر كابل الإيثرنت! (المنفذ: {detected_port})")
+                try:
+                    dev_name = self.conn.get_device_name()
+                    firmware = self.conn.get_firmware_version()
+                    serial = self.conn.get_serialnumber()
+                    print(f"📋 معلومات الجهاز: {dev_name} | البرمجية: {firmware} | الرقم التسلسلي: {serial}")
+                except Exception:
+                    pass
+                return True
+        except Exception as e:
+            print(f"⚠️ فشل الاتصال المباشر عبر pyzk على المنفذ {detected_port}: {e}")
+
+        # محاولة أخيرة عبر المنفذ الاحتياطي 5003 إذا لم يكن هو المنفذ المجرب
+        if detected_port != BACKUP_PORT:
+            try:
+                print(f"🔄 محاولة التبديل للمنفذ الاحتياطي للطوارئ ({BACKUP_PORT})...")
+                self.zk = ZK(self.ip, port=BACKUP_PORT, timeout=self.timeout, password=0, force_udp=False, ommit_ping=False)
+                self.conn = self.zk.connect()
+                if self.conn:
+                    self.active_port = BACKUP_PORT
+                    print(f"🎉 تم الاتصال بنجاح عبر المنفذ الاحتياطي ({BACKUP_PORT})!")
+                    return True
+            except Exception as e:
+                print(f"⚠️ تعذر الاتصال بالمنفذ الاحتياطي {BACKUP_PORT}: {e}")
+
+        return False
+
+    def listen_live_events(self, api_url: str = DEFAULT_API_URL):
+        """
+        الاستماع المباشر لحركات البصمة عبر كابل الإيثرنت وإرسالها فورياً للنظام
+        """
+        if not self.conn:
+            if not self.connect():
+                print("❌ تعذر بدء جلسة الاستماع لعدم استجابة جهاز البصمة على كابل الإيثرنت.")
+                return
+
+        print(f"📡 جهاز البصمة الشبكي في وضع الاستماع المباشر (Ethernet Cable RJ45 - المنفذ {self.active_port})...")
+        print("💡 ضع إصبعك على مستشعر جهاز البصمة لتسجيل الحضور فورياً...")
+
+        last_attendance_count = 0
+        try:
+            attendances = self.conn.get_attendance()
+            last_attendance_count = len(attendances)
+        except Exception:
+            pass
+
         try:
             while True:
-                capture = self.zk.AcquireFingerprint(self.device)
-                if capture:
-                    raw_bytes, width, height = capture
-                    print(f"📸 تم التقاط بصمة! الأبعاد: {width}x{height} - جاري المعالجة والمطابقة بالذكاء الاصطناعي...")
-                    
-                    processed_bytes = preprocess_captured_buffer(raw_bytes, width, height)
-                    result = send_to_django_api(processed_bytes, punch_type="CHECK_IN", api_url=api_url)
+                time.sleep(2)
+                try:
+                    current_attendances = self.conn.get_attendance()
+                    current_count = len(current_attendances)
 
-                    if result["success"]:
-                        emp_name = result["data"].get("employee_name", "موظف")
-                        conf = result["data"].get("match_confidence", "100%")
-                        punch = result["data"].get("punch_type_display", "تسجيل حضور")
-                        print(f"🎉 مرحباً {emp_name}! تم {punch} بنجاح (دقة المطابقة: {conf}) ✅\n")
-                    else:
-                        msg = result["error"].get("message", "فشلت المطابقة")
-                        print(f"❌ خطأ: {msg}\n")
-                    
-                    time.sleep(1.5)  # تفادي التكرار عند استمرار الضغط
-                time.sleep(0.1)
+                    if current_count > last_attendance_count:
+                        new_records = current_attendances[last_attendance_count:]
+                        last_attendance_count = current_count
+
+                        for att in new_records:
+                            punch_type = "CHECK_OUT" if getattr(att, "punch", 0) == 1 else "CHECK_IN"
+                            print(f"📸 تم التقاط حركة بصمة عبر كابل الإيثرنت! رقم المستخدم: {att.user_id} - الوقت: {att.timestamp}")
+
+                            device_label = f"Ethernet Terminal ({self.ip}:{self.active_port})"
+                            res = send_punch_to_api(
+                                credential_id=f"ETH-{att.user_id}",
+                                punch_type=punch_type,
+                                device_info=device_label,
+                                api_url=api_url
+                            )
+
+                            if res["success"]:
+                                emp_name = res["data"].get("employee_name", f"الموظف #{att.user_id}")
+                                print(f"✅ مرحباً {emp_name}! تم توثيق الحضور بنجاح عبر الشبكة.")
+                            else:
+                                print(f"⚠️ تم تسجيل البصمة على الجهاز ولكن تعذر الترحيل: {res.get('error')}")
+
+                except Exception as loop_err:
+                    print(f"⚠️ انقطع الاتصال بجهاز البصمة ({loop_err})، جاري إعادة المحاولة عبر كابل الإيثرنت...")
+                    time.sleep(3)
+                    self.connect()
+
         except KeyboardInterrupt:
-            print("\nإيقاف قارئ ZKTeco...")
+            print("
+🛑 إيقاف خدمة ربط جهاز البصمة الشبكي...")
         finally:
-            if self.zk and self.device:
-                self.zk.CloseDevice(self.device)
-                self.zk.Terminate()
-
-
-# ----------------------------------------------------
-# 2. مشغل المستشعرات التسلسلية (Optical Serial - AS608 / R307)
-# ----------------------------------------------------
-class SerialOpticalScanner:
-    def __init__(self, port="COM3", baudrate=57600):
-        self.port = port
-        self.baudrate = baudrate
-
-    def listen_loop(self, api_url=DEFAULT_API_URL):
-        print(f"🔌 جاري محاولة الاتصال بمستشعر البصمة التسلسلي عبر {self.port} بسرعة {self.baudrate}...")
-        try:
-            import serial  # type: ignore
-            ser = serial.Serial(self.port, baudrate=self.baudrate, timeout=1)
-            print("✅ تم فتح المنفذ التسلسلي بنجاح! في انتظار قراءة البصمة...")
-        except Exception as e:
-            print(f"⚠️ تعذر فتح المنفذ {self.port}: {e}")
-            return
-
-
-# ----------------------------------------------------
-# 3. وضع المحاكاة والاختبار السريع (Simulation & Testing)
-# ----------------------------------------------------
-def run_simulation(image_path: str, api_url=DEFAULT_API_URL):
-    """
-    محاكاة إرسال بصمة من ملف صورة محلي لاختبار خط سير المعالجة والذكاء الاصطناعي
-    """
-    if not os.path.exists(image_path):
-        print(f"❌ لم يتم العثور على ملف الصورة: {image_path}")
-        return
-
-    with open(image_path, "rb") as f:
-        raw_bytes = f.read()
-
-    print(f"🔬 جاري اختبار معالجة البصمة من الملف: {image_path}...")
-    processed_bytes = preprocess_captured_buffer(raw_bytes)
-    print("📡 إرسال الصورة المعالجة إلى خادم الذكاء الاصطناعي...")
-    res = send_to_django_api(processed_bytes, punch_type="CHECK_IN", api_url=api_url)
-
-    if res["success"]:
-        print("🎉 نجحت العملية!", json.dumps(res["data"], ensure_ascii=False, indent=2))
-    else:
-        print("❌ فشلت المطابقة:", json.dumps(res["error"], ensure_ascii=False, indent=2))
+            if self.conn:
+                try:
+                    self.conn.disconnect()
+                except Exception:
+                    pass
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="جسر أجهزة البصمة ونظام حضور وانصراف المطعم")
-    parser.add_argument("--mode", choices=["zkteco", "serial", "test"], default="test", help="نوع الماسح المتصل")
-    parser.add_argument("--port", default="COM3", help="رقم منفذ COM في حال اختيار serial")
-    parser.add_argument("--image", default="", help="مسار صورة البصمة للاختبار في وضع test")
+    parser = argparse.ArgumentParser(description="جسر أجهزة البصمة الشبكية عبر كابل الإيثرنت (Cable EtherNet)")
+    parser.add_argument("--ip", default=DEFAULT_DEVICE_IP, help="عنوان IP لجهاز البصمة الشبكي (افتراضي: 192.168.1.201)")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="منفذ الاتصال (4370، 4444، 8888، أو الاحتياطي 5003)")
     parser.add_argument("--api", default=DEFAULT_API_URL, help="رابط نقطة نهاية API الحضور")
+    parser.add_argument("--test", action="store_true", help="فحص الاتصال فقط دون استماع مستمر")
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("🚀 Restaurant Fingerprint Hardware Bridge Service")
-    print("=" * 60)
+    print("=" * 65)
+    print("🚀 Restaurant Ethernet Biometric Hardware Bridge (Cable EtherNet)")
+    print(f"📌 المنافذ المدعومة: 4370 | 4444 | 8888 | المنفذ الاحتياطي: {BACKUP_PORT}")
+    print("=" * 65)
 
-    if args.mode == "zkteco":
-        scanner = ZKTecoScanner()
-        try:
-            scanner.initialize()
-            scanner.listen_loop(api_url=args.api)
-        except Exception as err:
-            print(f"❌ خطأ في قارئ ZKTeco: {err}")
-    elif args.mode == "serial":
-        scanner = SerialOpticalScanner(port=args.port)
-        scanner.listen_loop(api_url=args.api)
-    elif args.mode == "test":
-        if args.image:
-            run_simulation(args.image, api_url=args.api)
+    bridge = ZKTecoEthernetBridge(ip=args.ip, port=args.port)
+
+    if args.test:
+        connected = bridge.connect()
+        if connected:
+            print(f"🎉 فحص الاتصال ناجح! جهاز البصمة يعمل عبر كابل الإيثرنت على المنفذ: {bridge.active_port}")
         else:
-            print("💡 وضع الاختبار جاهز. يمكنك تمرير مسار صورة عبر: python hardware_scanner_bridge.py --mode test --image sample.png")
-            print("💡 لتشغيل ماسح ZKTeco المكتبي: python hardware_scanner_bridge.py --mode zkteco")
+            print(f"❌ فشل فحص الاتصال بجهاز البصمة {args.ip}. تأكد من توصيل كابل الإيثرنت (Cable EtherNet).")
+    else:
+        bridge.listen_live_events(api_url=args.api)

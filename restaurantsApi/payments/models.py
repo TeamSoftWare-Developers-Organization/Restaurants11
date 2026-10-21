@@ -207,11 +207,22 @@ class Payment(models.Model):
 
 class SalaryPayment(models.Model):
     id: int
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='salary_payments')
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_date = models.DateField(auto_now_add=True)
-    month_covered = models.CharField(max_length=20) # e.g. "2024-02"
-    notes = models.TextField(blank=True, null=True)
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='salary_payments', verbose_name="الموظف")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="صافي المرتب المصروف")
+    basic_salary = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="المرتب الأساسي")
+    absence_days = models.IntegerField(default=0, verbose_name="أيام الغياب")
+    daily_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="أجر اليوم")
+    absence_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="قيمة خصم الغياب")
+    bonus_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="مكافآت وإضافي")
+    deduction_reason = models.CharField(max_length=255, blank=True, null=True, verbose_name="سبب / إذن الخصم")
+    deduction_approved_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='approved_salary_deductions',
+        verbose_name="المسؤول المعتمد للخصم (Admin)"
+    )
+    payment_date = models.DateField(auto_now_add=True, verbose_name="تاريخ الصرف")
+    month_covered = models.CharField(max_length=20, verbose_name="عن شهر") # e.g. "2026-10"
+    notes = models.TextField(blank=True, null=True, verbose_name="ملاحظات")
 
     class Meta:
         verbose_name = "صرف مرتب"
@@ -219,4 +230,4 @@ class SalaryPayment(models.Model):
         ordering = ['-payment_date']
 
     def __str__(self):
-        return f"مرتب {self.employee.user.username} - {self.month_covered}"
+        return f"مرتب {self.employee.user.username} - {self.month_covered} (صافي: {self.amount})"
