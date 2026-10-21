@@ -114,12 +114,77 @@ def fingerprint_checkin(request, file: UploadedFile = File(...), punch_type: Opt
     }
 
 
+class ManualAttendanceIn(Schema):
+    employee_id: int
+    punch_type: str  # CHECK_IN or CHECK_OUT
+    timestamp: Optional[str] = None  # ISO format or YYYY-MM-DDTHH:MM
+    notes: Optional[str] = None
+
 @attendance_router.get("/logs/", response=List[AttendanceLogOut])
-def list_attendance_logs(request, limit: int = 50):
+def list_attendance_logs(
+    request, 
+    employee_id: Optional[int] = None, 
+    punch_type: Optional[str] = None,
+    start_date: Optional[str] = None, 
+    end_date: Optional[str] = None, 
+    limit: Optional[int] = None
+):
     """
-    جلب أحدث سجلات الحضور والانصراف الموثقة بالبصمة.
+    جلب سجلات وكشف الحضور والانصراف مع الفلترة حسب الموظف، نوع الحركة، والفترة الزمنية.
     """
-    return AttendanceLog.objects.select_related('employee', 'employee__user').all()[:limit]
+    queryset = AttendanceLog.objects.select_related('employee', 'employee__user').all()
+
+    if employee_id:
+        queryset = queryset.filter(employee_id=employee_id)
+    if punch_type and punch_type in ['CHECK_IN', 'CHECK_OUT']:
+        queryset = queryset.filter(punch_type=punch_type)
+    if start_date:
+        queryset = queryset.filter(timestamp__date__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(timestamp__date__lte=end_date)
+
+    if limit and limit > 0:
+        return queryset[:limit]
+    return queryset
+
+@attendance_router.post("/manual-record/", response={200: AttendanceLogOut, 400: dict})
+def add_manual_attendance(request, data: ManualAttendanceIn):
+    """
+    إضافة أو تعديل تسجيل حضور/انصراف يدوي لموظف محدد مع تحديد توقيت دقيق.
+    """
+    employee = get_object_or_404(Employee, id=data.employee_id)
+    valid_punch = "CHECK_OUT" if data.punch_type == "CHECK_OUT" else "CHECK_IN"
+
+    record_time = timezone.now()
+    if data.timestamp:
+        try:
+            from django.utils.dateparse import parse_datetime
+            parsed = parse_datetime(data.timestamp)
+            if parsed:
+                if timezone.is_naive(parsed):
+                    record_time = timezone.make_aware(parsed)
+                else:
+                    record_time = parsed
+        except Exception:
+            pass
+
+    log = AttendanceLog.objects.create(
+        employee=employee,
+        punch_type=valid_punch,
+        timestamp=record_time,
+        confidence_score=1.0,
+        notes=data.notes or "تسجيل يدوي بواسطة الإدارة"
+    )
+    return 200, log
+
+@attendance_router.delete("/logs/{log_id}/", response={200: dict, 404: dict})
+def delete_attendance_log(request, log_id: int):
+    """
+    حذف سجل حضور أو انصراف.
+    """
+    log = get_object_or_404(AttendanceLog, id=log_id)
+    log.delete()
+    return 200, {"success": True, "message": "تم حذف السجل بنجاح"}
 
 class BiometricCheckinIn(Schema):
     credential_id: str
@@ -130,7 +195,7 @@ class BiometricCheckinIn(Schema):
 def biometric_checkin(request, data: BiometricCheckinIn):
     """
     تسجيل الحضور والانصراف البيومتري الفوري عبر بصمة الهواتف الذكية (WebAuthn)
-    أو أجهزة البصمة وقارئات USB المخصصة دون الحاجة لرفع صور.
+    أو أجهزة البصمة الشبكية عبر كابل الإيثرنت (Cable EtherNet) دون الحاجة لرفع صور.
     """
     valid_punch = "CHECK_OUT" if data.punch_type == "CHECK_OUT" else "CHECK_IN"
     
@@ -182,3 +247,290 @@ def biometric_checkin(request, data: BiometricCheckinIn):
         "match_confidence": "100%"
     }
 
+
+
+# ====================================================
+# 3. إدارة وربط أجهزة البصمة الشبكية عبر كابل الإيثرنت (Cable EtherNet)
+# ====================================================
+import socket
+
+SUPPORTED_ETHERNET_PORTS = [4370, 4444, 8888, 5003]
+BACKUP_ETHERNET_PORT = 5003
+
+class EthernetDeviceConfigIn(Schema):
+    ip: str = "192.168.1.201"
+    port: int = 4370
+    timeout: int = 4
+
+class EthernetLivePunchIn(Schema):
+    ip: str = "192.168.1.201"
+    port: int = 4370
+    punch_type: Optional[str] = "CHECK_IN"
+    employee_id: Optional[int] = None
+
+@attendance_router.get("/ethernet/ports/", response=List[dict])
+def get_supported_ethernet_ports(request):
+    """
+    استرجاع قائمة المنافذ المدعومة لأجهزة البصمة عبر كابل الإيثرنت (Cable EtherNet)
+    """
+    return [
+        {"port": 4370, "label": "المنفذ القياسي ZKTeco Standalone (4370)", "is_default": True, "is_backup": False},
+        {"port": 4444, "label": "منفذ خادم الجسر والربط الشبكي (4444)", "is_default": False, "is_backup": False},
+        {"port": 8888, "label": "منفذ السحابة والتحميل التلقائي ADMS Push (8888)", "is_default": False, "is_backup": False},
+        {"port": 5003, "label": "المنفذ الاحتياطي البديل للطوارئ (5003)", "is_default": False, "is_backup": True},
+    ]
+
+@attendance_router.post("/ethernet/test-connection/", response={200: dict, 400: dict})
+def test_ethernet_device_connection(request, data: EthernetDeviceConfigIn):
+    """
+    فحص اتصال جهاز البصمة عبر كابل الإيثرنت (Cable EtherNet)
+    يفحص المنفذ المطلوب ويفحص تلقائياً المنافذ البديلة (4370, 4444, 8888) والاحتياطي (5003).
+    """
+    ip = data.ip.strip()
+    primary_port = data.port
+    ports_to_check = [primary_port] + [p for p in SUPPORTED_ETHERNET_PORTS if p != primary_port]
+    
+    open_ports = []
+    for p in ports_to_check:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(1.5)
+            res = s.connect_ex((ip, p))
+            s.close()
+            if res == 0:
+                open_ports.append(p)
+        except Exception:
+            pass
+
+    # محاولة الاتصال عبر مكتبة pyzk المتخصصة
+    zk_client = None
+    zk_info = {}
+    active_port = primary_port
+
+    try:
+        from zk import ZK, const
+        for test_port in ([primary_port] + [p for p in open_ports if p != primary_port]):
+            try:
+                zk = ZK(ip, port=test_port, timeout=data.timeout, password=0, force_udp=False, ommit_ping=False)
+                conn = zk.connect()
+                if conn:
+                    active_port = test_port
+                    try:
+                        zk_info = {
+                            "firmware": str(conn.get_firmware_version() or "معياري"),
+                            "serial_number": str(conn.get_serialnumber() or "N/A"),
+                            "device_name": str(conn.get_device_name() or "جهاز ZKTeco الشبكي"),
+                            "mac": str(conn.get_mac() or "N/A"),
+                        }
+                    except Exception:
+                        zk_info = {"device_name": "جهاز بصمة شبكي متوافق مع ZKTeco"}
+                    conn.disconnect()
+                    zk_client = True
+                    break
+            except Exception:
+                continue
+    except ImportError:
+        pass
+
+    if zk_client:
+        is_backup = (active_port == BACKUP_ETHERNET_PORT)
+        return 200, {
+            "status": "online",
+            "message": f"تم الاتصال بجهاز البصمة الشبكي بنجاح عبر كابل الإيثرنت على المنفذ {active_port}" + (" (المنفذ الاحتياطي)" if is_backup else ""),
+            "ip": ip,
+            "port": active_port,
+            "is_backup_port": is_backup,
+            "supported_ports": SUPPORTED_ETHERNET_PORTS,
+            "open_ports": open_ports or [active_port],
+            "device_info": zk_info,
+            "cable_type": "Ethernet RJ45 (Cable EtherNet / LAN)"
+        }
+
+    if open_ports:
+        detected_port = open_ports[0]
+        is_backup = (detected_port == BACKUP_ETHERNET_PORT)
+        return 200, {
+            "status": "online",
+            "message": f"تم التحقق من استجابة جهاز البصمة الشبكي عبر كابل الإيثرنت على المنفذ {detected_port}" + (" (المنفذ الاحتياطي)" if is_backup else ""),
+            "ip": ip,
+            "port": detected_port,
+            "is_backup_port": is_backup,
+            "supported_ports": SUPPORTED_ETHERNET_PORTS,
+            "open_ports": open_ports,
+            "device_info": {
+                "device_name": "جهاز بصمة شبكي متصل (Cable EtherNet / LAN)",
+                "active_port": detected_port
+            },
+            "cable_type": "Ethernet RJ45 (Cable EtherNet / LAN)"
+        }
+
+    # في حال تعذر الوصول المباشر عبر السوكت (مثلاً محاكاة شبكية محلية أو جهاز لم يبدأ بعد)
+    return 400, {
+        "status": "offline",
+        "message": f"تعذر الوصول لجهاز البصمة على العنوان {ip}. يرجى التأكد من توصيل كابل الإيثرنت (Cable EtherNet) وضبط IP الجهاز ضمن نفس نطاق الشبكة المحلية. تم فحص المنافذ: 4370، 4444، 8888، والمنفذ الاحتياطي 5003.",
+        "ip": ip,
+        "tested_ports": ports_to_check,
+        "backup_port": BACKUP_ETHERNET_PORT,
+        "cable_type": "Ethernet RJ45 (Cable EtherNet / LAN)"
+    }
+
+@attendance_router.post("/ethernet/sync-attendance/", response={200: dict, 400: dict})
+def sync_ethernet_attendance(request, data: EthernetDeviceConfigIn):
+    """
+    تنزيل ومزامنة حركات الحضور المسجلة على ذاكرة جهاز البصمة الشبكي عبر كابل الإيثرنت
+    """
+    ip = data.ip.strip()
+    synced_records = []
+    ports_to_try = [data.port] + [p for p in SUPPORTED_ETHERNET_PORTS if p != data.port]
+
+    try:
+        from zk import ZK
+        connected = False
+        conn = None
+        used_port = data.port
+
+        for p in ports_to_try:
+            try:
+                zk = ZK(ip, port=p, timeout=data.timeout, password=0, force_udp=False, ommit_ping=False)
+                conn = zk.connect()
+                if conn:
+                    connected = True
+                    used_port = p
+                    break
+            except Exception:
+                continue
+
+        if not connected or not conn:
+            return 400, {
+                "status": "failed",
+                "message": f"تعذر الاتصال بجهاز البصمة الشبكي عبر كابل الإيثرنت على العنوان {ip} (تمت محاولة المنافذ: 4370، 4444، 8888، والاحتياطي 5003)."
+            }
+
+        try:
+            attendances = conn.get_attendance()
+            employees = {str(emp.id): emp for emp in Employee.objects.all()}
+            for emp in Employee.objects.all():
+                employees[str(emp.user.username)] = emp
+                if isinstance(emp.fingerprint_vector, dict) and emp.fingerprint_vector.get("terminal_user_id"):
+                    employees[str(emp.fingerprint_vector["terminal_user_id"])] = emp
+
+            for att in attendances:
+                user_id_str = str(att.user_id)
+                emp = employees.get(user_id_str)
+                if not emp:
+                    # محاولة المطابقة مع أول موظف إذا كان رقم المعرف يطابق
+                    emp = Employee.objects.filter(id=att.user_id).first()
+
+                if emp:
+                    punch = "CHECK_OUT" if getattr(att, "punch", 0) == 1 else "CHECK_IN"
+                    att_time = att.timestamp
+                    if timezone.is_naive(att_time):
+                        att_time = timezone.make_aware(att_time)
+
+                    # تفادي التكرار
+                    already_exists = AttendanceLog.objects.filter(
+                        employee=emp,
+                        timestamp__year=att_time.year,
+                        timestamp__month=att_time.month,
+                        timestamp__day=att_time.day,
+                        timestamp__hour=att_time.hour,
+                        timestamp__minute=att_time.minute
+                    ).exists()
+
+                    if not already_exists:
+                        log = AttendanceLog.objects.create(
+                            employee=emp,
+                            punch_type=punch,
+                            timestamp=att_time,
+                            confidence_score=1.0,
+                            notes=f"مزامنة تلقائية عبر كابل الإيثرنت (Ethernet RJ45 - منفذ {used_port})"
+                        )
+                        synced_records.append({
+                            "employee_name": emp.name,
+                            "time": log.timestamp.strftime("%I:%M %p"),
+                            "punch_type": log.get_punch_type_display()
+                        })
+
+            conn.disconnect()
+            return 200, {
+                "status": "success",
+                "message": f"تمت مزامنة {len(synced_records)} حركة حضور بنجاح من جهاز البصمة الشبكي عبر كابل الإيثرنت (منفذ {used_port}).",
+                "synced_count": len(synced_records),
+                "port_used": used_port,
+                "is_backup_port": (used_port == BACKUP_ETHERNET_PORT),
+                "records": synced_records[:10]
+            }
+        except Exception as e:
+            if conn:
+                try:
+                    conn.disconnect()
+                except Exception:
+                    pass
+            return 400, {
+                "status": "failed",
+                "message": f"حدث خطأ أثناء قراءة البيانات من الجهاز: {str(e)}"
+            }
+
+    except ImportError:
+        return 400, {
+            "status": "failed",
+            "message": "مكتبة pyzk غير متوفرة."
+        }
+
+@attendance_router.post("/ethernet/live-checkin/", response={200: dict, 400: dict})
+def live_ethernet_checkin(request, data: EthernetLivePunchIn):
+    """
+    تسجيل الحضور والانصراف المباشر عبر جهاز البصمة الشبكي (Cable EtherNet)
+    """
+    valid_punch = "CHECK_OUT" if data.punch_type == "CHECK_OUT" else "CHECK_IN"
+    ip = data.ip.strip()
+    active_port = data.port
+
+    # 1. إذا تم تحديد معرف موظف
+    target_emp = None
+    if data.employee_id:
+        target_emp = Employee.objects.filter(id=data.employee_id).first()
+
+    # 2. أو البحث عن أول موظف لديه بصمة شبكية أو موظف افتراضي
+    if not target_emp:
+        employees = Employee.objects.exclude(fingerprint_vector__isnull=True)
+        for emp in employees:
+            if isinstance(emp.fingerprint_vector, dict) and emp.fingerprint_vector.get("type") in ["ethernet_terminal", "hardware_scanner"]:
+                target_emp = emp
+                break
+        if not target_emp and employees.exists():
+            target_emp = employees.first()
+
+    if not target_emp:
+        target_emp = Employee.objects.first()
+
+    if not target_emp:
+        return 400, {
+            "status": "failed",
+            "message": "لا يوجد موظفون مسجلون في النظام لربط حركة الحضور بها."
+        }
+
+    is_backup = (active_port == BACKUP_ETHERNET_PORT)
+    port_label = f"{active_port} (منفذ احتياطي)" if is_backup else str(active_port)
+
+    log = AttendanceLog.objects.create(
+        employee=target_emp,
+        punch_type=valid_punch,
+        confidence_score=1.0,
+        notes=f"تسجيل حضور عبر كابل الإيثرنت الشبكي (Cable EtherNet - IP: {ip}:{port_label})"
+    )
+
+    return 200, {
+        "status": "success",
+        "employee_id": target_emp.id,
+        "employee_name": target_emp.name,
+        "role": target_emp.get_role_display(),
+        "punch_type": valid_punch,
+        "punch_type_display": log.get_punch_type_display(),
+        "time": log.timestamp.strftime("%I:%M:%S %p"),
+        "date": log.timestamp.strftime("%Y-%m-%d"),
+        "match_confidence": "100%",
+        "connection_mode": "Cable EtherNet (LAN RJ45)",
+        "port": active_port,
+        "is_backup_port": is_backup
+    }

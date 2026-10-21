@@ -39,8 +39,38 @@ export const attendanceService = {
         return response.data;
     },
 
-    getAttendanceLogs: async (limit: number = 30): Promise<AttendanceRecord[]> => {
-        const response = await api.get(`/attendance/logs/?limit=${limit}`);
+    getAttendanceLogs: async (params?: {
+        limit?: number;
+        employee_id?: number;
+        punch_type?: string;
+        start_date?: string;
+        end_date?: string;
+    }): Promise<AttendanceRecord[]> => {
+        const query = new URLSearchParams();
+        if (params?.limit) query.append('limit', params.limit.toString());
+        if (params?.employee_id) query.append('employee_id', params.employee_id.toString());
+        if (params?.punch_type) query.append('punch_type', params.punch_type);
+        if (params?.start_date) query.append('start_date', params.start_date);
+        if (params?.end_date) query.append('end_date', params.end_date);
+
+        const queryString = query.toString();
+        const url = `/attendance/logs/${queryString ? `?${queryString}` : ''}`;
+        const response = await api.get(url);
+        return response.data;
+    },
+
+    addManualRecord: async (data: {
+        employee_id: number;
+        punch_type: 'CHECK_IN' | 'CHECK_OUT';
+        timestamp?: string;
+        notes?: string;
+    }): Promise<AttendanceRecord> => {
+        const response = await api.post('/attendance/manual-record/', data);
+        return response.data;
+    },
+
+    deleteAttendanceLog: async (logId: number): Promise<{ success: boolean; message: string }> => {
+        const response = await api.delete(`/attendance/logs/${logId}/`);
         return response.data;
     },
 
@@ -76,6 +106,36 @@ export const attendanceService = {
             credential_id: credentialId,
             punch_type: punchType,
             device_info: deviceInfo,
+        });
+        return response.data;
+    },
+
+    getEthernetPorts: async () => {
+        const response = await api.get('/attendance/ethernet/ports/');
+        return response.data;
+    },
+
+    testEthernetDevice: async (ip: string = '192.168.1.201', port: number = 4370) => {
+        const response = await api.post('/attendance/ethernet/test-connection/', { ip, port });
+        return response.data;
+    },
+
+    syncEthernetAttendance: async (ip: string = '192.168.1.201', port: number = 4370) => {
+        const response = await api.post('/attendance/ethernet/sync-attendance/', { ip, port });
+        return response.data;
+    },
+
+    checkinEthernetTerminal: async (
+        ip: string = '192.168.1.201',
+        port: number = 4370,
+        punchType: 'CHECK_IN' | 'CHECK_OUT' = 'CHECK_IN',
+        employeeId?: number
+    ): Promise<CheckinResult> => {
+        const response = await api.post('/attendance/ethernet/live-checkin/', {
+            ip,
+            port,
+            punch_type: punchType,
+            employee_id: employeeId
         });
         return response.data;
     },
