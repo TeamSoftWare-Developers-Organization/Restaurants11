@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Sidebar, ExecutiveOperationsDigest } from '@/components';
+import { Sidebar, ExecutiveOperationsDigest, ProfitMarginAndDeficitsWidget } from '@/components';
 import {
   BarChart3,
   Users,
@@ -100,6 +100,9 @@ export default function Dashboard() {
 
         {/* AI Financial Fraud & Anomaly Alerts */}
         <AIAnomalyWidget />
+
+        {/* Profit Margin & Cash Deficits Statement with Treasury Settlement */}
+        <ProfitMarginAndDeficitsWidget />
 
         {/* Stats Grid - Responsive Grid */}
         <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">

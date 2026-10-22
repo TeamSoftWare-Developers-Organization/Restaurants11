@@ -20,12 +20,36 @@ export interface AbsenceDayItem {
 
 export interface ShiftDeficitItem {
     shift_id: number;
-    date: string;
+    shift_name: string;
+    cashier_id?: number;
+    cashier_name?: string;
+    start_time?: string;
+    end_time?: string;
+    date?: string;
     expected_cash: number;
     actual_cash: number;
+    variance?: number;
     deficit_amount: number;
-    shift_name: string;
+    is_settled?: boolean;
+    status?: string;
+    status_display?: string;
     notes?: string;
+}
+
+export interface ProfitMarginStatement {
+    total_sales: number;
+    total_cogs: number;
+    gross_profit: number;
+    gross_margin_percentage: number;
+    total_expenses: number;
+    total_salaries: number;
+    total_unsettled_deficits: number;
+    total_settled_deficits: number;
+    total_surplus: number;
+    net_profit: number;
+    net_profit_margin_percentage: number;
+    deficits_list: ShiftDeficitItem[];
+    treasury_current_balance: number;
 }
 
 export interface SalaryPayment {
@@ -137,6 +161,22 @@ export const treasuryService = {
     },
     recordSalaryPayment: async (data: SalaryPaymentPayload): Promise<SalaryPayment> => {
         const response = await api.post('/payments/salaries', data);
+        return response.data;
+    },
+    getProfitMarginAndDeficits: async (): Promise<ProfitMarginStatement> => {
+        const response = await api.get('/payments/dashboard/profit-margin-and-deficits');
+        return response.data;
+    },
+    settleShiftDeficit: async (shiftId: number, notes?: string): Promise<{ success: boolean; message: string; transaction_id?: number }> => {
+        const response = await api.post('/payments/dashboard/settle-shift-deficit', { shift_id: shiftId, notes });
+        return response.data;
+    },
+    settleAllDeficits: async (): Promise<{ success: boolean; settled_count: number; total_amount: number; message: string }> => {
+        const response = await api.post('/payments/dashboard/settle-all-deficits');
+        return response.data;
+    },
+    transferProfitToTreasury: async (amount: number, description?: string): Promise<{ success: boolean; message: string }> => {
+        const response = await api.post('/payments/dashboard/transfer-profit-to-treasury', { amount, description });
         return response.data;
     }
 };

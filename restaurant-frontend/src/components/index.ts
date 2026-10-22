@@ -13,3 +13,4 @@ export { default as AIDynamicPromotionsWidget } from './pos/AIDynamicPromotionsW
 export { default as ExecutiveOperationsDigest } from './dashboard/ExecutiveOperationsDigest';
 export { default as ActivationGuard } from './ActivationGuard';
 export { CloseShiftModal } from './shifts/CloseShiftModal';
+export { default as ProfitMarginAndDeficitsWidget } from './dashboard/ProfitMarginAndDeficitsWidget';
