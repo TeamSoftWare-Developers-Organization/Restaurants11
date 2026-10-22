@@ -47,6 +47,12 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
   - The SuperDev button, tab, and database provisioning tools are strictly bound to **Zafer's and Ayoub's authorized personal hardware** (`E165-594A-81A8-FF6F` + paired tokens).
   - Completely invisible and blocked from all client terminals and standard admin accounts.
   - Secret developer device pairing via shortcut (`Ctrl + Shift + Alt + D` or 5-click header trigger) with master passcode verification.
+- **Central Biometric Terminal & Network Architecture Management:**
+  - Network configuration for biometric hardware (Device Static IP, primary communication port 4370, daemon bridge 4444, ADMS push 8888, emergency backup 5003, and live socket connection diagnostics) is exclusively governed in Settings under SuperDev access.
+  - Stored centrally in the backend database (`RestaurantSettings`), eliminating technical clutter from operational and employee modals.
+- **Licensing Test Lab & 1-Hour Trial Mode (تجربة لمدة ساعة كاملة):**
+  - Built-in granular 1-hour trial engine ($60 minutes = 3600 seconds$) enabling instant verification of license expiration, live countdowns, and automatic system lockdown.
+  - SuperDev test controls: 1-click launch of a new 1-hour trial, instant simulation of trial expiration to test the lock screen, and one-click restoration of permanent lifetime activation.
 
 #### 3. 🖥️ Standalone Desktop Suite (Electron .exe & Silent Launcher)
 - **Native Windows Desktop Installer (.exe):** Built with Electron and NSIS for Windows 10/11 64-bit with desktop shortcuts and system tray control.
@@ -65,6 +71,8 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
     - **Port 5003:** Dedicated emergency backup / fallback port (منفذ احتياطي).
   - **Role-Based Biometric Access & Fraud Prevention:** Smartphone WebAuthn biometrics are restricted exclusively to Managers (`manager` / `admin`). Regular staff are required to authenticate through the verified physical Ethernet terminal on the restaurant's local area network.
   - **Granular Attendance Permissions:** Integrated `attendance` permission key in the RBAC matrix and sidebar navigation.
+  - **Clean Employee Enrollment:** Technical network IP and port selectors removed from employee enrollment. HR and managers only enter the employee's PIN / Terminal User ID, utilizing central SuperDev network parameters.
+  - **Dedicated Biometric Check-In Modal (`/attendance`):** Dedicated registration modal ("نافذة تسجيل الحضور بجهاز البصمة الشبكي") with active terminal status, fast Check-In / Check-Out toggles, optional employee selector, instant live punch, and bulk log sync.
 - **📈 AI Stock Depletion & Demand Forecasting:** Dynamic consumption analysis using linear regression and rolling averages. Generates predictive depletion timelines (e.g., "Ingredient X will run out in 3 days").
 - **🛒 Market Basket Analysis (Cross-Selling Engine):** Association rule mining on past orders to identify correlated purchases (e.g., Burger + Fries + Drink).
 - **🛡️ AI Financial Fraud & Cash Anomaly Detector:** Automated risk scoring for cashier shifts evaluating cash variances, abnormal discount ratios, and excessive order cancellations.
@@ -122,7 +130,7 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 - **Fluid Multi-Device Layout:** Complete responsive redesign across all system pages (Dashboard, Salaries, POS, Employees, Inventory, Orders, Recipes, Settings).
 - **RTL Sidebar Alignment:** Sidebar toggle and panel placement positioned ergonomically on the right side for native RTL Arabic workflows.
 - **Monochrome Thermal Invoicing:** High-contrast pure black and white (Pure B&W) receipt template optimized for 80mm thermal receipt printers without grayscale artifacts.
-- **Dynamic Trial Period Engine:** Real-time countdown tracking days remaining until automatic trial expiration, with accurate day decrementing.
+- **Dynamic 1-Hour Trial Engine & Live Second-by-Second Countdown:** Precision timer tracking remaining trial duration with real-time ticking down to the second (`⏳ 59 دقيقة و 42 ثانية`), automatically locking the entire interface upon expiration and prompting for the cryptographic product key.
 - **Off-Canvas Mobile Drawer Sidebar:** Replaces desktop fixed sidebar on screens $< 1024\text{px}$ with a touch-friendly slide-over drawer, dark backdrop overlay, and auto-dismiss on link navigation.
 - **Compact Mobile Top Bar:** Elegant sticky top navigation bar with restaurant branding, dark mode switcher, and hamburger menu button.
 - **Zero Horizontal Overflow:** Strict layout boundaries, responsive tables with horizontal swipe (`overflow-x-auto`), and responsive trial banners preventing UI clipping on smartphones.
@@ -267,6 +275,12 @@ python manage.py seed_demo_users
   - إمكانية اعتماد أي جهاز جديد لظافر أو أيوب عبر اختصار لوحة المفاتيح السري (`Ctrl + Shift + Alt + D` أو 5 نقرات على عنوان الإعدادات) مع إدخال الرمز السري الفائق.
 - **نظام التراخيص الدائم المشفر (Hardware-Locked Lifetime Licensing):**
   - توليد مفاتيح تفعيل دائمة مرتبطة بعتاد الجهاز الحقيقي للعميل اعتماداً على خوارزمية HMAC-SHA256 الرياضية بدون الحاجة لإنترنت.
+- **إدارة وضبط أجهزة البصمة الشبكية مركزياً (SuperDev Biometrics Management):**
+  - حصر إعدادات شبكة أجهزة البصمة (عنوان IP، المنافذ المدعومة 4370، 4444، 8888، والمنفذ الاحتياطي 5003، وزر فحص الاتصال الحي Test Connection) حصرياً ضمن صلاحية SuperDev لظافر وأيوب.
+  - تخزين وحفظ الإعدادات مركزياً في قاعدة البيانات (`RestaurantSettings`) لربط شاشات الحضور وانصراف وبصمات الموظفين دون تعريض المعطيات الفنية للمديرين أو الموظفين.
+- **مختبر اختبار نظام التراخيص وفترة تجريبية لمدة ساعة كاملة (1-Hour Trial Lab):**
+  - إضافة خيار فترة تجريبية مدتها ساعة كاملة (60 دقيقة = 3600 ثانية) بدلاً من 14 يوماً لاختبار سلوك النظام والتأكد من دقته.
+  - توفير أزرار تحكم سريعة لـ SuperDev: بدء فترة تجريبية جديدة لساعة كاملة، تسريع إنهاء مدة الساعة فورياً لمحاكاة القفل واختبار نافذة التفعيل، واستعادة التفعيل الدائم مدى الحياة (Lifetime) بنقرة واحدة.
 
 #### 3. 🖥️ تطبيق سطح المكتب المستقل (Desktop Suite)
 - **حزمة Electron رسمية (.exe):** ملف تثبيت مخصص لويندوز 10/11 بأعلى أداء وسرعة وصول.
@@ -284,6 +298,8 @@ python manage.py seed_demo_users
   - **معالجة متقدمة بالذكاء الاصطناعي:** استخراج متجهات الخصائص بدقة 128 بُعداً عبر شبكات **TensorFlow CNN** والمقارنة الفورية.
   - **حصر بصمة الهاتف الذكي بالمدير ومنع الحضور عن بُعد:** قصر ميزة مسح بصمة الهاتف الذكي (`WebAuthn`) حصرياً على صلاحية المدير، وإلزام الموظفين العاديين بالحضور عبر جهاز البصمة الشبكي المتصل بكابل الإيثرنت داخل المنشأة.
   - **صلاحية حضور مخصصة (`attendance`):** إدراج صلاحية مستقلة لشاشة الحضور وتسجيل البصمة ضمن مصفوفة الصلاحيات مع حجبها تلقائياً عن المستخدمين العاديين في القائمة الجانبية.
+  - **تبسيط نافذة تسجيل بصمة الموظف (`/employees`):** إزالة تعقيدات الشبكة والـ IP والمنافذ من نافذة الموظفين، والاكتفاء برقم الموظف على الجهاز (PIN / User ID) والاعتماد التلقائي على إعدادات SuperDev.
+  - **نافذة مخصصة لتسجيل الحضور والانصراف بجهاز البصمة (`/attendance`):** فتح نافذة منبثقة مستقلة وأنيقة لعرض حالة اتصال الجهاز، أزرار واضحة لاختيار نوع الحركة (تسجيل دخول أو تسجيل خروج)، التعرف التلقائي أو اختيار الموظف، تسجيل الحركة فورياً، وسحب ومزامنة سجلات الجهاز.
 - **📈 التنبؤ باستهلاك المخزون (AI Stock Forecasting):** تحليل معدلات استهلاك المواد الخام عبر الانحدار الخطي والمتوسط المتحرك وتنبيهات مسبقة بنفاد المواد.
 - **🛒 تحليل سلة المشتريات (Market Basket Analysis):** استنتاج الوجبات المترابطة آلياً وعرضها في كرت تفاعلي بشاشة الكاشير لزيادة متوسط قيمة الفاتورة.
 - **🛡️ كشف التلاعب المالي وعجز الخزينة (AI Fraud Detection):** تقييم ذكي لمخاطر الورديات بناءً على الفروقات النقدية، نسب الخصومات غير الطبيعية، ومعدل إلغاء الطلبات المشبوه.
@@ -338,7 +354,7 @@ python manage.py seed_demo_users
 - **توافق كامل مع كافة الأجهزة (Full Responsiveness):** إعادة هيكلة مرنة لجميع صفحات النظام (لوحة التحكم، المرتبات، الكاشير، الموظفين، المخزون، الطلبات، الوصفات، والإعدادات).
 - **تموضع القائمة الجانبية يميناً (Right-Aligned Sidebar Toggle):** نقل زر فتح وإغلاق القائمة الجانبية إلى جهة اليمين لتتوافق بصرياً ووظيفياً مع بيئة العمل والواجهات العربية (RTL).
 - **فاتورة حرارية أبيض وأسود نقي (Pure Black & White):** تصميم عالي التباين خالٍ تماماً من التدرجات الرمادية المسببة لتشويش الطابعات الحرارية لضمان دقة وسرعة طباعة الإيصالات 80mm.
-- **محرك عداد الفترة التجريبية الذكي:** معالجة دقيقة لخصم الأيام المتبقية في الفترة التجريبية وحسابها تلقائياً بالتواريخ الفردية.
+- **محرك الفترة التجريبية (1 ساعة كاملة) والعداد التنازلي المباشر:** نظام عد تنازلي حي بالثواني ينبض في الشريط العلوي (`⏳ 59 دقيقة و 42 ثانية`)، وعند انتهاء الـ 60 دقيقة يتم قفل النظام تلقائياً وتظهر شاشة القفل الحمراء لطلب مفتاح التفعيل الدائم.
 - **قائمة جانبية منزلقة للأجهزة المحمولة (Off-Canvas Mobile Drawer):** إخفاء القائمة الثابتة تلقائياً على الشاشات التي يقل عرضها عن 1024 بكسل واستبدالها بدرج جانبي سلس مع طبقة تعتيم ضبابية خلفية (Backdrop Overlay) وإغلاق فوري عند الضغط على أي رابط.
 - **شريط تنقل علوي مدمج للهواتف (Mobile Top Bar):** شريط علوي أنيق يحتوي على شعار واسم المطعم، زر التحويل للوضع الليلي، وزر القائمة (Hamburger Menu).
 - **منع التمدد الأفقي للشاشات (Zero Overflow):** ضبط دقيق لجميع الجداول وتأطيرها بخاصية التمرير الأفقي السلس (`overflow-x-auto`)، مع جعل شريط التنبيه التجريبي يتكيف بمرونة مع أصغر شاشات الهواتف.
