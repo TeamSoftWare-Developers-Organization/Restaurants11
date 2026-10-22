@@ -80,27 +80,43 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 - **Interactive Preview Modal:** Review low-stock ingredients, suggested reorder quantities, unit costs, and total budget before committing.
 - **One-Click Warehouse Receipt (`POST /purchases/{id}/receive/`):** Instantly posts draft purchase orders into inventory, increments stock, updates the weighted average unit cost, and adjusts supplier ledger balance.
 
-#### 6. 🕒 Shift Variance, Cash Reconciliation & Overtime Management
+#### 6. 🕒 Shift Variance, Cash Reconciliation, Overtime & Deficit Deduction
 - **Shift Reconciliation & Variance Auditing (`POST /api/payments/shifts/{shift_id}/close/`):**
   $$\text{Expected Cash} = \text{Opening Balance} + \text{Cash Sales} + \text{Cash In} - \text{Cash Out}$$
   $$\text{Variance} = \text{Actual Counted Cash} - \text{Expected Cash}$$
 - **Automated status classification:** `BALANCED` (exact 100% match), `SURPLUS` (excess cash), or `DEFICIT` (cash shortage).
 - **Itemized closing reconciliation receipt and printable shift handover digest.**
+- **Cash Deficit Deduction from Employee Salaries:**
+  - Automated detection of closed shifts with negative variance/shortage during the month.
+  - Dedicated deduction fields (`shortage_deduction` & `shortage_reason`) on salary slips and payroll payments.
+  - Mandatory admin/manager credential verification before executing any absence or cash deficit deductions.
+  - Auto-inclusion in treasury transaction records and printable salary payment vouchers.
 
-#### 7. 📦 Inventory, Stocktaking & Recipes
+#### 7. 👥 Attendance, Working Hours & Multi-Format Timesheets
+- **Comprehensive Attendance Monitoring & Tracking:**
+  - Real-time attendance dashboard tracking `PRESENT`, `CHECKED_OUT`, and `ABSENT` statuses with overall attendance percentages.
+  - Time-range and employee-specific filtering for attendance punches and timesheets.
+  - Detailed working hours calculations, duration breakdown, and first-in/last-out logging.
+  - Printable official attendance reports and timesheets by individual employee or all staff.
+
+#### 8. 📦 Inventory, Stocktaking & Recipes
+- **Recipe & Menu Item Ingredient Guard:** Enforced validation preventing menu item creation or recipe definition before registering underlying ingredients in inventory.
 - **Barcode Engine for Raw Materials & Inventory Items:** Added barcode support to `Ingredient` models, indexed API lookup (`GET /api/inventory/ingredients/by-barcode/{barcode}/`), dedicated barcode badges, and instant dual search (by barcode or item name).
 - **Real-Time Stock Audit:** Periodic physical count entry, automated variance calculation between actual and system stock, and one-click reconciliation.
 - **Weighted Average Costing Engine:** On receiving goods, unit costs are dynamically re-evaluated atomically:
   $$\text{New Cost} = \frac{(\text{Current Qty} \times \text{Current Cost}) + (\text{New Qty} \times \text{Invoice Price})}{\text{Current Qty} + \text{New Qty}}$$
 - **Dynamic Recipe Costing & Profit Margin Pricing:** Direct binding of menu meals to inventory raw ingredients, live production cost updates, and automated stock deduction on sales.
 
-#### 8. 📱 Ultra-Responsive Architecture (PC, Tablets & Mobile Devices)
+#### 9. 📱 Ultra-Responsive Architecture (PC, Tablets & Mobile Devices)
 - **Fluid Multi-Device Layout:** Complete responsive redesign across all system pages (Dashboard, Salaries, POS, Employees, Inventory, Orders, Recipes, Settings).
+- **RTL Sidebar Alignment:** Sidebar toggle and panel placement positioned ergonomically on the right side for native RTL Arabic workflows.
+- **Monochrome Thermal Invoicing:** High-contrast pure black and white (Pure B&W) receipt template optimized for 80mm thermal receipt printers without grayscale artifacts.
+- **Dynamic Trial Period Engine:** Real-time countdown tracking days remaining until automatic trial expiration, with accurate day decrementing.
 - **Off-Canvas Mobile Drawer Sidebar:** Replaces desktop fixed sidebar on screens $< 1024\text{px}$ with a touch-friendly slide-over drawer, dark backdrop overlay, and auto-dismiss on link navigation.
 - **Compact Mobile Top Bar:** Elegant sticky top navigation bar with restaurant branding, dark mode switcher, and hamburger menu button.
 - **Zero Horizontal Overflow:** Strict layout boundaries, responsive tables with horizontal swipe (`overflow-x-auto`), and responsive trial banners preventing UI clipping on smartphones.
 
-#### 9. 🧾 E-Invoicing & ZATCA Phase 2 Compliance
+#### 10. 🧾 E-Invoicing & ZATCA Phase 2 Compliance
 - **Customizable Invoices:** Visual templates for Sales Invoices, Purchase Invoices, and Return Invoices with live preview.
 - **ZATCA TLV QR Codes:** Base64-encoded TLV QR codes complying with electronic billing regulations.
 - **A4 & Thermal 80mm Layouts:** Print-ready formatting for thermal roll printers and standard A4 sheets.
@@ -270,26 +286,42 @@ python manage.py seed_demo_users
 - **توليد مسودة أمر الشراء بنقرة واحدة:** ربط تنبيهات المخزون مباشرة بنظام المشتريات لتوليد فاتورة شراء مسودة (`PO-AUTO-{timestamp}`) بالكميات المقترحة وتوجيهها للمورد الافتراضي.
 - **الاستلام والترحيل الفوري للمخزن (`POST /purchases/{id}/receive/`):** اعتماد الفاتورة وترحيل الكميات فورياً للمخزون، وتحديث متوسط التكلفة وحساب المورد بنقرة واحدة.
 
-#### 6. 🕒 احتساب فروقات الوردية والمطابقة النقدية والعمل الإضافي (Shift Variance & Overtime)
+#### 6. 🕒 احتساب فروقات الوردية والمطابقة النقدية وخصم العجز المالي (Shift Variance & Deficit Deduction)
 - **محرك تسوية الوردية الدقيق (`POST /api/payments/shifts/{shift_id}/close/`):**
   $$\text{الفارق (Variance)} = \text{المبلغ الفعلي المعدود في الخزينة} - \text{النقدية المتوقعة}$$
   - تصنيف الحالة آلياً: `BALANCED` (مطابق 100%)، `SURPLUS` (فائض نقدي بالدرج)، أو `DEFICIT` (عجز نقدي).
   - إصدار تقرير تسوية إغلاق تفصيلي وإيصال مطابقة قابل للطباعة مباشرة.
 - **نافذة إغلاق الوردية الذكية (`CloseShiftModal.tsx`):** حساب الفارق مباشرة أثناء كتابة المبلغ المعدود، تمييز لوني ديناميكي، تسجيل الملاحظات وطباعة ملخص الاستلام والتسليم.
+- **خصم عجز الورديات والخزينة من المرتبات:**
+  - فحص وكشف تلقائي لأي عجز نقدي في ورديات الكاشير/الموظف المغلقة خلال الشهر وربطها بمسير الرواتب.
+  - إدراج حقول خصم العجز المالي وبيان السبب في سند الصرف وإيصالات الخزينة.
+  - فرض اشتراط موافقة واعتماد المدير الإلزامية قبل اعتماد وصرف أي خصم (غياب أو عجز مالي).
+  - إبراز الخصم في جدول السجل وسند صرف المرتبات الرسمي القابل للطباعة.
 
-#### 7. 📦 المخزون، الجرد، والمشتريات
+#### 7. 👥 كشف الحضور والانصراف، ساعات العمل والطباعة الشاملة
+- **متابعة تفصيلية وشاملة للحضور والانصراف:**
+  - لوحة متابعة ومؤشرات فورية لنسبة الحضور وحالات الموظفين (`حاضر`، `انصرف`، `غائب`).
+  - تصفية الحركات بدقة حسب الموظف والفترة الزمنية (تاريخ البدء والانتهاء) ونوع البصمة.
+  - احتساب وتنسيق ساعات العمل والدقائق وتوثيق توقيت أول دخول وآخر خروج وعدد البصمات.
+  - إمكانية طباعة كشف حضور وانصراف رسمي لجميع الموظفين معاً أو كشف مخصص لكل موظف على حدة.
+
+#### 8. 📦 المخزون، الجرد، والمشتريات والوصفات
+- **حماية إضافة الأصناف والوجبات (Ingredient Guard):** منع إضافة أي صنف في قائمة الطعام أو صفحة الوصفات قبل التحقق من إدخال وتسجيل مكوناته ومواده الخام أولاً في صفحة المخزون لضمان دقة التكاليف والجرد.
 - **دعم الباركود الشامل للمخزون والمواد الخام:** إضافة حقل الباركود لنموذج المواد الخام والمخزون (`Ingredient`)، ونقطة نهاية API للبحث السريع، مع إبراز كود الباركود في الجدول وتفعيل البحث والمسح الفوري.
 - **جرد المنتجات والمخزون الحي:** واجهة متخصصة لإجراء الجرد الفعلي للمنتجات، مقارنة الرصيد الدفتري بالفعلي، واحتساب الفروقات والتسوية بنقرة واحدة.
 - **محرك متوسط التكلفة المرجح (Weighted Average Cost):** إعادة احتساب تكلفة الوحدة تلقائياً فور استلام البضاعة.
 - **هندسة الوصفات وتكاليف الوجبات:** ربط الوجبات بالمواد الخام، وحساب التكلفة اللحظي، والخصم التلقائي للمخزون فور البيع.
 
-#### 8. 📱 تصميم متجاوب فائق المرونة لكافة الشاشات (الهواتف الذكية، الأجهزة اللوحية، والحواسيب)
+#### 9. 📱 تصميم متجاوب، شريط جانبي يمين، وفاتورة أبيض وأسود نقية (Pure B&W)
 - **توافق كامل مع كافة الأجهزة (Full Responsiveness):** إعادة هيكلة مرنة لجميع صفحات النظام (لوحة التحكم، المرتبات، الكاشير، الموظفين، المخزون، الطلبات، الوصفات، والإعدادات).
+- **تموضع القائمة الجانبية يميناً (Right-Aligned Sidebar Toggle):** نقل زر فتح وإغلاق القائمة الجانبية إلى جهة اليمين لتتوافق بصرياً ووظيفياً مع بيئة العمل والواجهات العربية (RTL).
+- **فاتورة حرارية أبيض وأسود نقي (Pure Black & White):** تصميم عالي التباين خالٍ تماماً من التدرجات الرمادية المسببة لتشويش الطابعات الحرارية لضمان دقة وسرعة طباعة الإيصالات 80mm.
+- **محرك عداد الفترة التجريبية الذكي:** معالجة دقيقة لخصم الأيام المتبقية في الفترة التجريبية وحسابها تلقائياً بالتواريخ الفردية.
 - **قائمة جانبية منزلقة للأجهزة المحمولة (Off-Canvas Mobile Drawer):** إخفاء القائمة الثابتة تلقائياً على الشاشات التي يقل عرضها عن 1024 بكسل واستبدالها بدرج جانبي سلس مع طبقة تعتيم ضبابية خلفية (Backdrop Overlay) وإغلاق فوري عند الضغط على أي رابط.
 - **شريط تنقل علوي مدمج للهواتف (Mobile Top Bar):** شريط علوي أنيق يحتوي على شعار واسم المطعم، زر التحويل للوضع الليلي، وزر القائمة (Hamburger Menu).
 - **منع التمدد الأفقي للشاشات (Zero Overflow):** ضبط دقيق لجميع الجداول وتأطيرها بخاصية التمرير الأفقي السلس (`overflow-x-auto`)، مع جعل شريط التنبيه التجريبي يتكيف بمرونة مع أصغر شاشات الهواتف.
 
-#### 9. 🧾 الفوترة الإلكترونية وتوافق ZATCA المرحلة الثانية
+#### 10. 🧾 الفوترة الإلكترونية وتوافق ZATCA المرحلة الثانية
 - **نماذج فواتير قابلة للتخصيص:** تصاميم عصرية لفواتير المبيعات، المشتريات، والمرتجعات مع معاينة حية ومباشرة.
 - **توليد رمز الاستجابة السريعة (ZATCA TLV Base64 QR Code):** تشفير بيانات الفاتورة وفق المعايير الرسمية.
 - **خيارات الطباعة:** دعم مقاسات الورق A4 وإيصالات الرول الحراري 80mm.
