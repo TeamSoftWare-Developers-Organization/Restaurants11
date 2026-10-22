@@ -18,6 +18,16 @@ export interface AbsenceDayItem {
     is_friday?: boolean;
 }
 
+export interface ShiftDeficitItem {
+    shift_id: number;
+    date: string;
+    expected_cash: number;
+    actual_cash: number;
+    deficit_amount: number;
+    shift_name: string;
+    notes?: string;
+}
+
 export interface SalaryPayment {
     id: number;
     employee_id: number;
@@ -27,6 +37,8 @@ export interface SalaryPayment {
     absence_days?: number;
     daily_rate?: number;
     absence_deduction?: number;
+    shortage_deduction?: number;
+    shortage_reason?: string;
     bonus_amount?: number;
     deduction_reason?: string;
     absence_dates_detail?: string;
@@ -45,6 +57,8 @@ export interface SalaryPaymentPayload {
     absence_days?: number;
     daily_rate?: number;
     absence_deduction?: number;
+    shortage_deduction?: number;
+    shortage_reason?: string;
     bonus_amount?: number;
     deduction_reason?: string;
     absence_dates_detail?: string;
@@ -69,6 +83,8 @@ export interface AbsenceCalculation {
     suggested_deduction: number;
     suggested_net: number;
     absence_dates_list?: AbsenceDayItem[];
+    total_uncovered_shortage?: number;
+    detected_shortages?: ShiftDeficitItem[];
 }
 
 export interface AdminVerifyResult {

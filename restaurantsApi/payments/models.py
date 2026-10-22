@@ -58,6 +58,7 @@ class Shift(models.Model):
         ('closed', 'مغلقة'),
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='open')
+    is_variance_settled = models.BooleanField(default=False, verbose_name="تم ترحيل وتسوية الفارق بالخزينة")
 
     class Meta:
         verbose_name = "وردية"
@@ -160,6 +161,9 @@ class TreasuryTransaction(models.Model):
         ('general_expense', 'مصروف عام'),
         ('salary', 'مرتب'),
         ('refund', 'استرجاع'),
+        ('deficit', 'تسوية عجز وردية'),
+        ('surplus', 'ترحيل فائض وردية'),
+        ('profit_transfer', 'ترحيل أرباح'),
     ]
     reference_type = models.CharField(max_length=20, choices=REFERENCE_CHOICES)
     reference_id = models.IntegerField(null=True, blank=True) # رقم الطلب أو الفاتورة
@@ -216,6 +220,8 @@ class SalaryPayment(models.Model):
     bonus_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="مكافآت وإضافي")
     deduction_reason = models.CharField(max_length=255, blank=True, null=True, verbose_name="سبب / إذن الخصم")
     absence_dates_detail = models.TextField(blank=True, null=True, verbose_name="تفاصيل وتواريخ أيام الغياب")
+    shortage_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="قيمة خصم العجز المالي")
+    shortage_reason = models.CharField(max_length=255, blank=True, null=True, verbose_name="سبب / بيان عجز الوردية أو الخزينة")
     deduction_approved_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='approved_salary_deductions',
