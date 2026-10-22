@@ -285,26 +285,6 @@ export default function EmployeesPage() {
         }
     };
 
-    const handleTestEthernetConnection = async () => {
-        setIsTestingEthernet(true);
-                try {
-            const res = await attendanceService.testEthernetDevice(ethernetIp, ethernetPort);
-            setEthernetStatus({
-                status: 'online',
-                msg: res.message || `تم التحقق بنجاح! الجهاز متصل عبر كابل الإيثرنت على المنفذ ${res.port}.`,
-                openPorts: res.open_ports
-            });
-        } catch (err: any) {
-            const errMsg = err.response?.data?.message || err.message || 'تعذر الاتصال بجهاز البصمة عبر كابل الإيثرنت.';
-            setEthernetStatus({
-                status: 'offline',
-                msg: errMsg
-            });
-        } finally {
-            setIsTestingEthernet(false);
-        }
-    };
-
     const handleTerminalEnroll = async () => {
         if (!selectedEmpForFingerprint || !terminalEmployeeId.trim()) return;
         try {

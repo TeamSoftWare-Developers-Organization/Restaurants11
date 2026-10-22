@@ -72,11 +72,14 @@ export default function AttendancePage() {
     const [isLoadingOverview, setIsLoadingOverview] = useState(true);
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'CHECKED_OUT' | 'ABSENT'>('ALL');
 
-    // إعدادات جهاز البصمة الشبكي عبر كابل الإيثرنت (Cable EtherNet)
-    const [ethernetIp, setEthernetIp] = useState(DEFAULT_ETHERNET_IP);
-    const [ethernetPort, setEthernetPort] = useState<number>(DEFAULT_ETHERNET_PORT);
-    const [isSyncingEthernet, setIsSyncingEthernet] = useState(false);
-    const [showEthernetConfig, setShowEthernetConfig] = useState(false);
+    // نافذة تسجيل الحضور بجهاز البصمة الشبكي عبر كابل الإيثرنت (Cable EtherNet)
+    const [isEthernetModalOpen, setIsEthernetModalOpen] = useState(false);
+    const [ethernetModalPunchType, setEthernetModalPunchType] = useState<'CHECK_IN' | 'CHECK_OUT'>('CHECK_IN');
+    const [ethernetModalEmpId, setEthernetModalEmpId] = useState<string>('auto');
+    const [isEthernetModalPunching, setIsEthernetModalPunching] = useState(false);
+    const [isEthernetModalSyncing, setIsEthernetModalSyncing] = useState(false);
+    const [ethernetModalResult, setEthernetModalResult] = useState<CheckinResult | null>(null);
+    const [ethernetModalError, setEthernetModalError] = useState<string | null>(null);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
     const [selectedPunchType, setSelectedPunchType] = useState<string>('all');
     const [startDate, setStartDate] = useState<string>(() => {
@@ -213,40 +216,52 @@ export default function AttendancePage() {
         }
     };
 
-    const handleEthernetBiometricPunch = async () => {
-        setScanning(true);
-        setErrorMsg(null);
-        setResult(null);
+    const handleEthernetModalPunch = async () => {
+        setIsEthernetModalPunching(true);
+        setEthernetModalError(null);
+        setEthernetModalResult(null);
+
+        const ip = restaurantSettings?.biometric_device_ip || DEFAULT_ETHERNET_IP;
+        const port = restaurantSettings?.biometric_device_port || DEFAULT_ETHERNET_PORT;
+        const empId = ethernetModalEmpId !== 'auto' ? parseInt(ethernetModalEmpId) : undefined;
 
         try {
-            const res = await attendanceService.checkinEthernetTerminal(ethernetIp, ethernetPort, punchType);
-            setResult(res);
+            const res = await attendanceService.checkinEthernetTerminal(ip, port, ethernetModalPunchType, empId);
+            setEthernetModalResult(res);
             fetchFilteredLogs();
+            fetchOverviewData();
         } catch (err: any) {
-            console.error('Ethernet terminal checkin error:', err);
-            const msg = err.response?.data?.message || err.message || 'فشل الاتصال بجهاز البصمة الشبكي عبر كابل الإيثرنت (Cable EtherNet). تم فحص المنافذ 4370، 4444، 8888، والمنفذ الاحتياطي 5003.';
-            setErrorMsg(msg);
+            console.error('Ethernet checkin error:', err);
+            const msg = err.response?.data?.message || err.message || 'فشل الاتصال بجهاز البصمة الشبكي عبر كابل الإيثرنت (Cable EtherNet). يرجى التأكد من توصيل الكابل بجهاز الراوتر أو السويتش ومطابقة IP الجهاز.';
+            setEthernetModalError(msg);
         } finally {
-            setScanning(false);
+            setIsEthernetModalPunching(false);
         }
     };
 
-    const handleSyncEthernetLogs = async () => {
-        setIsSyncingEthernet(true);
-        setErrorMsg(null);
+    const handleEthernetModalSync = async () => {
+        setIsEthernetModalSyncing(true);
+        setEthernetModalError(null);
+        setEthernetModalResult(null);
+
+        const ip = restaurantSettings?.biometric_device_ip || DEFAULT_ETHERNET_IP;
+        const port = restaurantSettings?.biometric_device_port || DEFAULT_ETHERNET_PORT;
+
         try {
-            const res = await attendanceService.syncEthernetAttendance(ethernetIp, ethernetPort);
+            const res = await attendanceService.syncEthernetAttendance(ip, port);
             await alertDialog({
-                title: 'مزامنة جهاز البصمة الشبكي',
-                message: res.message || `تمت مزامنة الحركات بنجاح عبر كابل الإيثرنت (منفذ ${res.port_used || ethernetPort}).`,
+                title: 'مزامنة سجلات جهاز البصمة',
+                message: res.message || 'تمت مزامنة حركات الحضور بنجاح من جهاز البصمة الشبكي.',
                 variant: 'success'
             });
             fetchFilteredLogs();
+            fetchOverviewData();
         } catch (err: any) {
-            const msg = err.response?.data?.message || err.message || 'تعذر مزامنة حركات البصمة عبر كابل الإيثرنت.';
-            setErrorMsg(msg);
+            console.error('Ethernet sync error:', err);
+            const msg = err.response?.data?.message || err.message || 'تعذر سحب ومزامنة الحركات من ذاكرة جهاز البصمة الشبكي.';
+            setEthernetModalError(msg);
         } finally {
-            setIsSyncingEthernet(false);
+            setIsEthernetModalSyncing(false);
         }
     };
 
@@ -600,7 +615,7 @@ export default function AttendancePage() {
                             {isManager ? (
                                 <button
                                     type="button"
-                                    disabled={scanning || isSyncingEthernet}
+                                    disabled={scanning}
                                     onClick={handleSmartphoneBiometricPunch}
                                     className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-md shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                                 >
@@ -625,123 +640,19 @@ export default function AttendancePage() {
                                 </div>
                             )}
 
-                            {/* زر تسجيل البصمة عبر كابل الإيثرنت الشبكي */}
+                            {/* زر فتح نافذة تسجيل الحضور بجهاز البصمة الشبكي */}
                             <button
                                 type="button"
-                                disabled={scanning || isSyncingEthernet}
-                                onClick={handleEthernetBiometricPunch}
-                                className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm shadow-cyan-600/20 cursor-pointer"
+                                onClick={() => {
+                                    setIsEthernetModalOpen(true);
+                                    setEthernetModalResult(null);
+                                    setEthernetModalError(null);
+                                }}
+                                className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm shadow-cyan-600/20 cursor-pointer"
                             >
                                 <Network className="w-4 h-4 text-white" />
-                                <span>تسجيل الحضور عبر كابل الإيثرنت (Cable EtherNet)</span>
+                                <span>نافذة تسجيل الحضور بجهاز البصمة الشبكي</span>
                             </button>
-
-                            {/* أزرار الإعدادات السريعة والمزامنة لجهاز كابل الإيثرنت */}
-                            <div className="flex items-center justify-between gap-1.5 pt-1">
-                                <button
-                                    type="button"
-                                    disabled={isSyncingEthernet || scanning}
-                                    onClick={handleSyncEthernetLogs}
-                                    className="flex-1 py-1.5 px-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg text-[10px] font-bold text-gray-700 dark:text-gray-300 flex items-center justify-center gap-1 transition-all cursor-pointer"
-                                    title="سحب ومزامنة الحركات المسجلة في جهاز البصمة عبر كابل الإيثرنت"
-                                >
-                                    <RefreshCw className={`w-3 h-3 text-cyan-600 ${isSyncingEthernet ? 'animate-spin' : ''}`} />
-                                    <span>{isSyncingEthernet ? 'جاري المزامنة...' : 'مزامنة سجلات الإيثرنت'}</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setShowEthernetConfig(!showEthernetConfig)}
-                                    className={`py-1.5 px-2.5 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 cursor-pointer ${
-                                        showEthernetConfig 
-                                            ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-400 text-cyan-700 dark:text-cyan-300' 
-                                            : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
-                                    }`}
-                                >
-                                    <Cable className="w-3 h-3 text-cyan-600" />
-                                    <span>منفذ {ethernetPort} {ethernetPort === 5003 ? '(احتياطي)' : ''}</span>
-                                </button>
-                            </div>
-
-                            {/* شاشة إعدادات المنافذ المدعومة لكابل الإيثرنت */}
-                            {showEthernetConfig && (
-                                <div className="p-2.5 mt-1 bg-gray-50 dark:bg-gray-900/70 border border-gray-200 dark:border-gray-800 rounded-xl text-right space-y-2 animate-in fade-in duration-200">
-                                    <div className="flex items-center justify-between text-[10px] font-black text-gray-700 dark:text-gray-300">
-                                        <span>إعدادات كابل الإيثرنت (Cable EtherNet)</span>
-                                        <span className="text-[9px] text-cyan-600 font-mono">RJ45 LAN</span>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] text-gray-400 font-bold block">عنوان IP لجهاز البصمة:</label>
-                                        <input
-                                            type="text"
-                                            value={ethernetIp}
-                                            onChange={(e) => setEthernetIp(e.target.value)}
-                                            placeholder="192.168.1.201"
-                                            className="w-full px-2 py-1 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono text-center text-xs text-gray-900 dark:text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <span className="text-[9px] text-gray-400 font-bold block">اختر منفذ الشبكة المعتمد:</span>
-                                        <div className="grid grid-cols-2 gap-1 text-[10px]">
-                                            {[
-                                                { p: 4370, label: '4370 (ZKTeco)' },
-                                                { p: 4444, label: '4444 (الجسر)' },
-                                                { p: 8888, label: '8888 (Push SDK)' },
-                                                { p: 5003, label: '5003 (منفذ احتياطي)', backup: true },
-                                            ].map(({ p, label, backup }) => (
-                                                <button
-                                                    key={p}
-                                                    type="button"
-                                                    onClick={() => setEthernetPort(p)}
-                                                    className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                                                        ethernetPort === p
-                                                            ? backup
-                                                                ? 'bg-amber-600 text-white shadow-xs'
-                                                                : 'bg-cyan-600 text-white shadow-xs'
-                                                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-400'
-                                                    }`}
-                                                >
-                                                    {label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* زر فحص الاتصال الحقيقي الفوري بجهاز البصمة */}
-                                    <div className="pt-1 border-t border-gray-200 dark:border-gray-700">
-                                        <button
-                                            type="button"
-                                            disabled={scanning}
-                                            onClick={async () => {
-                                                setScanning(true);
-                                                setErrorMsg(null);
-                                                try {
-                                                    const res = await attendanceService.testEthernetDevice(ethernetIp, ethernetPort);
-                                                    await alertDialog({
-                                                        title: 'اتصال جهاز البصمة متصل ✅',
-                                                        message: res.message || `جهاز البصمة متصل بنجاح على العنوان ${ethernetIp}:${res.port}`,
-                                                        variant: 'success'
-                                                    });
-                                                } catch (err: any) {
-                                                    const msg = err.response?.data?.message || err.message || 'تعذر الاتصال بجهاز البصمة.';
-                                                    setErrorMsg(msg);
-                                                    await alertDialog({
-                                                        title: 'جهاز البصمة غير متصل ❌',
-                                                        message: msg,
-                                                        variant: 'error'
-                                                    });
-                                                } finally {
-                                                    setScanning(false);
-                                                }
-                                            }}
-                                            className="w-full py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                        >
-                                            <Wifi className="w-3 h-3 text-cyan-600" />
-                                            <span>فحص اتصال جهاز البصمة الآن (Ping / Test)</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         {/* SUCCESS FEEDBACK CARD */}
@@ -1289,6 +1200,147 @@ export default function AttendancePage() {
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* نافذة تسجيل الحضور بجهاز البصمة الشبكي (Cable EtherNet) */}
+            <Modal
+                isOpen={isEthernetModalOpen}
+                onClose={() => setIsEthernetModalOpen(false)}
+                title="نافذة تسجيل الحضور بجهاز البصمة الشبكي"
+            >
+                <div className="space-y-4 text-right" dir="rtl">
+                    {/* Device Status Banner */}
+                    <div className="p-3.5 bg-gradient-to-l from-cyan-50 to-blue-50 dark:from-cyan-950/40 dark:to-blue-950/30 border border-cyan-200/80 dark:border-cyan-800/40 rounded-2xl">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                                    <Network className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h4 className="font-black text-xs text-gray-900 dark:text-white">
+                                        جهاز البصمة الشبكي (Cable EtherNet)
+                                    </h4>
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                                        متصل عبر كابل الشبكة RJ45 بالفرع
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <span className="text-[10px] text-gray-400 font-bold">العنوان والمنفذ:</span>
+                                <span className="font-mono font-black text-xs text-cyan-700 dark:text-cyan-300 bg-white dark:bg-gray-900 px-2.5 py-1 rounded-lg border border-cyan-200 dark:border-cyan-800">
+                                    {restaurantSettings?.biometric_device_ip || DEFAULT_ETHERNET_IP}:{restaurantSettings?.biometric_device_port || DEFAULT_ETHERNET_PORT}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="mt-2.5 pt-2 border-t border-cyan-100 dark:border-cyan-900/40 flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                            <span>إعدادات الشبكة ومنافذ الاتصال تدار حصرياً من شاشة الإعدادات عبر SuperDev</span>
+                            <span className="text-cyan-600 font-bold">RJ45 LAN</span>
+                        </div>
+                    </div>
+
+                    {/* Punch Type Selector */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                            نوع حركة الحضور:
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setEthernetModalPunchType('CHECK_IN')}
+                                className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all border flex items-center justify-center gap-2 cursor-pointer ${
+                                    ethernetModalPunchType === 'CHECK_IN'
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                        : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-emerald-500'
+                                }`}
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>تسجيل دخول (Check-In)</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setEthernetModalPunchType('CHECK_OUT')}
+                                className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all border flex items-center justify-center gap-2 cursor-pointer ${
+                                    ethernetModalPunchType === 'CHECK_OUT'
+                                        ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                                        : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-rose-500'
+                                }`}
+                            >
+                                <XCircle className="w-4 h-4" />
+                                <span>تسجيل خروج (Check-Out)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Optional Employee Selection */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                            تحديد الموظف (اختياري):
+                        </label>
+                        <select
+                            value={ethernetModalEmpId}
+                            onChange={(e) => setEthernetModalEmpId(e.target.value)}
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                        >
+                            <option value="auto">التعرف التلقائي من بصمة الموظف على الجهاز</option>
+                            {employees.map(emp => (
+                                <option key={emp.id} value={emp.id}>
+                                    {emp.first_name ? (emp.first_name + ' ' + (emp.last_name || '')).trim() : emp.username} ({emp.role})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                        <button
+                            type="button"
+                            disabled={isEthernetModalPunching || isEthernetModalSyncing}
+                            onClick={handleEthernetModalPunch}
+                            className="py-2.5 px-4 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-cyan-600/20 active:scale-95 transition-all cursor-pointer"
+                        >
+                            <Cable className={`w-4 h-4 ${isEthernetModalPunching ? 'animate-spin' : ''}`} />
+                            <span>{isEthernetModalPunching ? 'جاري القراءة والتسجيل...' : 'تسجيل الحركة فورياً'}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            disabled={isEthernetModalPunching || isEthernetModalSyncing}
+                            onClick={handleEthernetModalSync}
+                            className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-black text-xs flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 transition-all cursor-pointer"
+                        >
+                            <RefreshCw className={`w-4 h-4 text-cyan-600 ${isEthernetModalSyncing ? 'animate-spin' : ''}`} />
+                            <span>{isEthernetModalSyncing ? 'جاري المزامنة...' : 'مزامنة سجلات الجهاز'}</span>
+                        </button>
+                    </div>
+
+                    {/* Success Feedback Card */}
+                    {ethernetModalResult && (
+                        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 animate-in fade-in">
+                            <div className="flex items-center gap-2 mb-1.5">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span className="font-black text-xs text-emerald-900 dark:text-emerald-200">
+                                    تم تسجيل الحركة بنجاح!
+                                </span>
+                            </div>
+                            <div className="text-xs text-emerald-800 dark:text-emerald-300 font-bold space-y-0.5">
+                                <div>الموظف: {ethernetModalResult.employee_name} ({ethernetModalResult.role})</div>
+                                <div>الحركة: {ethernetModalResult.punch_type_display} · الوقت: {ethernetModalResult.time}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error Feedback Card */}
+                    {ethernetModalError && (
+                        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 animate-in fade-in">
+                            <div className="flex items-start gap-2">
+                                <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                <span className="text-xs text-rose-800 dark:text-rose-300 font-bold leading-relaxed">
+                                    {ethernetModalError}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </Modal>
         </div>
     );
