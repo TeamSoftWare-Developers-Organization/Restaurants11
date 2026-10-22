@@ -1,0 +1,8 @@
+version: 1.0.0
+files:
+  - url: RestoERP-Setup-1.0.0.exe
+    sha512: 1r8MvaSQyCZoIi3e0KihH9k47pvkZbm7iKpDpYvO0Jq5BHNOBRyOH8VVZR8VRRrL95bD+/cLhLSbIiKNs/y2kA==
+    size: 81720634
+path: RestoERP-Setup-1.0.0.exe
+sha512: 1r8MvaSQyCZoIi3e0KihH9k47pvkZbm7iKpDpYvO0Jq5BHNOBRyOH8VVZR8VRRrL95bD+/cLhLSbIiKNs/y2kA==
+releaseDate: '2026-10-13T19:05:15.811Z'
