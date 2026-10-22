@@ -25,6 +25,43 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isCopied, setIsCopied] = useState(false);
     const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+    const [secondsLeft, setSecondsLeft] = useState<number>(0);
+
+    // تحديث الثواني عند جلب حالة الترخيص
+    useEffect(() => {
+        if (license && license.is_trial_active && license.remaining_trial_seconds !== undefined) {
+            setSecondsLeft(license.remaining_trial_seconds);
+        }
+    }, [license]);
+
+    // عداد تنازلي حي بالثواني للفترة التجريبية (ساعة واحدة)
+    useEffect(() => {
+        if (!license || !license.is_trial_active || secondsLeft <= 0) return;
+
+        const interval = setInterval(() => {
+            setSecondsLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    fetchStatus();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [license, secondsLeft]);
+
+    const formatCountdown = (secs: number) => {
+        if (secs <= 0) return 'انتهت مدة التجربة';
+        const hours = Math.floor(secs / 3600);
+        const mins = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        if (hours > 0) {
+            return `${hours} ساعة و ${mins} دقيقة و ${s} ثانية`;
+        }
+        return `${mins} دقيقة و ${s} ثانية`;
+    };
 
     // فحص حالة الترخيص عند تحميل المكون
     const fetchStatus = async () => {
@@ -121,10 +158,10 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
                     </div>
 
                     <h2 className="text-xl sm:text-2xl font-black text-white mb-2">
-                        انتهت الفترة التجريبية للنظام (14 يوماً)
+                        انتهت الفترة التجريبية للنظام (ساعة كاملة)
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-400 font-medium mb-6 leading-relaxed">
-                        لقد استنفدت الأيام التجريبية الممنوحة لك. لحماية البيانات واستئناف العمليات اليومية ونقاط البيع، يرجى إدخال مفتاح التفعيل الدائم المخصص لهذا الجهاز.
+                        لقد استنفدت مدة الساعة التجريبية الممنوحة لك لاختبار النظام. لحماية البيانات واستئناف العمليات اليومية ونقاط البيع، يرجى إدخال مفتاح التفعيل الدائم المخصص لهذا الجهاز.
                     </p>
 
                     {/* Machine ID Box */}
@@ -225,27 +262,27 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         return <>{children}</>;
     }
 
-    // الحالة 3: النظام ضمن الفترة التجريبية (14 يوماً) -> إظهار شريط تنبيهي أنيق أعلى الشاشة
+    // الحالة 3: النظام ضمن الفترة التجريبية (ساعة كاملة) -> إظهار شريط تنبيهي أنيق أعلى الشاشة مع عداد تنازلي حي
     return (
         <div className="relative min-h-screen flex flex-col">
             {!isBannerDismissed && license && license.is_trial_active && (
                 <div
-                    className="w-full bg-linear-to-r from-amber-600 via-amber-500 to-orange-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-black shadow-md flex flex-col sm:flex-row items-center justify-between gap-2 z-50 transition-all shrink-0"
+                    className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-black shadow-md flex flex-col sm:flex-row items-center justify-between gap-2 z-50 transition-all shrink-0"
                     dir="rtl"
                 >
                     <div className="flex items-center gap-2 max-w-4xl text-center sm:text-right">
                         <Clock className="w-4 h-4 shrink-0 animate-pulse text-amber-200 hidden sm:inline-block" />
                         <span className="leading-relaxed">
-                            نسخة تجريبية نشطة: متبقي لك{' '}
-                            <span className="underline decoration-2 font-mono text-xs sm:text-sm px-1.5 py-0.5 bg-black/25 rounded mx-1">
-                                {license.remaining_trial_days} يوم
+                            نسخة تجريبية نشطة (ساعة كاملة لاختبار النظام): متبقي لك{' '}
+                            <span className="underline decoration-2 font-mono text-xs sm:text-sm px-2 py-0.5 bg-black/30 rounded-md mx-1 font-black tracking-wider inline-block">
+                                ⏳ {formatCountdown(secondsLeft || license.remaining_trial_seconds || 0)}
                             </span>{' '}
-                            من أصل {license.trial_days} يوماً قبل قفل النظام التلقائي.
+                            قبل قفل النظام التلقائي وحظر العمليات.
                         </span>
                     </div>
                     <button
                         onClick={() => setIsBannerDismissed(true)}
-                        className="text-amber-100 hover:text-white text-[11px] font-bold px-3 py-1 rounded-lg bg-black/20 hover:bg-black/30 transition-all shrink-0 self-end sm:self-auto"
+                        className="text-amber-100 hover:text-white text-[11px] font-bold px-3 py-1 rounded-lg bg-black/20 hover:bg-black/30 transition-all shrink-0 self-end sm:self-auto cursor-pointer"
                         title="إخفاء الشريط مؤقتاً"
                     >
                         إخفاء

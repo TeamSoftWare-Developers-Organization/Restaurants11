@@ -75,7 +75,7 @@ class LicenseService:
     @classmethod
     def get_or_initialize_license(cls) -> SystemLicense:
         """
-        الحصول على سجل ترخيص النظام، أو إنشائه تلقائياً بأول تشغيل مع فترة 14 يوماً.
+        الحصول على سجل ترخيص النظام، أو إنشائه تلقائياً بأول تشغيل مع فترة تجريبية (ساعة واحدة).
         """
         license_obj = SystemLicense.objects.first()
         if not license_obj:
@@ -83,7 +83,8 @@ class LicenseService:
             license_obj = SystemLicense.objects.create(
                 machine_id=m_id,
                 installed_at=timezone.now(),
-                trial_days=14,
+                trial_days=1,
+                trial_hours=1.0,
                 is_activated=False,
                 license_type='TRIAL'
             )
@@ -99,12 +100,17 @@ class LicenseService:
             "machine_id": lic.machine_id,
             "installed_at": lic.installed_at.isoformat(),
             "trial_days": lic.trial_days,
+            "trial_hours": getattr(lic, 'trial_hours', 1.0) or 1.0,
+            "trial_duration_seconds": lic.trial_duration_seconds,
             "is_activated": lic.is_activated,
             "license_type": lic.license_type,
             "product_key": lic.product_key if lic.is_activated else None,
             "activated_at": lic.activated_at.isoformat() if lic.activated_at else None,
             "is_trial_active": lic.is_trial_active,
             "remaining_trial_days": lic.remaining_trial_days,
+            "remaining_trial_seconds": lic.remaining_trial_seconds,
+            "remaining_trial_minutes": lic.remaining_trial_minutes,
+            "remaining_trial_formatted": lic.remaining_trial_formatted,
             "is_valid": lic.is_valid,
         }
 

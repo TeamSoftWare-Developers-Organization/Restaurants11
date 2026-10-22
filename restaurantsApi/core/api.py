@@ -118,12 +118,17 @@ class LicenseStatusOut(Schema):
     machine_id: str
     installed_at: str
     trial_days: int
+    trial_hours: float = 1.0
+    trial_duration_seconds: int = 3600
     is_activated: bool
     license_type: str
     product_key: Optional[str] = None
     activated_at: Optional[str] = None
     is_trial_active: bool
     remaining_trial_days: int
+    remaining_trial_seconds: int = 0
+    remaining_trial_minutes: int = 0
+    remaining_trial_formatted: str = ""
     is_valid: bool
 
 class LicenseActivateIn(Schema):
@@ -159,6 +164,57 @@ def activate_product_key(request, data: LicenseActivateIn):
         "message": message,
         "license_status": status_data
     }
+
+@license_router.post("/trial/start-1hour/", response=LicenseStatusOut)
+def start_one_hour_trial(request):
+    """
+    بدء فترة تجريبية جديدة مدتها ساعة كاملة (60 دقيقة) لاختبار النظام
+    """
+    from django.utils import timezone
+    from core.license_service import LicenseService
+    lic = LicenseService.get_or_initialize_license()
+    lic.is_activated = False
+    lic.license_type = 'TRIAL'
+    lic.trial_hours = 1.0
+    lic.trial_days = 1
+    lic.installed_at = timezone.now()
+    lic.product_key = None
+    lic.activated_at = None
+    lic.save()
+    return LicenseService.get_license_status()
+
+@license_router.post("/trial/expire-now/", response=LicenseStatusOut)
+def expire_trial_now(request):
+    """
+    تسريع إنهاء الفترة التجريبية فورياً لاختبار شاشة القفل وتفعيل مفتاح المنتج
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    from core.license_service import LicenseService
+    lic = LicenseService.get_or_initialize_license()
+    lic.is_activated = False
+    lic.license_type = 'TRIAL'
+    lic.trial_hours = 1.0
+    lic.trial_days = 1
+    lic.installed_at = timezone.now() - timedelta(hours=2)
+    lic.save()
+    return LicenseService.get_license_status()
+
+@license_router.post("/trial/reactivate-lifetime/", response=LicenseStatusOut)
+def reactivate_lifetime(request):
+    """
+    إعادة تفعيل النظام مدى الحياة (LIFETIME)
+    """
+    from django.utils import timezone
+    from core.license_service import LicenseService, generate_valid_product_key
+    lic = LicenseService.get_or_initialize_license()
+    key = generate_valid_product_key(lic.machine_id)
+    lic.is_activated = True
+    lic.license_type = 'LIFETIME'
+    lic.product_key = key
+    lic.activated_at = timezone.now()
+    lic.save()
+    return LicenseService.get_license_status()
 
 
 # --- وحدة المطور الفائق (SuperDev: ظافر وأيوب) الحصرية ---

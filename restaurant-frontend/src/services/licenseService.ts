@@ -6,12 +6,17 @@ export interface LicenseStatus {
     machine_id: string;
     installed_at: string;
     trial_days: number;
+    trial_hours?: number;
+    trial_duration_seconds?: number;
     is_activated: boolean;
     license_type: 'TRIAL' | 'LIFETIME';
     product_key?: string | null;
     activated_at?: string | null;
     is_trial_active: boolean;
     remaining_trial_days: number;
+    remaining_trial_seconds?: number;
+    remaining_trial_minutes?: number;
+    remaining_trial_formatted?: string;
     is_valid: boolean;
 }
 
@@ -131,6 +136,30 @@ export const licenseService = {
         if (response.data?.device_token && typeof window !== 'undefined') {
             localStorage.setItem('resto_superdev_device_token', response.data.device_token);
         }
+        return response.data;
+    },
+
+    /**
+     * بدء فترة تجريبية مدتها ساعة كاملة لاختبار النظام.
+     */
+    startOneHourTrial: async (): Promise<LicenseStatus> => {
+        const response = await api.post<LicenseStatus>('/core/license/trial/start-1hour/');
+        return response.data;
+    },
+
+    /**
+     * محاكاة انتهاء مدة الساعة فورياً لاختبار شاشة القفل وتفعيل المفتاح.
+     */
+    expireTrialNow: async (): Promise<LicenseStatus> => {
+        const response = await api.post<LicenseStatus>('/core/license/trial/expire-now/');
+        return response.data;
+    },
+
+    /**
+     * إعادة تفعيل النظام مدى الحياة (LIFETIME).
+     */
+    reactivateLifetime: async (): Promise<LicenseStatus> => {
+        const response = await api.post<LicenseStatus>('/core/license/trial/reactivate-lifetime/');
         return response.data;
     },
 };

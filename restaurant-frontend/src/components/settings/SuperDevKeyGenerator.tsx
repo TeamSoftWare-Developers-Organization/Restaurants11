@@ -12,7 +12,10 @@ import {
     Terminal,
     Lock,
     Laptop,
-    UserCheck
+    UserCheck,
+    Clock,
+    Play,
+    FastForward
 } from 'lucide-react';
 import { licenseService, SuperDevGenerateKeyResponse } from '@/services/licenseService';
 
@@ -28,6 +31,68 @@ export default function SuperDevKeyGenerator({ currentMachineId, developerName }
     const [generatedResult, setGeneratedResult] = useState<SuperDevGenerateKeyResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [trialActionLoading, setTrialActionLoading] = useState(false);
+    const [trialActionMsg, setTrialActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    const handleStartOneHourTrial = async () => {
+        try {
+            setTrialActionLoading(true);
+            setTrialActionMsg(null);
+            const res = await licenseService.startOneHourTrial();
+            setTrialActionMsg({
+                type: 'success',
+                text: `تم تفعيل الفترة التجريبية بنجاح لمدة ساعة كاملة (60 دقيقة). الوقت المتبقي: ${res.remaining_trial_formatted || '60 دقيقة'}`
+            });
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err: any) {
+            setTrialActionMsg({
+                type: 'error',
+                text: err?.response?.data?.message || 'فشل في بدء الفترة التجريبية.'
+            });
+        } finally {
+            setTrialActionLoading(false);
+        }
+    };
+
+    const handleExpireTrialNow = async () => {
+        try {
+            setTrialActionLoading(true);
+            setTrialActionMsg(null);
+            await licenseService.expireTrialNow();
+            setTrialActionMsg({
+                type: 'success',
+                text: 'تم إنهاء مدة الساعة التجريبية فورياً! سيتم إعادة تحميل الصفحة لاختبار شاشة القفل التلقائي...'
+            });
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err: any) {
+            setTrialActionMsg({
+                type: 'error',
+                text: err?.response?.data?.message || 'فشل في إنهاء الفترة التجريبية.'
+            });
+        } finally {
+            setTrialActionLoading(false);
+        }
+    };
+
+    const handleReactivateLifetime = async () => {
+        try {
+            setTrialActionLoading(true);
+            setTrialActionMsg(null);
+            const res = await licenseService.reactivateLifetime();
+            setTrialActionMsg({
+                type: 'success',
+                text: `تمت استعادة التفعيل الدائم بنجاح مدى الحياة (LIFETIME)! مفتاح المنتج: ${res.product_key}`
+            });
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err: any) {
+            setTrialActionMsg({
+                type: 'error',
+                text: err?.response?.data?.message || 'فشل في استعادة التفعيل الدائم.'
+            });
+        } finally {
+            setTrialActionLoading(false);
+        }
+    };
 
     // Auto-fill or default helper
     const handleUseCurrentMachine = () => {
@@ -240,6 +305,67 @@ export default function SuperDevKeyGenerator({ currentMachineId, developerName }
                     </div>
                 </div>
             )}
+            {/* Trial Testing Control Section for SuperDev */}
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-white/10 space-y-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 rounded-xl">
+                        <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h4 className="text-base font-black text-gray-900 dark:text-white flex items-center gap-2">
+                            <span>أدوات اختبار وتجربة نظام التراخيص (فترة تجريبية: 1 ساعة كاملة)</span>
+                            <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full font-bold">
+                                SuperDev Testing
+                            </span>
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            للتحقق من سلوك النظام والعد التنازلي المباشر واختبار شاشة القفل عند انتهاء مدة الساعة.
+                        </p>
+                    </div>
+                </div>
+
+                {trialActionMsg && (
+                    <div className={`p-3.5 rounded-xl text-xs font-bold ${
+                        trialActionMsg.type === 'success'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
+                            : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
+                    }`}>
+                        {trialActionMsg.text}
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <button
+                        type="button"
+                        disabled={trialActionLoading}
+                        onClick={handleStartOneHourTrial}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>بدء تجربة 1 ساعة جديدة</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        disabled={trialActionLoading}
+                        onClick={handleExpireTrialNow}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                        <FastForward className="w-4 h-4 fill-current" />
+                        <span>محاكاة انتهاء الساعة (قفل فوري)</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        disabled={trialActionLoading}
+                        onClick={handleReactivateLifetime}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>إعادة التفعيل الدائم (Lifetime)</span>
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

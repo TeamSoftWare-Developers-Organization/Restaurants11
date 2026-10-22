@@ -137,13 +137,14 @@ class SystemLicense(models.Model):
     نموذج الترخيص وإدارة مفتاح المنتج والفترة التجريبية للنظام
     """
     LICENSE_TYPE_CHOICES = [
-        ('TRIAL', 'فترة تجريبية (14 يوماً)'),
+        ('TRIAL', 'فترة تجريبية (ساعة واحدة)'),
         ('LIFETIME', 'ترخيص دائم مدى الحياة'),
     ]
 
     machine_id = models.CharField(max_length=64, unique=True, verbose_name="معرف الجهاز الفريد (Machine ID)")
     installed_at = models.DateTimeField(default=timezone.now, verbose_name="تاريخ أول تثبيت وتشغيل")
-    trial_days = models.PositiveIntegerField(default=14, verbose_name="عدد الأيام التجريبية")
+    trial_days = models.PositiveIntegerField(default=1, verbose_name="عدد الأيام التجريبية")
+    trial_hours = models.FloatField(default=1.0, verbose_name="مدة الفترة التجريبية بالساعات")
     is_activated = models.BooleanField(default=False, verbose_name="هل النظام مفعل بصفة دائمة")
     product_key = models.CharField(max_length=64, blank=True, null=True, verbose_name="مفتاح المنتج المسجل")
     activated_at = models.DateTimeField(blank=True, null=True, verbose_name="تاريخ ووقت التفعيل")
@@ -154,8 +155,34 @@ class SystemLicense(models.Model):
         verbose_name_plural = "تراخيص النظام"
 
     def __str__(self):
-        status_text = "مفعل" if self.is_activated else f"تجريبي ({self.remaining_trial_days} يوم متبقي)"
+        status_text = "مفعل" if self.is_activated else f"تجريبي ({self.remaining_trial_formatted} متبقية)"
         return f"ترخيص الجهاز [{self.machine_id}] - {status_text}"
+
+    @property
+    def trial_duration_seconds(self) -> int:
+        """
+        إجمالي مدة الفترة التجريبية بالثواني (افتراضياً 1.0 ساعة = 3600 ثانية)
+        """
+        hours = getattr(self, 'trial_hours', 1.0) or 1.0
+        return int(hours * 3600)
+
+    @property
+    def elapsed_seconds(self) -> int:
+        """
+        الوقت المنقضي بالثواني منذ بدء التثبيت أو إعادة تعيين الفترة التجريبية
+        """
+        delta = timezone.now() - self.installed_at
+        return max(0, int(delta.total_seconds()))
+
+    @property
+    def remaining_trial_seconds(self) -> int:
+        """
+        الثواني المتبقية من الفترة التجريبية
+        """
+        if self.is_activated:
+            return 0
+        rem = self.trial_duration_seconds - self.elapsed_seconds
+        return max(0, rem)
 
     @property
     def is_trial_active(self) -> bool:
@@ -164,19 +191,41 @@ class SystemLicense(models.Model):
         """
         if self.is_activated:
             return False
-        elapsed_delta = timezone.now() - self.installed_at
-        return elapsed_delta.days < self.trial_days
+        return self.remaining_trial_seconds > 0
+
+    @property
+    def remaining_trial_minutes(self) -> int:
+        """
+        الدقائق المتبقية من الفترة التجريبية
+        """
+        return self.remaining_trial_seconds // 60
 
     @property
     def remaining_trial_days(self) -> int:
         """
-        الأيام المتبقية من الفترة التجريبية
+        الأيام المتبقية من الفترة التجريبية (للتوافق)
+        """
+        return self.remaining_trial_seconds // 86400
+
+    @property
+    def remaining_trial_formatted(self) -> str:
+        """
+        صيغة نصية تفصيلية للوقت المتبقي (ساعات، دقائق، ثوانٍ)
         """
         if self.is_activated:
-            return 0
-        elapsed_delta = timezone.now() - self.installed_at
-        remaining = self.trial_days - elapsed_delta.days
-        return max(0, remaining)
+            return "مفعل دائماً"
+        secs = self.remaining_trial_seconds
+        if secs <= 0:
+            return "انتهت التجربة"
+        hours = secs // 3600
+        mins = (secs % 3600) // 60
+        rem_secs = secs % 60
+        if hours > 0:
+            return f"{hours} ساعة و {mins} دقيقة و {rem_secs} ثانية"
+        elif mins > 0:
+            return f"{mins} دقيقة و {rem_secs} ثانية"
+        else:
+            return f"{rem_secs} ثانية"
 
     @property
     def is_valid(self) -> bool:
