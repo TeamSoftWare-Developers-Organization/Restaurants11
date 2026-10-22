@@ -30,6 +30,10 @@ export interface RestaurantSettings {
     sales_invoice_terms?: string;
     purchase_invoice_terms?: string;
     purchase_return_terms?: string;
+
+    // Biometric Device Network Configuration (SuperDev exclusive)
+    biometric_device_ip?: string;
+    biometric_device_port?: number;
 }
 
 export const settingsService = {

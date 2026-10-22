@@ -17,6 +17,7 @@ import {
     Smartphone,
     Network,
     Cable,
+    Wifi,
     Printer,
     FileSpreadsheet,
     Plus,
@@ -704,6 +705,40 @@ export default function AttendancePage() {
                                                 </button>
                                             ))}
                                         </div>
+                                    </div>
+
+                                    {/* زر فحص الاتصال الحقيقي الفوري بجهاز البصمة */}
+                                    <div className="pt-1 border-t border-gray-200 dark:border-gray-700">
+                                        <button
+                                            type="button"
+                                            disabled={scanning}
+                                            onClick={async () => {
+                                                setScanning(true);
+                                                setErrorMsg(null);
+                                                try {
+                                                    const res = await attendanceService.testEthernetDevice(ethernetIp, ethernetPort);
+                                                    await alertDialog({
+                                                        title: 'اتصال جهاز البصمة متصل ✅',
+                                                        message: res.message || `جهاز البصمة متصل بنجاح على العنوان ${ethernetIp}:${res.port}`,
+                                                        variant: 'success'
+                                                    });
+                                                } catch (err: any) {
+                                                    const msg = err.response?.data?.message || err.message || 'تعذر الاتصال بجهاز البصمة.';
+                                                    setErrorMsg(msg);
+                                                    await alertDialog({
+                                                        title: 'جهاز البصمة غير متصل ❌',
+                                                        message: msg,
+                                                        variant: 'error'
+                                                    });
+                                                } finally {
+                                                    setScanning(false);
+                                                }
+                                            }}
+                                            className="w-full py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                        >
+                                            <Wifi className="w-3 h-3 text-cyan-600" />
+                                            <span>فحص اتصال جهاز البصمة الآن (Ping / Test)</span>
+                                        </button>
                                     </div>
                                 </div>
                             )}

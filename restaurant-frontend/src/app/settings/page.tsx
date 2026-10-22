@@ -31,7 +31,9 @@ import {
     RotateCcw as RotateCcwIcon,
     Layers,
     Key,
-    Database
+    Database,
+    Network,
+    Cable
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -40,6 +42,7 @@ import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { licenseService } from '@/services/licenseService';
 import { RestaurantSettings } from '@/services/settingsService';
+import { attendanceService } from '@/services/attendanceService';
 import InvoiceLivePreview from '@/components/invoices/InvoiceLivePreview';
 import SuperDevKeyGenerator from '@/components/settings/SuperDevKeyGenerator';
 import SuperDevPostgresGuide from '@/components/settings/SuperDevPostgresGuide';
@@ -63,7 +66,40 @@ export default function SettingsPage() {
     const [localError, setLocalError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [activeTab, setActiveTab] = useState<'general' | 'financial' | 'invoices' | 'operational' | 'superdev'>('general');
-    const [superDevSubTab, setSuperDevSubTab] = useState<'keys' | 'database'>('database');
+    const [superDevSubTab, setSuperDevSubTab] = useState<'keys' | 'database' | 'biometrics'>('database');
+    const [isTestingBiometric, setIsTestingBiometric] = useState(false);
+    const [biometricTestResult, setBiometricTestResult] = useState<{
+        status: 'idle' | 'online' | 'offline';
+        message?: string;
+        deviceInfo?: any;
+        openPorts?: number[];
+        is_backup_port?: boolean;
+    }>({ status: 'idle' });
+
+    const handleTestBiometricConnection = async () => {
+        setIsTestingBiometric(true);
+        setBiometricTestResult({ status: 'idle' });
+        try {
+            const ip = localSettings?.biometric_device_ip || '192.168.1.201';
+            const port = localSettings?.biometric_device_port || 4370;
+            const res = await attendanceService.testEthernetDevice(ip, port);
+            setBiometricTestResult({
+                status: 'online',
+                message: res.message || `تم الاتصال بنجاح بجهاز البصمة الشبكي على العنوان ${ip}:${res.port || port}`,
+                deviceInfo: res.device_info,
+                openPorts: res.open_ports,
+                is_backup_port: res.is_backup_port
+            });
+        } catch (err: any) {
+            const errDetail = err.response?.data?.message || err.message || 'تعذر الاتصال بجهاز البصمة. تأكد من توصيل كابل الإيثرنت ومطابقة IP الجهاز.';
+            setBiometricTestResult({
+                status: 'offline',
+                message: errDetail
+            });
+        } finally {
+            setIsTestingBiometric(false);
+        }
+    };
     const [showPostgresGuideInOperational, setShowPostgresGuideInOperational] = useState(false);
 
     // SuperDev Access Verification (ظافر وأيوب فقط)
@@ -1045,6 +1081,18 @@ export default function SettingsPage() {
                                 </button>
                                 <button
                                     type="button"
+                                    onClick={() => setSuperDevSubTab('biometrics')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+                                        superDevSubTab === 'biometrics'
+                                            ? 'bg-cyan-600 text-white shadow-sm'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-white/40 dark:hover:bg-gray-700/40'
+                                    }`}
+                                >
+                                    <Network className="w-4 h-4" />
+                                    <span>📡 أجهزة البصمة الشبكية</span>
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => setSuperDevSubTab('keys')}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
                                         superDevSubTab === 'keys'
@@ -1067,6 +1115,150 @@ export default function SettingsPage() {
                                     currentMachineId={currentMachineId}
                                     developerName={superDevName}
                                 />
+                            )}
+
+                            {superDevSubTab === 'biometrics' && (
+                                <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-2xl bg-cyan-100 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+                                                <Network className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h3 className="font-black text-base text-gray-900 dark:text-white">
+                                                        إعدادات أجهزة البصمة عبر كابل الإيثرنت (Cable EtherNet / LAN)
+                                                    </h3>
+                                                    <span className="text-[11px] bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 font-bold px-2.5 py-0.5 rounded-full">
+                                                        صلاحية SuperDev: ظافر & أيوب
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                                                    إدارة وضبط عنوان الـ IP والمنفذ المعتمد لجهاز البصمة الشبكي للربط مع شاشات الحضور وبصمات الموظفين.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Configuration Fields */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* IP Address */}
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                                                عنوان IP لجهاز البصمة على الشبكة المحلية (Device Static IP)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={localSettings?.biometric_device_ip || '192.168.1.201'}
+                                                onChange={(e) => handleChange('biometric_device_ip', e.target.value)}
+                                                placeholder="192.168.1.201"
+                                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-mono text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                                dir="ltr"
+                                            />
+                                            <p className="text-[11px] text-gray-400">
+                                                العنوان الافتراضي الموصى به: <span className="font-mono font-bold text-cyan-600">192.168.1.201</span>
+                                            </p>
+                                        </div>
+
+                                        {/* Port Selection */}
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                                                منفذ الاتصال المعتمد (Communication Port)
+                                            </label>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                {[
+                                                    { port: 4370, label: '4370 (ZKTeco)', desc: 'المنفذ القياسي' },
+                                                    { port: 4444, label: '4444 (Bridge)', desc: 'جسر الربط' },
+                                                    { port: 8888, label: '8888 (Cloud)', desc: 'ADMS Push' },
+                                                    { port: 5003, label: '5003 (طوارئ)', desc: 'منفذ احتياطي', backup: true },
+                                                ].map(({ port, label, desc, backup }) => {
+                                                    const active = (localSettings?.biometric_device_port || 4370) === port;
+                                                    return (
+                                                        <button
+                                                            key={port}
+                                                            type="button"
+                                                            onClick={() => handleChange('biometric_device_port', port)}
+                                                            className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                                                                active
+                                                                    ? backup
+                                                                        ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                                                                        : 'bg-cyan-600 text-white border-cyan-600 shadow-sm'
+                                                                    : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-cyan-500'
+                                                            }`}
+                                                        >
+                                                            <div className="text-xs font-black font-mono">{label}</div>
+                                                            <div className={`text-[9px] mt-0.5 ${active ? 'text-white/80' : 'text-gray-400'}`}>{desc}</div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Test Connection Box */}
+                                    <div className="p-4 bg-gray-50 dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-700/80 space-y-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div>
+                                                <h4 className="text-xs font-black text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                                                    <Cable className="w-4 h-4 text-cyan-600" />
+                                                    اختبار اتصال كابل الإيثرنت والتأكد من استجابة الجهاز فورياً
+                                                </h4>
+                                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                                    يقوم السيرفر بفحص العنوان والمنفذ المحدد وتجربة المنافذ البديلة والمكتبة البرمجية (pyzk).
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={isTestingBiometric}
+                                                onClick={handleTestBiometricConnection}
+                                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white text-xs font-black rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm"
+                                            >
+                                                <Cable className={`w-3.5 h-3.5 ${isTestingBiometric ? 'animate-spin' : ''}`} />
+                                                <span>{isTestingBiometric ? 'جاري الفحص المباشر...' : 'فحص الاتصال بالجهاز (Test Connection)'}</span>
+                                            </button>
+                                        </div>
+
+                                        {biometricTestResult.status !== 'idle' && (
+                                            <div className={`p-3.5 rounded-xl text-xs font-bold transition-all ${
+                                                biometricTestResult.status === 'online'
+                                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
+                                                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
+                                            }`}>
+                                                <div className="flex items-start gap-2.5">
+                                                    {biometricTestResult.status === 'online' ? (
+                                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                                                    ) : (
+                                                        <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                                                    )}
+                                                    <div className="space-y-1">
+                                                        <p className="font-black">{biometricTestResult.message}</p>
+                                                        {biometricTestResult.deviceInfo && (
+                                                            <div className="text-[11px] font-mono opacity-90 grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-800/50">
+                                                                <div>الجهاز: {biometricTestResult.deviceInfo.device_name || 'ZKTeco Terminal'}</div>
+                                                                <div>الفيرموير: {biometricTestResult.deviceInfo.firmware || 'معياري'}</div>
+                                                                <div>الرقم التسلسلي: {biometricTestResult.deviceInfo.serial_number || 'N/A'}</div>
+                                                                <div>المنفذ النشط: {biometricTestResult.openPorts?.join(', ') || localSettings?.biometric_device_port || 4370}</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* SuperDev Quick Save Action */}
+                                    <div className="flex items-center justify-end pt-3 border-t border-gray-100 dark:border-gray-700">
+                                        <button
+                                            type="button"
+                                            disabled={saving}
+                                            onClick={handleSave}
+                                            className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white text-xs font-black rounded-xl transition-all shadow-md cursor-pointer"
+                                        >
+                                            <Save className="w-4 h-4" />
+                                            <span>{saving ? 'جاري حفظ الإعدادات...' : 'حفظ إعدادات جهاز البصمة'}</span>
+                                        </button>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     )}

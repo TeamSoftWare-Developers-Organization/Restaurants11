@@ -33,6 +33,9 @@ class RestaurantSettingsIn(Schema):
     sales_invoice_terms: Optional[str] = None
     purchase_invoice_terms: Optional[str] = None
     purchase_return_terms: Optional[str] = None
+    biometric_device_ip: Optional[str] = "192.168.1.201"
+    biometric_device_port: Optional[int] = 4370
+
 
 class RestaurantSettingsOut(RestaurantSettingsIn):
     logo: Optional[str] = None

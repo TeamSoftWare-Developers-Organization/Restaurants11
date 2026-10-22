@@ -391,15 +391,25 @@ SUPPORTED_ETHERNET_PORTS = [4370, 4444, 8888, 5003]
 BACKUP_ETHERNET_PORT = 5003
 
 class EthernetDeviceConfigIn(Schema):
-    ip: str = "192.168.1.201"
-    port: int = 4370
+    ip: Optional[str] = None
+    port: Optional[int] = None
     timeout: int = 4
 
 class EthernetLivePunchIn(Schema):
-    ip: str = "192.168.1.201"
-    port: int = 4370
+    ip: Optional[str] = None
+    port: Optional[int] = None
     punch_type: Optional[str] = "CHECK_IN"
     employee_id: Optional[int] = None
+
+def resolve_ethernet_device_config(ip: Optional[str] = None, port: Optional[int] = None):
+    try:
+        from core.models import RestaurantSettings
+        st = RestaurantSettings.load()
+        resolved_ip = (ip or "").strip() or getattr(st, 'biometric_device_ip', "192.168.1.201")
+        resolved_port = port or getattr(st, 'biometric_device_port', 4370)
+        return resolved_ip, resolved_port
+    except Exception:
+        return (ip or "").strip() or "192.168.1.201", port or 4370
 
 @attendance_router.get("/ethernet/ports/", response=List[dict])
 def get_supported_ethernet_ports(request):
@@ -419,8 +429,7 @@ def test_ethernet_device_connection(request, data: EthernetDeviceConfigIn):
     فحص اتصال جهاز البصمة عبر كابل الإيثرنت (Cable EtherNet)
     يفحص المنفذ المطلوب ويفحص تلقائياً المنافذ البديلة (4370, 4444, 8888) والاحتياطي (5003).
     """
-    ip = data.ip.strip()
-    primary_port = data.port
+    ip, primary_port = resolve_ethernet_device_config(data.ip, data.port)
     ports_to_check = [primary_port] + [p for p in SUPPORTED_ETHERNET_PORTS if p != primary_port]
     
     open_ports = []
@@ -512,9 +521,9 @@ def sync_ethernet_attendance(request, data: EthernetDeviceConfigIn):
     """
     تنزيل ومزامنة حركات الحضور المسجلة على ذاكرة جهاز البصمة الشبكي عبر كابل الإيثرنت
     """
-    ip = data.ip.strip()
+    ip, primary_port = resolve_ethernet_device_config(data.ip, data.port)
     synced_records = []
-    ports_to_try = [data.port] + [p for p in SUPPORTED_ETHERNET_PORTS if p != data.port]
+    ports_to_try = [primary_port] + [p for p in SUPPORTED_ETHERNET_PORTS if p != primary_port]
 
     try:
         from zk import ZK
@@ -614,17 +623,62 @@ def sync_ethernet_attendance(request, data: EthernetDeviceConfigIn):
 def live_ethernet_checkin(request, data: EthernetLivePunchIn):
     """
     تسجيل الحضور والانصراف المباشر عبر جهاز البصمة الشبكي (Cable EtherNet)
+    يقوم أولاً بالتحقق الفعلي الصارم من اتصال جهاز البصمة الشبكي بالخادم، 
+    ولا يسجل أي حركة حضور إذا كان الجهاز غير متصل أو غير مستجيب.
     """
     valid_punch = "CHECK_OUT" if data.punch_type == "CHECK_OUT" else "CHECK_IN"
-    ip = data.ip.strip()
-    active_port = data.port
+    ip, primary_port = resolve_ethernet_device_config(data.ip, data.port)
 
-    # 1. إذا تم تحديد معرف موظف
+    # 1. التحقق الفعلي الحقيقي من الاتصال الشبكي بالجهاز
+    ports_to_check = [primary_port] + [p for p in SUPPORTED_ETHERNET_PORTS if p != primary_port]
+    device_online = False
+    active_port = primary_port
+
+    for p in ports_to_check:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(1.5)
+            res = s.connect_ex((ip, p))
+            s.close()
+            if res == 0:
+                device_online = True
+                active_port = p
+                break
+        except Exception:
+            pass
+
+    # إذا تعذر الاتصال عبر السوكت، نحاول اختبار الاتصال عبر مكتبة pyzk
+    if not device_online:
+        try:
+            from zk import ZK
+            for p in ports_to_check:
+                try:
+                    zk = ZK(ip, port=p, timeout=2, password=0, force_udp=False, ommit_ping=False)
+                    conn = zk.connect()
+                    if conn:
+                        device_online = True
+                        active_port = p
+                        conn.disconnect()
+                        break
+                except Exception:
+                    continue
+        except ImportError:
+            pass
+
+    # إذا كان الجهاز غير متصل في الواقع، نرفض العملية فوراً ولا نسجل حضوراً كاذباً
+    if not device_online:
+        return 400, {
+            "status": "failed",
+            "message": f"تعذر الاتصال بجهاز البصمة على العنوان {ip} (المنافذ المفحوصة: {', '.join(map(str, ports_to_check))}). يرجى التأكد من توصيل كابل الإيثرنت (Cable EtherNet) وضبط IP الجهاز وإعدادات الشبكة.",
+            "ip": ip,
+            "device_status": "offline"
+        }
+
+    # 2. تحديد الموظف
     target_emp = None
     if data.employee_id:
         target_emp = Employee.objects.filter(id=data.employee_id).first()
 
-    # 2. أو البحث عن أول موظف لديه بصمة شبكية أو موظف افتراضي
     if not target_emp:
         employees = Employee.objects.exclude(fingerprint_vector__isnull=True)
         for emp in employees:

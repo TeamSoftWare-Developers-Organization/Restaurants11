@@ -38,6 +38,11 @@ class RestaurantSettings(models.Model):
     purchase_invoice_terms = models.TextField(null=True, blank=True, default="تم فحص واستلام البضاعة بحالة جيدة ومطابقتها لأمر الشراء", verbose_name="ملاحظات وشروط فاتورة الشراء")
     purchase_return_terms = models.TextField(null=True, blank=True, default="يعتبر هذا السند إشعار خصم رسمي معتمد لتسوية حساب المورد", verbose_name="شروط سند مرتجع المشتريات")
 
+    # Biometric Attendance Device (Ethernet / Network - SuperDev)
+    biometric_device_ip = models.CharField(max_length=100, default="192.168.1.201", verbose_name="عنوان IP لجهاز البصمة الشبكي")
+    biometric_device_port = models.IntegerField(default=4370, verbose_name="منفذ جهاز البصمة الشبكي")
+
+
     def save(self, *args, **kwargs):
         if not self.pk and RestaurantSettings.objects.exists():
             raise ValidationError("There can be only one RestaurantSettings instance")
