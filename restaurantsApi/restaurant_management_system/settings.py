@@ -232,8 +232,22 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.vercel.app',
 ]
 
+from corsheaders.defaults import default_headers
+
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-superdev-device-token',
+    'x-device-machine-id',
+    'X-SuperDev-Device-Token',
+    'X-Device-Machine-Id',
+    'x-csrftoken',
+    'accept',
+    'authorization',
+    'content-type',
+    'user-agent',
+    'x-requested-with',
+]
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',

@@ -1,7 +1,31 @@
 import axios from 'axios';
 
+/**
+ * دالة ذكية لتحديد الرابط الأساسي للـ API:
+ * إذا تم تحديد NEXT_PUBLIC_API_URL في ملف البيئة يتم اعتماده أولاً.
+ * إذا لم يتم تحديده وكان التطبيق يعمل محلياً، يتم توجيهه إلى خادم Django المحلي (127.0.0.1:8000).
+ * وفي باقي الحالات يتم استخدام الرابط السحابي على Render.
+ */
+export const getApiBaseUrl = (): string => {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl && envUrl.trim() !== '') {
+        return envUrl.trim();
+    }
+
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+        if (isLocalHost) {
+            return 'http://127.0.0.1:8000/api';
+        }
+    }
+
+    return 'https://restaurants11.onrender.com/api';
+};
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://restaurants11.onrender.com/api',
+    baseURL: getApiBaseUrl(),
+    timeout: 60000, // 60s timeout to allow Render free tier instances to spin up
     headers: {
         'Content-Type': 'application/json',
     },
@@ -15,7 +39,7 @@ api.interceptors.request.use(
             if (authStorage) {
                 try {
                     const parsed = JSON.parse(authStorage);
-                    const token = parsed.state?.token || parsed.token; // Fallback if structure is different
+                    const token = parsed.state?.token || parsed.token;
                     if (token) {
                         const bearerToken = `Bearer ${token}`;
 
@@ -43,17 +67,20 @@ api.interceptors.request.use(
                 }
             }
 
-            // Attach SuperDev Device Verification Headers
-            const devToken = localStorage.getItem('resto_superdev_device_token');
-            if (devToken) {
-                if (!config.headers) config.headers = {} as any;
-                (config.headers as any)['X-SuperDev-Device-Token'] = devToken;
-            }
+            // Only attach SuperDev Device Verification Headers when accessing SuperDev routes
+            // to prevent unnecessary CORS preflight errors on normal endpoints
+            if (config.url?.includes('/superdev/')) {
+                const devToken = localStorage.getItem('resto_superdev_device_token');
+                if (devToken) {
+                    if (!config.headers) config.headers = {} as any;
+                    (config.headers as any)['X-SuperDev-Device-Token'] = devToken;
+                }
 
-            const machineId = localStorage.getItem('resto_client_machine_id');
-            if (machineId) {
-                if (!config.headers) config.headers = {} as any;
-                (config.headers as any)['X-Device-Machine-Id'] = machineId;
+                const machineId = localStorage.getItem('resto_client_machine_id');
+                if (machineId) {
+                    if (!config.headers) config.headers = {} as any;
+                    (config.headers as any)['X-Device-Machine-Id'] = machineId;
+                }
             }
         }
         return config;
@@ -80,7 +107,7 @@ api.interceptors.response.use(
 export const getFullUrl = (path: string | undefined): string => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://restaurants11.onrender.com/api').replace('/api', '');
+    const baseUrl = getApiBaseUrl().replace('/api', '');
     return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 };
 

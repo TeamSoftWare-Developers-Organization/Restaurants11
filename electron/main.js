@@ -100,6 +100,29 @@ function startBackendIfNeeded() {
 }
 
 /**
+ * Find available bun executable (bundled bin/bun.exe or system PATH)
+ */
+function getBunExecutablePath() {
+    const fs = require('fs');
+    const projectRoot = path.join(__dirname, '..');
+    
+    // Check bundled in app resources or project bin/
+    const candidatePaths = [
+        path.join(process.resourcesPath || '', 'bin', 'bun.exe'),
+        path.join(projectRoot, 'bin', 'bun.exe'),
+        path.join(process.env.USERPROFILE || '', '.bun', 'bin', 'bun.exe')
+    ];
+
+    for (const p of candidatePaths) {
+        if (p && fs.existsSync(p)) {
+            console.log('[Electron] Using bun executable at:', p);
+            return p;
+        }
+    }
+    return 'bun';
+}
+
+/**
  * Launch frontend Next.js dev server if not already running
  */
 function startFrontendIfNeeded() {
@@ -111,10 +134,11 @@ function startFrontendIfNeeded() {
 
         const projectRoot = path.join(__dirname, '..');
         const frontendDir = path.join(projectRoot, 'restaurant-frontend');
+        const bunExe = getBunExecutablePath();
 
-        console.log('[Electron] Starting Next.js frontend service...');
+        console.log('[Electron] Starting Next.js frontend service with:', bunExe);
         try {
-            frontendProcess = spawn('bun', ['run', 'dev'], {
+            frontendProcess = spawn(bunExe, ['run', 'dev'], {
                 cwd: frontendDir,
                 shell: true,
                 detached: false,

@@ -25,7 +25,15 @@
     },
     "files": [
       "electron/**/*",
+      "bin/**/*",
       "restaurant-frontend/public/icons/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": [

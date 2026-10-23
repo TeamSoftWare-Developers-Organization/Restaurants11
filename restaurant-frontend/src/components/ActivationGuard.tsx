@@ -64,13 +64,16 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
     };
 
     // فحص حالة الترخيص عند تحميل المكون
-    const fetchStatus = async () => {
+    const fetchStatus = async (retryCount = 1) => {
         try {
             const data = await licenseService.getLicenseStatus();
             setLicense(data);
-        } catch (err) {
-            console.error('Error fetching license status:', err);
-            // في حال وجود مشكلة بالاتصال أو أول تشغيل
+        } catch (err: any) {
+            console.warn('[ActivationGuard] Could not fetch license status:', err?.message || err);
+            if (retryCount > 0) {
+                setTimeout(() => fetchStatus(retryCount - 1), 3000);
+                return;
+            }
         } finally {
             setIsLoading(false);
         }
