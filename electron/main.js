@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const http = require('http');
 const { spawn } = require('child_process');
@@ -170,6 +170,7 @@ function createWindow() {
         backgroundColor: '#070b14',
         show: false,
         autoHideMenuBar: true,
+        menuBarVisible: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -178,6 +179,9 @@ function createWindow() {
             webSecurity: true
         }
     });
+
+    Menu.setApplicationMenu(null);
+    mainWindow.setMenuBarVisibility(false);
 
     // Native window controls
     mainWindow.once('ready-to-show', () => {

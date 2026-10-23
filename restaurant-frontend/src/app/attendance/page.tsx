@@ -71,6 +71,7 @@ export default function AttendancePage() {
     const [overviewData, setOverviewData] = useState<any>(null);
     const [isLoadingOverview, setIsLoadingOverview] = useState(true);
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'CHECKED_OUT' | 'ABSENT'>('ALL');
+    const [overviewSearchQuery, setOverviewSearchQuery] = useState('');
 
     // نافذة تسجيل الحضور بجهاز البصمة الشبكي عبر كابل الإيثرنت (Cable EtherNet)
     const [isEthernetModalOpen, setIsEthernetModalOpen] = useState(false);
@@ -340,15 +341,39 @@ export default function AttendancePage() {
         }
     };
 
-    // Filter displayed logs by search query (name or notes)
+    // Filter displayed logs by search query (name, role, or notes)
     const displayedLogs = logs.filter(log => {
         if (!searchQuery.trim()) return true;
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
         return (
             log.employee_name?.toLowerCase().includes(q) ||
             log.role?.toLowerCase().includes(q) ||
-            log.notes?.toLowerCase().includes(q)
+            log.notes?.toLowerCase().includes(q) ||
+            log.punch_type_display?.toLowerCase().includes(q)
         );
+    });
+
+    // Smart filtering for the daily overview summary
+    const displayedOverviewEmployees = (overviewData?.employees_summary || []).filter((emp: any) => {
+        // Status filter
+        if (statusFilter !== 'ALL' && emp.status !== statusFilter) return false;
+        
+        // Smart search query filter
+        if (!overviewSearchQuery.trim()) return true;
+        const q = overviewSearchQuery.toLowerCase().trim();
+
+        // Match by employee name or phone
+        if (emp.employee_name?.toLowerCase().includes(q)) return true;
+        if (emp.phone_number?.toLowerCase().includes(q)) return true;
+        if (emp.role?.toLowerCase().includes(q)) return true;
+        if (emp.status_display?.toLowerCase().includes(q)) return true;
+
+        // Smart keywords: 'حاضر', 'انصرف', 'غائب'
+        if (q === 'حاضر' && emp.status === 'PRESENT') return true;
+        if ((q === 'انصرف' || q === 'منصرف') && emp.status === 'CHECKED_OUT') return true;
+        if (q === 'غائب' && emp.status === 'ABSENT') return true;
+
+        return false;
     });
 
     // Summary statistics for current filtered view
@@ -730,58 +755,81 @@ export default function AttendancePage() {
                                         </div>
                                     </div>
 
-                                    {/* Quick Filter Buttons for Employee Status */}
-                                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => setStatusFilter('ALL')}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                                                statusFilter === 'ALL'
-                                                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-                                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                                            }`}
-                                        >
-                                            الجميع ({overviewData?.employees_summary?.length || 0})
-                                        </button>
+                                    {/* Quick Filter Buttons & Smart Search for Employee Status */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setStatusFilter('ALL')}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                                                    statusFilter === 'ALL'
+                                                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                                }`}
+                                            >
+                                                الجميع ({overviewData?.employees_summary?.length || 0})
+                                            </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setStatusFilter('PRESENT')}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-                                                statusFilter === 'PRESENT'
-                                                    ? 'bg-emerald-600 text-white shadow-sm'
-                                                    : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
-                                            }`}
-                                        >
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                            حاضرون حالياً ({overviewData?.present_count || 0})
-                                        </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setStatusFilter('PRESENT')}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                                                    statusFilter === 'PRESENT'
+                                                        ? 'bg-emerald-600 text-white shadow-sm'
+                                                        : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
+                                                }`}
+                                            >
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                حاضرون ({overviewData?.present_count || 0})
+                                            </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setStatusFilter('CHECKED_OUT')}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-                                                statusFilter === 'CHECKED_OUT'
-                                                    ? 'bg-blue-600 text-white shadow-sm'
-                                                    : 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40'
-                                            }`}
-                                        >
-                                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                            أتموا الوردية ({overviewData?.checked_out_count || 0})
-                                        </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setStatusFilter('CHECKED_OUT')}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                                                    statusFilter === 'CHECKED_OUT'
+                                                        ? 'bg-blue-600 text-white shadow-sm'
+                                                        : 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40'
+                                                }`}
+                                            >
+                                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                أتموا الوردية ({overviewData?.checked_out_count || 0})
+                                            </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setStatusFilter('ABSENT')}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-                                                statusFilter === 'ABSENT'
-                                                    ? 'bg-rose-600 text-white shadow-sm'
-                                                    : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40'
-                                            }`}
-                                        >
-                                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                                            غائبون ({overviewData?.absent_count || 0})
-                                        </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setStatusFilter('ABSENT')}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                                                    statusFilter === 'ABSENT'
+                                                        ? 'bg-rose-600 text-white shadow-sm'
+                                                        : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40'
+                                                }`}
+                                            >
+                                                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                                غائبون ({overviewData?.absent_count || 0})
+                                            </button>
+                                        </div>
+
+                                        {/* Smart Instant Search Input for Daily Overview */}
+                                        <div className="relative min-w-[220px] sm:w-64">
+                                            <Search className="w-3.5 h-3.5 text-cyan-600 absolute right-3 top-1/2 -translate-y-1/2" />
+                                            <input
+                                                type="text"
+                                                value={overviewSearchQuery}
+                                                onChange={(e) => setOverviewSearchQuery(e.target.value)}
+                                                placeholder="بحث ذكي: موظف، هاتف، دور، حاضر..."
+                                                className="w-full h-8.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl pr-8.5 pl-3 text-xs font-bold outline-none focus:ring-2 focus:ring-cyan-500/20 text-gray-900 dark:text-white"
+                                            />
+                                            {overviewSearchQuery && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOverviewSearchQuery('')}
+                                                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-black"
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -812,10 +860,14 @@ export default function AttendancePage() {
                                                         لا يوجد موظفون مسجلون في النظام.
                                                     </td>
                                                 </tr>
+                                            ) : displayedOverviewEmployees.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={7} className="p-10 text-center text-gray-400 font-bold">
+                                                        لا توجد نتائج مطابقة لبحثك في كشف هذا اليوم.
+                                                    </td>
+                                                </tr>
                                             ) : (
-                                                overviewData.employees_summary
-                                                    .filter((emp: any) => statusFilter === 'ALL' || emp.status === statusFilter)
-                                                    .map((emp: any) => {
+                                                displayedOverviewEmployees.map((emp: any) => {
                                                         const isPresent = emp.status === 'PRESENT';
                                                         const isCheckedOut = emp.status === 'CHECKED_OUT';
                                                         const isAbsent = emp.status === 'ABSENT';

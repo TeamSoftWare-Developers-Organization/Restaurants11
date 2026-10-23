@@ -265,36 +265,6 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         return <>{children}</>;
     }
 
-    // الحالة 3: النظام ضمن الفترة التجريبية (ساعة كاملة) -> إظهار شريط تنبيهي أنيق أعلى الشاشة مع عداد تنازلي حي
-    return (
-        <div className="relative min-h-screen flex flex-col">
-            {!isBannerDismissed && license && license.is_trial_active && (
-                <div
-                    className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-black shadow-md flex flex-col sm:flex-row items-center justify-between gap-2 z-50 transition-all shrink-0"
-                    dir="rtl"
-                >
-                    <div className="flex items-center gap-2 max-w-4xl text-center sm:text-right">
-                        <Clock className="w-4 h-4 shrink-0 animate-pulse text-amber-200 hidden sm:inline-block" />
-                        <span className="leading-relaxed">
-                            نسخة تجريبية نشطة (ساعة كاملة لاختبار النظام): متبقي لك{' '}
-                            <span className="underline decoration-2 font-mono text-xs sm:text-sm px-2 py-0.5 bg-black/30 rounded-md mx-1 font-black tracking-wider inline-block">
-                                ⏳ {formatCountdown(secondsLeft || license.remaining_trial_seconds || 0)}
-                            </span>{' '}
-                            قبل قفل النظام التلقائي وحظر العمليات.
-                        </span>
-                    </div>
-                    <button
-                        onClick={() => setIsBannerDismissed(true)}
-                        className="text-amber-100 hover:text-white text-[11px] font-bold px-3 py-1 rounded-lg bg-black/20 hover:bg-black/30 transition-all shrink-0 self-end sm:self-auto cursor-pointer"
-                        title="إخفاء الشريط مؤقتاً"
-                    >
-                        إخفاء
-                    </button>
-                </div>
-            )}
-            <div className="flex-1 flex flex-col">
-                {children}
-            </div>
-        </div>
-    );
+    // تم إخفاء الشريط العلوي في نافذة النظام بالكامل وعرض محتوى التطبيق مباشرة
+    return <>{children}</>;
 }
