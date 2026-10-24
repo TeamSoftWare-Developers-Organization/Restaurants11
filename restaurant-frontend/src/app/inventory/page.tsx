@@ -97,7 +97,19 @@ export default function InventoryPage() {
             });
         }
         setImageFile(null);
-        setPreviewUrl(item?.image ? (item.image.startsWith('http') ? item.image : `http://localhost:8000${item.image}`) : null);
+        let initialPreview: string | null = null;
+        switch (true) {
+            case Boolean(item?.image && item.image.startsWith('http')):
+                initialPreview = item?.image ?? null;
+                break;
+            case Boolean(item?.image):
+                initialPreview = `http://localhost:8000${item!.image}`;
+                break;
+            default:
+                initialPreview = null;
+                break;
+        }
+        setPreviewUrl(initialPreview);
         setIsModalOpen(true);
     };
 
