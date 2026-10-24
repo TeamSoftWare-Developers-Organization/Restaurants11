@@ -23,6 +23,10 @@ class EmployeeIn(Schema):
     password: Optional[str] = None # ستتم معالجتها لتشفيرها قبل الحفظ
     permissions: Optional[dict] = None
     basic_salary: Optional[float] = 0.0
+    work_start_time: Optional[str] = "09:00"
+    work_end_time: Optional[str] = "17:00"
+    late_grace_period_minutes: Optional[int] = 15
+    late_deduction_amount: Optional[float] = 0.0
 
 class EmployeePermissionsIn(Schema):
     permissions: dict
@@ -40,7 +44,26 @@ class EmployeeOut(Schema):
     permissions: Optional[dict] = None
     basic_salary: Optional[float] = 0.0
     has_fingerprint: bool = False
-    basic_salary: Optional[float] = 0.0
+    work_start_time: Optional[str] = "09:00"
+    work_end_time: Optional[str] = "17:00"
+    late_grace_period_minutes: int = 15
+    late_deduction_amount: float = 0.0
+
+    @staticmethod
+    def resolve_work_start_time(obj):
+        if getattr(obj, 'work_start_time', None):
+            return obj.work_start_time.strftime('%H:%M')
+        return "09:00"
+
+    @staticmethod
+    def resolve_work_end_time(obj):
+        if getattr(obj, 'work_end_time', None):
+            return obj.work_end_time.strftime('%H:%M')
+        return "17:00"
+
+    @staticmethod
+    def resolve_late_deduction_amount(obj):
+        return float(getattr(obj, 'late_deduction_amount', 0.0) or 0.0)
 
     @staticmethod
     def resolve_email(obj):
@@ -115,7 +138,11 @@ def create_employee(request, employee_data: EmployeeIn):
                 role=employee_data.role,
                 phone_number=employee_data.phone_number,
                 basic_salary=employee_data.basic_salary or 0.0,
-                permissions=employee_data.permissions or {}
+                permissions=employee_data.permissions or {},
+                work_start_time=employee_data.work_start_time or "09:00",
+                work_end_time=employee_data.work_end_time or "17:00",
+                late_grace_period_minutes=employee_data.late_grace_period_minutes if employee_data.late_grace_period_minutes is not None else 15,
+                late_deduction_amount=employee_data.late_deduction_amount or 0.0
             )
             return 200, employee
             
@@ -144,6 +171,14 @@ def update_employee(request, employee_id: int, employee_data: EmployeeIn):
                 employee.basic_salary = employee_data.basic_salary
             if employee_data.permissions is not None:
                 employee.permissions = employee_data.permissions
+            if employee_data.work_start_time:
+                employee.work_start_time = employee_data.work_start_time
+            if employee_data.work_end_time:
+                employee.work_end_time = employee_data.work_end_time
+            if employee_data.late_grace_period_minutes is not None:
+                employee.late_grace_period_minutes = employee_data.late_grace_period_minutes
+            if employee_data.late_deduction_amount is not None:
+                employee.late_deduction_amount = employee_data.late_deduction_amount
             employee.save()
             return 200, employee
     except Exception as e:

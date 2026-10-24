@@ -127,6 +127,12 @@ class EmployeeAttendanceSummaryOut(Schema):
     work_duration_minutes: int
     punch_count: int
     latest_punch_time: Optional[str] = None
+    scheduled_start: Optional[str] = None
+    scheduled_end: Optional[str] = None
+    is_late: bool = False
+    late_minutes: int = 0
+    late_deduction_amount: float = 0.0
+    late_status_display: Optional[str] = None
 
 class OverallAttendanceOverviewOut(Schema):
     date: str
@@ -163,6 +169,10 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
     absent_count = 0
 
     for emp in employees:
+        sched_start_str = emp.work_start_time.strftime("%I:%M %p") if getattr(emp, 'work_start_time', None) else "09:00 AM"
+        sched_end_str = emp.work_end_time.strftime("%I:%M %p") if getattr(emp, 'work_end_time', None) else "05:00 PM"
+        late_ded_cfg = float(getattr(emp, 'late_deduction_amount', 0.0) or 0.0)
+
         logs_for_emp = emp_logs_map.get(emp.id, [])
         if not logs_for_emp:
             absent_count += 1
@@ -178,7 +188,13 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
                 "work_duration_formatted": "0 س 0 د",
                 "work_duration_minutes": 0,
                 "punch_count": 0,
-                "latest_punch_time": None
+                "latest_punch_time": None,
+                "scheduled_start": sched_start_str,
+                "scheduled_end": sched_end_str,
+                "is_late": False,
+                "late_minutes": 0,
+                "late_deduction_amount": 0.0,
+                "late_status_display": "غياب كامل"
             })
             continue
 
@@ -186,6 +202,30 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
         first_in = next((l for l in logs_for_emp if l.punch_type == 'CHECK_IN'), None)
         last_punch = logs_for_emp[-1]
         last_out = next((l for l in reversed(logs_for_emp) if l.punch_type == 'CHECK_OUT'), None)
+
+        # حساب التأخير مقارنة بموعد الحضور المجدول وفترة السماح المحددة من قبل Admin
+        is_late = False
+        late_minutes = 0
+        late_ded_applied = 0.0
+        late_status_disp = "حضور في الموعد"
+
+        if first_in and getattr(emp, 'work_start_time', None):
+            checkin_local = timezone.localtime(first_in.timestamp)
+            scheduled_start_time = emp.work_start_time
+            # دمج تاريخ اليوم مع وقت الحضور المجدول
+            scheduled_dt = timezone.make_aware(
+                timezone.datetime.combine(checkin_local.date(), scheduled_start_time)
+            )
+            grace_mins = getattr(emp, 'late_grace_period_minutes', 15) or 0
+            
+            diff_seconds = (checkin_local - scheduled_dt).total_seconds()
+            if diff_seconds > (grace_mins * 60):
+                is_late = True
+                late_minutes = int(diff_seconds // 60)
+                late_ded_applied = late_ded_cfg
+                late_status_disp = f"متأخر {late_minutes} دقيقة (خصم: {late_ded_applied} د.ل)"
+            elif diff_seconds > 0:
+                late_status_disp = f"تأخير ضمن فترة السماح ({int(diff_seconds // 60)} دقيقة)"
 
         # حساب إجمالي الدقائق المحسوبة
         # نقوم بمطابقة كل CHECK_IN مع الـ CHECK_OUT اللاحق
@@ -227,12 +267,18 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
             "phone_number": emp.phone_number or "",
             "status": status,
             "status_display": status_display,
-            "first_check_in": first_in.timestamp.strftime("%I:%M %p") if first_in else None,
-            "last_check_out": last_out.timestamp.strftime("%I:%M %p") if last_out else None,
+            "first_check_in": timezone.localtime(first_in.timestamp).strftime("%I:%M %p") if first_in else None,
+            "last_check_out": timezone.localtime(last_out.timestamp).strftime("%I:%M %p") if last_out else None,
             "work_duration_formatted": duration_str,
             "work_duration_minutes": total_mins,
             "punch_count": len(logs_for_emp),
-            "latest_punch_time": last_punch.timestamp.strftime("%I:%M %p")
+            "latest_punch_time": timezone.localtime(last_punch.timestamp).strftime("%I:%M %p"),
+            "scheduled_start": sched_start_str,
+            "scheduled_end": sched_end_str,
+            "is_late": is_late,
+            "late_minutes": late_minutes,
+            "late_deduction_amount": late_ded_applied,
+            "late_status_display": late_status_disp
         })
 
     attendance_rate = f"{round((present_count + checked_out_count) / max(total_employees, 1) * 100, 1)}%"

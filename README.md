@@ -11,7 +11,7 @@
 [![ZATCA Compliant](https://img.shields.io/badge/E--Invoicing-ZATCA_Phase_2-008080)](https://zatca.gov.sa/)
 [![License](https://img.shields.io/badge/License-TeamSoftWare-orange.svg)](#license)
 
-A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resource Planning (ERP) and Point of Sale (POS) system. Powered by **Artificial Intelligence & Machine Learning** for biometric attendance, hardware scanners, intelligent market basket analysis, stock depletion forecasting, cashier fraud detection, kitchen synchronized firing (KDS), reservation no-show prediction, menu engineering matrices, one-click automated procurement, and an exclusive **SuperDev Portal** for hardware-locked lifetime licensing and automated PostgreSQL database setup.
+A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resource Planning (ERP) and Point of Sale (POS) system. Powered by **Artificial Intelligence & Machine Learning** for biometric attendance, hardware scanners, intelligent market basket analysis, stock depletion forecasting, cashier fraud detection, kitchen synchronized firing (KDS), reservation no-show prediction, menu engineering matrices, one-click automated procurement, and an exclusive **SuperDev Portal** for hardware-locked lifetime licensing, wall-clock trial security, and automated PostgreSQL database setup.
 
 ---
 
@@ -50,14 +50,19 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 - **Central Biometric Terminal & Network Architecture Management:**
   - Network configuration for biometric hardware (Device Static IP, primary communication port 4370, daemon bridge 4444, ADMS push 8888, emergency backup 5003, and live socket connection diagnostics) is exclusively governed in Settings under SuperDev access.
   - Stored centrally in the backend database (`RestaurantSettings`), eliminating technical clutter from operational and employee modals.
-- **Licensing Test Lab & 1-Hour Trial Mode (تجربة لمدة ساعة كاملة):**
-  - Built-in granular 1-hour trial engine ($60 minutes = 3600 seconds$) enabling instant verification of license expiration, live countdowns, and automatic system lockdown.
-  - SuperDev test controls: 1-click launch of a new 1-hour trial, instant simulation of trial expiration to test the lock screen, and one-click restoration of permanent lifetime activation.
+- **Licensing Test Lab & Wall-Clock 1-Hour Trial Mode (تجربة لمدة ساعة كاملة بالوقت الفعلي المطلق):**
+  - **Absolute Wall-Clock Calculation:** Built-in granular 1-hour trial ($60\text{ minutes} = 3600\text{ seconds}$) computed strictly from initial installation timestamp (`installed_at` UTC). The duration continues elapsing even if the computer or device is turned off, shut down, suspended, or sleeping.
+  - **Anti-Tampering Clock Guard:** Detects any clock rollback or manual date tampering ($t < t_{\text{installed}}$) and immediately locks down the trial to prevent unauthorized extension.
+  - **Instant Visibility & Sleep-Wakeup Synchronization:** Frontend utilizes `visibilitychange` and `focus` event listeners coupled with absolute target timestamps to immediately reflect real-world elapsed time and lock expired sessions upon laptop lid opening or waking from sleep.
+  - **SuperDev Test Controls:** Instant 1-click launch of a new 1-hour trial, simulation of trial expiration to test the lock screen, and one-click restoration of permanent lifetime activation.
 
 #### 3. 🖥️ Standalone Desktop Suite (Electron .exe & Silent Launcher)
-- **Native Windows Desktop Installer (.exe):** Built with Electron and NSIS for Windows 10/11 64-bit with desktop shortcuts and system tray control.
+- **Native Windows Desktop Installer (`dist/RestoERP Setup 1.0.0.exe`):** Pre-compiled 64-bit installer with desktop shortcuts, system tray controls, and seamless offline installation bundled directly in the repository.
+- **Clean Frameless Interface & Custom Controls:** Desktop app operates in a clean, modern frameless window with native custom window controls (`ElectronWindowControls`), removing redundant menu bars and browser prompts.
+- **Automated Dependency Setup (`install_system.bat`):** Automated installation script that checks for and installs Bun runtime, Python dependencies, and project requirements in one run.
+- **Intelligent Dual-Mode API Routing (`api.ts`):** Automatically routes requests to local Django backend (`http://127.0.0.1:8000/api`) when running on localhost or inside Electron, while preserving cloud URLs (`restaurants11.onrender.com`) in production.
+- **Enhanced CORS & Security Headers:** Explicit backend CORS support for custom developer headers (`X-SuperDev-Device-Token`, `X-Device-Machine-Id`) with 15-second request timeouts to prevent connection drops.
 - **One-Click Silent System Launcher:** `run_system.bat` and `launch_hidden.vbs` start both frontend and backend seamlessly in the background.
-- **Safe Browser Experience:** Clean, standalone web interface with unnecessary browser prompts and PWA installation pills completely removed for a cleaner workflow.
 
 #### 4. 🤖 AI & Machine Learning Suite
 - **👆 Biometric Attendance & Ethernet Cable Hardware Bridge:**
@@ -130,7 +135,7 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 - **Fluid Multi-Device Layout:** Complete responsive redesign across all system pages (Dashboard, Salaries, POS, Employees, Inventory, Orders, Recipes, Settings).
 - **RTL Sidebar Alignment:** Sidebar toggle and panel placement positioned ergonomically on the right side for native RTL Arabic workflows.
 - **Monochrome Thermal Invoicing:** High-contrast pure black and white (Pure B&W) receipt template optimized for 80mm thermal receipt printers without grayscale artifacts.
-- **Dynamic 1-Hour Trial Engine & Live Second-by-Second Countdown:** Precision timer tracking remaining trial duration with real-time ticking down to the second (`⏳ 59 دقيقة و 42 ثانية`), automatically locking the entire interface upon expiration and prompting for the cryptographic product key.
+- **Dynamic 1-Hour Wall-Clock Trial Engine & Live Second-by-Second Countdown:** Precision timer tracking remaining trial duration with real-time ticking down to the second (`⏳ 59 دقيقة و 42 ثانية`), automatically locking the entire interface upon expiration and prompting for the cryptographic product key.
 - **Off-Canvas Mobile Drawer Sidebar:** Replaces desktop fixed sidebar on screens $< 1024\text{px}$ with a touch-friendly slide-over drawer, dark backdrop overlay, and auto-dismiss on link navigation.
 - **Compact Mobile Top Bar:** Elegant sticky top navigation bar with restaurant branding, dark mode switcher, and hamburger menu button.
 - **Zero Horizontal Overflow:** Strict layout boundaries, responsive tables with horizontal swipe (`overflow-x-auto`), and responsive trial banners preventing UI clipping on smartphones.
@@ -152,14 +157,14 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 - **Styling:** Tailwind CSS (Modern Grid/Flexbox, Dark & Light Mode tokens)
 - **State Management:** Zustand with selective persistent storage
 - **Icons:** Lucide React
-- **HTTP Client:** Axios with automated JWT refresh and SuperDev device verification interceptors
+- **HTTP Client:** Axios with intelligent dual-mode base URL routing, CORS custom header support, and 15s timeout safeguards
 
 ### Backend & AI Architecture
 - **Framework:** [Django](https://www.djangoproject.com/) 5.x / 6.x
 - **API Engine:** [Django Ninja](https://django-ninja.dev/) (High-speed typed OpenAPI/Swagger)
 - **Authentication:** Django Ninja JWT (JSON Web Tokens)
 - **AI & Computer Vision:** OpenCV (`opencv-python-headless`), TensorFlow / Keras, NumPy, Scikit-learn
-- **Hardware Integration:** `pyzkfp` (ZKTeco USB SDK), `pyserial` (UART/COM)
+- **Hardware Integration:** `pyzk` (ZKTeco Ethernet LAN), `pyserial` (UART/COM)
 - **Database:** PostgreSQL (Production / LAN Server) / SQLite (Fallback & Offline resilience)
 - **Runtime:** Python 3.12+ / 3.13+
 
@@ -167,7 +172,15 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 
 ## 🚀 Installation & Quick Start
 
-### 1. Django Backend Setup
+### 1. Automated Installation (Recommended for Windows)
+```bash
+# Run the automated installer script to verify Bun, install frontend & backend packages:
+install_system.bat
+```
+
+---
+
+### 2. Manual Django Backend Setup
 ```bash
 # Navigate to the backend directory
 cd restaurantsApi
@@ -194,7 +207,7 @@ python manage.py runserver 127.0.0.1:8000
 
 ---
 
-### 2. Next.js Frontend Setup (with Bun)
+### 3. Next.js Frontend Setup (with Bun)
 ```bash
 # Navigate to the frontend directory
 cd restaurant-frontend
@@ -213,7 +226,7 @@ bun run start
 
 ---
 
-### 3. Desktop Application & Electron Setup
+### 4. Desktop Application & Electron Setup
 ```bash
 # Root directory
 cd ..
@@ -224,6 +237,7 @@ bun run desktop:dev
 # Build Windows Executable (.exe Installer)
 bun run desktop:dist
 ```
+- Built installer will be located in: `dist/RestoERP Setup 1.0.0.exe`
 
 ---
 
@@ -249,7 +263,7 @@ python manage.py seed_demo_users
 
 ## 🇸🇦 نظام إدارة المطاعم المتكامل الذكي (باللغة العربية)
 
-نظام سحابي ومكتبي متكامل ومتقدم لإدارة المنشآت والمطاعم ونقاط البيع السريعة، مدعوم بأحدث خوارزميات **الذكاء الاصطناعي (AI)** لتحليل البيانات، كشف الاحتيال، التنبؤ بالمخزون، توليد أوامر الشراء المؤتمتة، جدولة نزول الأطباق بالتزامن في المطبخ، حماية الحجوزات، وهندسة المنيو، مع دعم التشغيل المكتبي المستقل عبر **Electron**، والتهيئة التلقائية الفورية لقواعد بيانات **PostgreSQL** بنقرة واحدة، ومحرك ترخيص عتادي مشفر حصري للمطورين الفائقين **ظافر وأيوب (SuperDev)**.
+نظام سحابي ومكتبي متكامل ومتقدم لإدارة المنشآت والمطاعم ونقاط البيع السريعة، مدعوم بأحدث خوارزميات **الذكاء الاصطناعي (AI)** لتحليل البيانات، كشف الاحتيال، التنبؤ بالمخزون، توليد أوامر الشراء المؤتمتة، جدولة نزول الأطباق بالتزامن في المطبخ، حماية الحجوزات، وهندسة المنيو، مع دعم التشغيل المكتبي المستقل عبر **Electron**، والتهيئة التلقائية الفورية لقواعد بيانات **PostgreSQL** بنقرة واحدة، ومحرك ترخيص عتادي مشفر بالوقت الفعلي المطلق حصري للمطورين الفائقين **ظافر وأيوب (SuperDev)**.
 
 ---
 
@@ -278,14 +292,19 @@ python manage.py seed_demo_users
 - **إدارة وضبط أجهزة البصمة الشبكية مركزياً (SuperDev Biometrics Management):**
   - حصر إعدادات شبكة أجهزة البصمة (عنوان IP، المنافذ المدعومة 4370، 4444، 8888، والمنفذ الاحتياطي 5003، وزر فحص الاتصال الحي Test Connection) حصرياً ضمن صلاحية SuperDev لظافر وأيوب.
   - تخزين وحفظ الإعدادات مركزياً في قاعدة البيانات (`RestaurantSettings`) لربط شاشات الحضور وانصراف وبصمات الموظفين دون تعريض المعطيات الفنية للمديرين أو الموظفين.
-- **مختبر اختبار نظام التراخيص وفترة تجريبية لمدة ساعة كاملة (1-Hour Trial Lab):**
-  - إضافة خيار فترة تجريبية مدتها ساعة كاملة (60 دقيقة = 3600 ثانية) بدلاً من 14 يوماً لاختبار سلوك النظام والتأكد من دقته.
-  - توفير أزرار تحكم سريعة لـ SuperDev: بدء فترة تجريبية جديدة لساعة كاملة، تسريع إنهاء مدة الساعة فورياً لمحاكاة القفل واختبار نافذة التفعيل، واستعادة التفعيل الدائم مدى الحياة (Lifetime) بنقرة واحدة.
+- **مختبر اختبار نظام التراخيص وفترة تجريبية لمدة ساعة كاملة بالوقت الفعلي المطلق (Wall-clock 1-Hour Trial):**
+  - **احتساب المدة بالوقت الفعلي المطلق:** احتساب مدة الساعة التجريبية (60 دقيقة = 3600 ثانية) بالاعتماد على الطابع الزمني المطلق للتثبيت (`installed_at`). تستمر مدة التجربة في الانقضاء وتُخصم بالكامل حتى ولو كان الجهاز مغلقاً أو مطفأً أو في وضع السكون (Sleep Mode).
+  - **الحماية الصارمة ضد التلاعب بساعة النظام:** كشف فوري لأي محاولة تلاعب بإرجاع ساعة الويندوز أو الحاسوب إلى الماضي ($t < t_{\text{installed}}$)، واعتبار ذلك خرقاً أمنياً يُنهي الفترة التجريبية ويقفل النظام فوراً.
+  - **التزامن اللحظي للواجهة عند استيقاظ الجهاز:** ربط الواجهة الأمامية بأحداث `visibilitychange` و `focus` مع حساب الوقت المتبقي من الطابع الزمني المطلق للانتهاء، بحيث بمجرد فتح غطاء اللابتوب أو تشغيل الشاشة، يتم احتساب وخصم كافة الدقائق التي مرت أثناء إغلاق الجهاز وقفل النظام فوراً إذا تجاوزت الساعة.
+  - **أزرار تحكم سريعة للمطورين الفائقين:** بدء فترة تجريبية جديدة لساعة كاملة، تسريع إنهاء مدة الساعة فورياً لمحاكاة القفل واختبار نافذة التفعيل، واستعادة التفعيل الدائم مدى الحياة (Lifetime) بنقرة واحدة.
 
 #### 3. 🖥️ تطبيق سطح المكتب المستقل (Desktop Suite)
-- **حزمة Electron رسمية (.exe):** ملف تثبيت مخصص لويندوز 10/11 بأعلى أداء وسرعة وصول.
+- **حزمة تثبيت ويندوز الرسمية (`dist/RestoERP Setup 1.0.0.exe`):** ملف تثبيت مدمج ومرفوع مباشرة على المستودع جاهز للتنصيب على أجهزة نقاط البيع التي تعمل بنظام ويندوز 10/11 مع اختصارات سطح المكتب.
+- **واجهة مدمجة بدون إطارات (Frameless Window):** تشغيل التطبيق في نافذة حديثة متكاملة مع إزالة شريط القوائم التقليدي وإضافة عناصر تحكم علوية مخصصة (`ElectronWindowControls`).
+- **مثبت البرمجيات المؤتمت (`install_system.bat`):** سكريبت تنصيب فوري يقوم بفحص وتثبيت بيئة Bun ومكتبات بايثون وإعداد المشروع بضغطة زر واحدة.
+- **التوجيه الذكي للاتصال (Dual-Mode API Routing):** توجيه تلقائي ذكي إلى خادم Django المحلي (`http://127.0.0.1:8000/api`) عند التشغيل على localhost أو عبر تطبيق Electron مع حفظ مسار السحابة في الإنتاج.
+- **دعم ترويسات CORS المخصصة وحماية الشبكة:** السماح الشامل بترويسات التحقق العتادية (`X-SuperDev-Device-Token`, `X-Device-Machine-Id`) في إعدادات Django وضبط مهلة استجابة 15 ثانية لمنع أخطاء الشبكة.
 - **مشغل صامت بنقرة واحدة:** ملفات `run_system.bat` و `launch_hidden.vbs` لتشغيل الباك إند والفرونت إند في الخلفية بضغطة واحدة.
-- **تجربة تصفح نظيفة:** واجهة مستخدم نظيفة وخالية من الإشعارات الجانبية غير المرغوبة.
 
 #### 4. 🤖 حزمة الذكاء الاصطناعي وتعلم الآلة (AI & ML)
 - **👆 الحضور والانصراف بالبصمة البيومترية عبر كابل الإيثرنت (Cable EtherNet):**
@@ -354,7 +373,7 @@ python manage.py seed_demo_users
 - **توافق كامل مع كافة الأجهزة (Full Responsiveness):** إعادة هيكلة مرنة لجميع صفحات النظام (لوحة التحكم، المرتبات، الكاشير، الموظفين، المخزون، الطلبات، الوصفات، والإعدادات).
 - **تموضع القائمة الجانبية يميناً (Right-Aligned Sidebar Toggle):** نقل زر فتح وإغلاق القائمة الجانبية إلى جهة اليمين لتتوافق بصرياً ووظيفياً مع بيئة العمل والواجهات العربية (RTL).
 - **فاتورة حرارية أبيض وأسود نقي (Pure Black & White):** تصميم عالي التباين خالٍ تماماً من التدرجات الرمادية المسببة لتشويش الطابعات الحرارية لضمان دقة وسرعة طباعة الإيصالات 80mm.
-- **محرك الفترة التجريبية (1 ساعة كاملة) والعداد التنازلي المباشر:** نظام عد تنازلي حي بالثواني ينبض في الشريط العلوي (`⏳ 59 دقيقة و 42 ثانية`)، وعند انتهاء الـ 60 دقيقة يتم قفل النظام تلقائياً وتظهر شاشة القفل الحمراء لطلب مفتاح التفعيل الدائم.
+- **محرك الفترة التجريبية (1 ساعة كاملة) بالوقت الفعلي المطلق:** نظام عد تنازلي حي بالثواني ينبض في الشريط العلوي (`⏳ 59 دقيقة و 42 ثانية`)، وعند انتهاء الـ 60 دقيقة يتم قفل النظام تلقائياً وتظهر شاشة القفل الحمراء لطلب مفتاح التفعيل الدائم.
 - **قائمة جانبية منزلقة للأجهزة المحمولة (Off-Canvas Mobile Drawer):** إخفاء القائمة الثابتة تلقائياً على الشاشات التي يقل عرضها عن 1024 بكسل واستبدالها بدرج جانبي سلس مع طبقة تعتيم ضبابية خلفية (Backdrop Overlay) وإغلاق فوري عند الضغط على أي رابط.
 - **شريط تنقل علوي مدمج للهواتف (Mobile Top Bar):** شريط علوي أنيق يحتوي على شعار واسم المطعم، زر التحويل للوضع الليلي، وزر القائمة (Hamburger Menu).
 - **منع التمدد الأفقي للشاشات (Zero Overflow):** ضبط دقيق لجميع الجداول وتأطيرها بخاصية التمرير الأفقي السلس (`overflow-x-auto`)، مع جعل شريط التنبيه التجريبي يتكيف بمرونة مع أصغر شاشات الهواتف.
@@ -367,5 +386,5 @@ python manage.py seed_demo_users
 ---
 
 ## 📄 الترخيص (License)
-هذا المشروع مطوّر ومملوك بواسطة **TeamSoftWare Developers Organization** لخدمة حلول إدارة المطاعم والضيافة.
+هذا المشروع مطوّر ومملوك بواسطة **TeamSoftWare Developers Organization** لخدمة حلول إدارة المطاعم والضيافة.  
 All rights reserved © 2026.
