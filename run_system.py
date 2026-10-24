@@ -67,6 +67,54 @@ def run_database_migrations():
     except Exception as e:
         print(f" [!] تنبيه أثناء فحص قاعدة البيانات: {e}")
 
+def launch_desktop_window(target_url: str):
+    """
+    تشغيل واجهة النظام في نافذة تطبيق مستقلة بدون أشرطة تصفح أو علامات تبويب
+    الأولوية: Electron أولاً -> نمط التطبيق المستقل Edge App Mode -> نمط Chrome App Mode
+    """
+    # 1. محاولة التشغيل عبر Electron إن كان متوفراً محلياً
+    electron_executables = [
+        ROOT_DIR / "node_modules" / ".bin" / "electron.cmd",
+        ROOT_DIR / "node_modules" / "electron" / "dist" / "electron.exe",
+    ]
+    for el_exe in electron_executables:
+        if el_exe.exists():
+            try:
+                env_electron = os.environ.copy()
+                env_electron["APP_URL"] = target_url
+                subprocess.Popen([str(el_exe), str(ROOT_DIR / "electron" / "main.js")], cwd=ROOT_DIR, env=env_electron)
+                print(" ✓ تم فتح النظام في نافذة تطبيق سطح المكتب المستقلة (Electron Desktop Window).")
+                return True
+            except Exception:
+                pass
+
+    # 2. محاولة التشغيل كنافذة تطبيق مستقلة عبر المسارات الحقيقية لـ Microsoft Edge و Google Chrome
+    standalone_candidates = [
+        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%LocalAppData%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+        "msedge",
+        "chrome",
+        "google-chrome",
+    ]
+
+    for candidate in standalone_candidates:
+        try:
+            if os.path.isabs(candidate) and not os.path.exists(candidate):
+                continue
+            subprocess.Popen([candidate, f"--app={target_url}"])
+            print(f" ✓ تم فتح النظام في نافذة تطبيق مستقلة بدون شريط متصفح (Standalone App Mode).")
+            return True
+        except Exception:
+            continue
+
+    # 3. إذا لم يتوفر أي خيار آخر فقط
+    webbrowser.open(target_url)
+    return False
+
 def main():
     print("=" * 60)
     print(" 🚀 جاري فحص بيئة التشغيل والمنافذ المتوفرة لجهاز العميل...")
@@ -127,30 +175,20 @@ def main():
     print(f"[2/3] بدء تشغيل واجهة الكاشير بوضع {mode_desc} عبر {runner} على المنفذ {frontend_port}...")
     frontend_process = subprocess.Popen(frontend_cmd, cwd=FRONTEND_DIR, env=env)
 
-    # 5. فتح واجهة النظام تلقائياً بعد أن تصبح جاهزة للرد
+    # 5. فتح واجهة النظام تلقائياً بعد أن تصبح جاهزة للرد في نافذة تطبيق مستقلة
     target_url = f"http://localhost:{frontend_port}"
-    print(f"[3/3] جاري انتظار استجابة الواجهة وفتح نافذة النظام: {target_url}...")
+    print(f"[3/3] جاري انتظار استجابة الواجهة وفتح نافذة تطبيق النظام: {target_url}...")
     
     # انتظار جاهزية الفرونت إند قبل فتح النافذة
     is_ready = wait_for_server(target_url, timeout=35)
     if not is_ready:
         print(" ⚠️ الواجهة تأخذ وقتاً أطول في الإقلاع، جاري فتح النافذة الآن...")
 
-    # محاولة فتح التطبيق عبر Edge أو Chrome بوضع التطبيق المستقل (Standalone PWA)
-    opened = False
-    for browser_cmd in ["msedge", "chrome", "google-chrome"]:
-        try:
-            subprocess.Popen([browser_cmd, f"--app={target_url}"])
-            opened = True
-            break
-        except FileNotFoundError:
-            continue
-
-    if not opened:
-        webbrowser.open(target_url)
+    # تشغيل نافذة التطبيق المستقلة دون التوجيه للمتصفح العادي
+    launch_desktop_window(target_url)
 
     print("=" * 60)
-    print(" ✅ النظام يعمل بنجاح الآن! لا تغلق هذه النافذة أثناء العمل.")
+    print(" ✅ النظام يعمل بنجاح الآن كشاشة نقطة بيع مستقلة! لا تغلق هذه النافذة أثناء العمل.")
     print("=" * 60)
 
     try:
