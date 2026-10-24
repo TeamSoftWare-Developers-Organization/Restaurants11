@@ -44,16 +44,45 @@ def wait_for_server(url: str, timeout: int = 30) -> bool:
             time.sleep(1)
     return False
 
+def clean_stale_lock():
+    """حذف ملف القفل القديم لـ Next.js إذا كان معلقاً لمنع خطأ Unable to acquire lock"""
+    lock_file = FRONTEND_DIR / ".next" / "dev" / "lock"
+    if lock_file.exists():
+        try:
+            lock_file.unlink()
+            print(" 🧹 تم تنظيف قفل Next.js القديم بنجاح.")
+        except Exception:
+            pass
+
+def run_database_migrations():
+    """تطبيق أي هجرات جديدة في قاعدة البيانات تلقائياً قبل تشغيل السيرفر"""
+    print("\n[*] جاري التحقق من تحديثات قاعدة البيانات وتطبيق الجداول (Migrations)...")
+    try:
+        subprocess.run(
+            [sys.executable, "manage.py", "migrate", "--noinput"],
+            cwd=BACKEND_DIR,
+            check=True
+        )
+        print(" [V] قاعدة البيانات محدثة وجاهزة بالكامل.")
+    except Exception as e:
+        print(f" [!] تنبيه أثناء فحص قاعدة البيانات: {e}")
+
 def main():
     print("=" * 60)
     print(" 🚀 جاري فحص بيئة التشغيل والمنافذ المتوفرة لجهاز العميل...")
     print("=" * 60)
 
+    # تنظيف أي قفل قديم للواجهة
+    clean_stale_lock()
+
+    # تطبيق هجرات قاعدة البيانات تلقائياً
+    run_database_migrations()
+
     # 1. تحديد منافذ حرة للباك إند والفرونت إند تلقائياً مع حماية منافذ البصمة
     backend_port = find_available_port(8000)
     frontend_port = find_available_port(3005)
 
-    print(f" ✓ تم اعتماد منفذ الواجهة الخلفية (Backend) : {backend_port}")
+    print(f"\n ✓ تم اعتماد منفذ الواجهة الخلفية (Backend) : {backend_port}")
     print(f" ✓ تم اعتماد منفذ الواجهة الأمامية (Frontend) : {frontend_port}")
     print(f" 🔒 تم عزل وتأمين منافذ البصمة الشبكية (4370, 4444, 8888, 5003) تلقائياً.")
 
@@ -78,16 +107,21 @@ def main():
     wait_for_server(f"http://127.0.0.1:{backend_port}/api/docs", timeout=15)
 
     # 4. تشغيل الواجهة الأمامية (Bun / Next.js)
-    # فحص الأداة المتوفرة (Bun أولاً ثم NPM)
     runner = "bun" if subprocess.run(["where" if os.name == "nt" else "which", "bun"], capture_output=True).returncode == 0 else "npm"
 
-    # التحقق من وجود بناء إنتاجي صالح مكتمل (BUILD_ID) لاستخدام start، وإلا استخدام dev تلقائياً
+    # استخدام npx next dev أو bun run dev مباشرة لتمرير المنفذ الصحيح
     has_valid_build = (FRONTEND_DIR / ".next" / "BUILD_ID").exists()
     if has_valid_build:
-        frontend_cmd = [runner, "run", "start", "-p", str(frontend_port)]
+        if runner == "bun":
+            frontend_cmd = ["bun", "x", "next", "start", "-p", str(frontend_port)]
+        else:
+            frontend_cmd = ["npx", "next", "start", "-p", str(frontend_port)]
         mode_desc = "الإنتاج السريع (Production Mode)"
     else:
-        frontend_cmd = [runner, "run", "dev", "-p", str(frontend_port)]
+        if runner == "bun":
+            frontend_cmd = ["bun", "x", "next", "dev", "--webpack", "-p", str(frontend_port)]
+        else:
+            frontend_cmd = ["npx", "next", "dev", "--webpack", "-p", str(frontend_port)]
         mode_desc = "التشغيل الفوري (Development Mode)"
 
     print(f"[2/3] بدء تشغيل واجهة الكاشير بوضع {mode_desc} عبر {runner} على المنفذ {frontend_port}...")
@@ -98,7 +132,7 @@ def main():
     print(f"[3/3] جاري انتظار استجابة الواجهة وفتح نافذة النظام: {target_url}...")
     
     # انتظار جاهزية الفرونت إند قبل فتح النافذة
-    is_ready = wait_for_server(target_url, timeout=30)
+    is_ready = wait_for_server(target_url, timeout=35)
     if not is_ready:
         print(" ⚠️ الواجهة تأخذ وقتاً أطول في الإقلاع، جاري فتح النافذة الآن...")
 

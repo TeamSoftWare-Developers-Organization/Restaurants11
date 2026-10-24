@@ -7,7 +7,6 @@ __pycache__/
 build/
 develop-eggs/
 dist/win-unpacked/
-dist/.icon-ico/
 downloads/
 eggs/
 .eggs/
