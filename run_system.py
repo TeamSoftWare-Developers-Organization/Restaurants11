@@ -3,6 +3,7 @@ import sys
 import time
 import socket
 import subprocess
+import urllib.request
 import webbrowser
 from pathlib import Path
 
@@ -29,6 +30,19 @@ def find_available_port(preferred_port: int, max_attempts: int = 50) -> int:
                 # المنفذ متاح وغير مستخدم بواسطة أي برنامج آخر
                 return port
     raise RuntimeError(f"تعذر العثور على منفذ متاح بعد فحص {max_attempts} منفذاً بدءاً من {preferred_port}")
+
+def wait_for_server(url: str, timeout: int = 30) -> bool:
+    """الانتظار حتى يبدأ الخادم بالاستجابة الفعلية قبل محاولة فتحه"""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'SystemLauncher'})
+            with urllib.request.urlopen(req, timeout=1) as response:
+                if response.status in (200, 301, 302, 307, 308):
+                    return True
+        except Exception:
+            time.sleep(1)
+    return False
 
 def main():
     print("=" * 60)
@@ -59,21 +73,34 @@ def main():
     print(f"\n[1/3] بدء تشغيل خادم Django على المنفذ {backend_port}...")
     backend_process = subprocess.Popen(backend_cmd, cwd=BACKEND_DIR, env=env)
 
-    # انتظار ثانيتين للتأكد من قيام السيرفر
-    time.sleep(2)
+    # الانتظار حتى يتأكد السكربت من جاهزية خادم Django
+    print(" ⏳ التحقق من جاهزية خادم الباك إند...")
+    wait_for_server(f"http://127.0.0.1:{backend_port}/api/docs", timeout=15)
 
     # 4. تشغيل الواجهة الأمامية (Bun / Next.js)
     # فحص الأداة المتوفرة (Bun أولاً ثم NPM)
     runner = "bun" if subprocess.run(["where" if os.name == "nt" else "which", "bun"], capture_output=True).returncode == 0 else "npm"
-    frontend_cmd = [runner, "run", "start", "-p", str(frontend_port)] if (FRONTEND_DIR / ".next").exists() else [runner, "run", "dev", "-p", str(frontend_port)]
 
-    print(f"[2/3] بدء تشغيل واجهة الكاشير عبر {runner} على المنفذ {frontend_port}...")
+    # التحقق من وجود بناء إنتاجي صالح مكتمل (BUILD_ID) لاستخدام start، وإلا استخدام dev تلقائياً
+    has_valid_build = (FRONTEND_DIR / ".next" / "BUILD_ID").exists()
+    if has_valid_build:
+        frontend_cmd = [runner, "run", "start", "-p", str(frontend_port)]
+        mode_desc = "الإنتاج السريع (Production Mode)"
+    else:
+        frontend_cmd = [runner, "run", "dev", "-p", str(frontend_port)]
+        mode_desc = "التشغيل الفوري (Development Mode)"
+
+    print(f"[2/3] بدء تشغيل واجهة الكاشير بوضع {mode_desc} عبر {runner} على المنفذ {frontend_port}...")
     frontend_process = subprocess.Popen(frontend_cmd, cwd=FRONTEND_DIR, env=env)
 
-    # 5. فتح واجهة النظام تلقائياً في شاشة تطبيق مستقلة (App Mode)
+    # 5. فتح واجهة النظام تلقائياً بعد أن تصبح جاهزة للرد
     target_url = f"http://localhost:{frontend_port}"
-    print(f"[3/3] جاري فتح نافذة النظام: {target_url}\n")
-    time.sleep(3)
+    print(f"[3/3] جاري انتظار استجابة الواجهة وفتح نافذة النظام: {target_url}...")
+    
+    # انتظار جاهزية الفرونت إند قبل فتح النافذة
+    is_ready = wait_for_server(target_url, timeout=30)
+    if not is_ready:
+        print(" ⚠️ الواجهة تأخذ وقتاً أطول في الإقلاع، جاري فتح النافذة الآن...")
 
     # محاولة فتح التطبيق عبر Edge أو Chrome بوضع التطبيق المستقل (Standalone PWA)
     opened = False

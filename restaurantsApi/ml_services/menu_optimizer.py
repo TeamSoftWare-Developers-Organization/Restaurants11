@@ -1,4 +1,3 @@
-import numpy as np
 from django.db.models import Sum
 from menu.models import MenuItem
 from inventory.models import RecipeIngredient
@@ -58,9 +57,11 @@ class MenuEngineeringService:
         if not items_analysis:
             return []
 
-        # 2. حساب المتوسطات العامة للمطعم (Thresholds)
-        avg_profit_margin = float(np.mean([i["profit_margin"] for i in items_analysis])) if items_analysis else 1.0
-        avg_popularity = float(np.mean([i["sold_count"] for i in items_analysis])) if items_analysis else 1.0
+        # 2. حساب المتوسطات العامة للمطعم (Thresholds) بدون الحاجة لمكتبات خارجية
+        margins = [i["profit_margin"] for i in items_analysis]
+        counts = [i["sold_count"] for i in items_analysis]
+        avg_profit_margin = float(sum(margins) / len(margins)) if margins else 1.0
+        avg_popularity = float(sum(counts) / len(counts)) if counts else 1.0
 
         # 3. تصنيف الأصناف واقتراح التوصية التنفيذية الذكية
         results = []
