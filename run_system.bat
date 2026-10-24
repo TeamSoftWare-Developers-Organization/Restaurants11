@@ -6,6 +6,6 @@ if exist "%~dp0bin\bun.exe" (
     set "PATH=%~dp0bin;%PATH%"
 )
 
-:: تشغيل المحرك في الخلفية وإخفاء جميع نوافذ الـ Shell (Command Prompt) فوراً دون فتح المتصفح
-wscript.exe "%~dp0launch_hidden.vbs"
+:: تشغيل السيرفرات بالكامل داخلياً في الخلفية بدون نوافذ cmd
+start "" "%SystemRoot%\System32\wscript.exe" "%~dp0launch_hidden.vbs"
 exit

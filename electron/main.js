@@ -79,13 +79,17 @@ function startBackendIfNeeded() {
 
         const projectRoot = path.join(__dirname, '..');
         const apiDir = path.join(projectRoot, 'restaurantsApi');
+        // Prefer pythonw.exe (windowless GUI runner) to completely suppress any cmd/console window
+        const venvPythonW = path.join(apiDir, 'venv', 'Scripts', 'pythonw.exe');
         const venvPython = path.join(apiDir, 'venv', 'Scripts', 'python.exe');
+        const pythonExe = fs.existsSync(venvPythonW) ? venvPythonW : (fs.existsSync(venvPython) ? venvPython : 'python');
 
-        console.log('[Electron] Starting Django backend service...');
+        console.log('[Electron] Starting Django backend service silently with:', pythonExe);
         try {
-            backendProcess = spawn(venvPython, ['manage.py', 'runserver', `127.0.0.1:${BACKEND_PORT}`], {
+            backendProcess = spawn(pythonExe, ['manage.py', 'runserver', `127.0.0.1:${BACKEND_PORT}`], {
                 cwd: apiDir,
-                shell: true,
+                shell: false,
+                windowsHide: true,
                 detached: false,
                 stdio: 'ignore'
             });
@@ -136,11 +140,12 @@ function startFrontendIfNeeded() {
         const frontendDir = path.join(projectRoot, 'restaurant-frontend');
         const bunExe = getBunExecutablePath();
 
-        console.log('[Electron] Starting Next.js frontend service with:', bunExe);
+        console.log('[Electron] Starting Next.js frontend service silently with:', bunExe);
         try {
             frontendProcess = spawn(bunExe, ['run', 'dev'], {
                 cwd: frontendDir,
-                shell: true,
+                shell: false,
+                windowsHide: true,
                 detached: false,
                 stdio: 'ignore'
             });
@@ -349,12 +354,24 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-    // Terminate child processes on Windows
+    // Terminate child processes on Windows silently
     if (backendProcess) {
-        try { backendProcess.kill(); } catch (e) {}
+        try {
+            if (process.platform === 'win32' && backendProcess.pid) {
+                spawn('taskkill', ['/pid', backendProcess.pid.toString(), '/f', '/t'], { windowsHide: true, shell: false });
+            } else {
+                backendProcess.kill();
+            }
+        } catch (e) {}
     }
     if (frontendProcess) {
-        try { frontendProcess.kill(); } catch (e) {}
+        try {
+            if (process.platform === 'win32' && frontendProcess.pid) {
+                spawn('taskkill', ['/pid', frontendProcess.pid.toString(), '/f', '/t'], { windowsHide: true, shell: false });
+            } else {
+                frontendProcess.kill();
+            }
+        } catch (e) {}
     }
 
     if (process.platform !== 'darwin') {
