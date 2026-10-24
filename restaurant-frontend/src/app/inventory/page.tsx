@@ -45,11 +45,11 @@ export default function InventoryPage() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [deleteModal, setDeleteModal] = useState<{
         isOpen: boolean;
-        item: Ingredient | null;
+        item: Ingredient | undefined;
         isLoading: boolean;
     }>({
         isOpen: false,
-        item: null,
+        item: undefined,
         isLoading: false
     });
 
@@ -122,18 +122,30 @@ export default function InventoryPage() {
             }
 
             Object.entries(submitData).forEach(([key, value]) => {
-                if (value !== undefined && value !== null) {
-                    data.append(key, value.toString());
+                switch (true) {
+                    case value !== undefined && value !== null:
+                        data.append(key, value.toString());
+                        break;
+                    default:
+                        break;
                 }
             });
-            if (imageFile) {
-                data.append('image', imageFile);
+
+            switch (true) {
+                case Boolean(imageFile):
+                    data.append('image', imageFile!);
+                    break;
+                default:
+                    break;
             }
 
-            if (editingItem) {
-                await inventoryService.updateIngredient(editingItem.id, data);
-            } else {
-                await inventoryService.createIngredient(data);
+            switch (true) {
+                case Boolean(editingItem):
+                    await inventoryService.updateIngredient(editingItem!.id, data);
+                    break;
+                default:
+                    await inventoryService.createIngredient(data);
+                    break;
             }
             setIsModalOpen(false);
             fetchInventory();
@@ -155,7 +167,7 @@ export default function InventoryPage() {
         setDeleteModal(prev => ({ ...prev, isLoading: true }));
         try {
             await inventoryService.deleteIngredient(deleteModal.item.id);
-            setDeleteModal({ isOpen: false, item: null, isLoading: false });
+            setDeleteModal({ isOpen: false, item: undefined, isLoading: false });
             fetchInventory();
         } catch (err) {
             console.error('Delete failed', err);
@@ -529,7 +541,7 @@ export default function InventoryPage() {
 
             <DeleteConfirmModal
                 isOpen={deleteModal.isOpen}
-                onClose={() => setDeleteModal({ isOpen: false, item: null, isLoading: false })}
+                onClose={() => setDeleteModal({ isOpen: false, item: undefined, isLoading: false })}
                 onConfirm={handleConfirmDelete}
                 itemName={deleteModal.item?.name}
                 isLoading={deleteModal.isLoading}
