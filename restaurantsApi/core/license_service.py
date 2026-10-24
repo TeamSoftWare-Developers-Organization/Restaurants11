@@ -139,6 +139,7 @@ class LicenseService:
         lic.product_key = formatted_key
         lic.license_type = 'LIFETIME'
         lic.activated_at = timezone.now()
+        lic.save()
         return True, "تم تفعيل النظام بنجاح مدى الحياة!", lic
 
 
