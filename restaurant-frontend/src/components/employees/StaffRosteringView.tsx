@@ -483,46 +483,46 @@ export default function StaffRosteringView({ onRosterApplied }: StaffRosteringVi
                     </div>
 
                     {/* Financial Optimization Comparison */}
-                    <div className="bg-gradient-to-r from-gray-900 to-indigo-950 text-white rounded-2xl p-5 shadow-lg space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                    <div className="bg-card dark:bg-gradient-to-r dark:from-gray-900 dark:to-indigo-950 text-gray-900 dark:text-white rounded-2xl p-5 border border-gray-100 dark:border-white/10 shadow-xs dark:shadow-lg space-y-4 transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-white/10 pb-3">
                             <div className="flex items-center gap-2">
-                                <Award className="w-5 h-5 text-purple-400" />
-                                <h3 className="text-sm font-black text-white">
+                                <Award className="w-5 h-5 text-indigo-600 dark:text-purple-400" />
+                                <h3 className="text-sm font-black text-gray-900 dark:text-white">
                                     مقارنة كفاءة الجدولة وتحليل ترشيد تكلفة العمالة
                                 </h3>
                             </div>
-                            <span className="text-xs font-bold text-purple-300 bg-purple-500/20 border border-purple-500/30 px-3 py-1 rounded-xl">
+                            <span className="text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-500/20 border border-purple-200 dark:border-purple-500/30 px-3 py-1 rounded-xl">
                                 تقييم الكفاءة: {rosterData.financial_optimization.efficiency_rating}
                             </span>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-bold">
-                            <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
-                                <div className="text-gray-400 text-[11px]">الجدولة التقليدية الثابتة (Flat)</div>
-                                <div className="text-lg font-black text-rose-300 tabular-nums">
+                            <div className="bg-gray-50/80 dark:bg-white/5 p-3.5 rounded-xl border border-gray-200/60 dark:border-white/10 space-y-1">
+                                <div className="text-gray-500 dark:text-gray-400 text-[11px]">الجدولة التقليدية الثابتة (Flat)</div>
+                                <div className="text-lg font-black text-rose-600 dark:text-rose-300 tabular-nums">
                                     {rosterData.financial_optimization.traditional_labor_cost} د.ل / يوم
                                 </div>
-                                <div className="text-[10px] text-gray-400">
+                                <div className="text-[10px] text-gray-500 dark:text-gray-400 font-normal">
                                     تعيين كادر موحد طوال اليوم يسبب فائضاً عمالياً وتكاليف غير مبررة خلال الفترات الهادئة.
                                 </div>
                             </div>
 
-                            <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-1">
-                                <div className="text-gray-400 text-[11px]">الجدولة بالذكاء الاصطناعي (Optimized)</div>
-                                <div className="text-lg font-black text-emerald-300 tabular-nums">
+                            <div className="bg-gray-50/80 dark:bg-white/5 p-3.5 rounded-xl border border-gray-200/60 dark:border-white/10 space-y-1">
+                                <div className="text-gray-500 dark:text-gray-400 text-[11px]">الجدولة بالذكاء الاصطناعي (Optimized)</div>
+                                <div className="text-lg font-black text-emerald-600 dark:text-emerald-300 tabular-nums">
                                     {rosterData.financial_optimization.optimized_labor_cost} د.ل / يوم
                                 </div>
-                                <div className="text-[10px] text-gray-400">
+                                <div className="text-[10px] text-gray-500 dark:text-gray-400 font-normal">
                                     توزيع الطهاة والكاشيرات حسب الطلب الدقيق يمنع الهدر ويغطي أوقات الذروة باحترافية.
                                 </div>
                             </div>
 
-                            <div className="bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-500/30 space-y-1">
-                                <div className="text-emerald-300 text-[11px]">الوفر الشهري المتوقع</div>
-                                <div className="text-xl font-black text-emerald-400 tabular-nums">
+                            <div className="bg-emerald-50/80 dark:bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 space-y-1">
+                                <div className="text-emerald-700 dark:text-emerald-300 text-[11px]">الوفر الشهري المتوقع</div>
+                                <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
                                     {rosterData.financial_optimization.monthly_projected_savings} د.ل
                                 </div>
-                                <div className="text-[10px] text-emerald-200/70">
+                                <div className="text-[10px] text-emerald-700/80 dark:text-emerald-200/70">
                                     نسبة تكلفة العمالة من إجمالي المبيعات التقديرية: <strong>{rosterData.financial_optimization.labor_cost_ratio_percentage}%</strong>
                                 </div>
                             </div>
