@@ -16,6 +16,7 @@ export interface EmployeeAttendanceSummary {
     is_late?: boolean;
     late_minutes?: number;
     late_deduction_amount?: number;
+    absence_deduction_amount?: number;
     late_status_display?: string | null;
 }
 

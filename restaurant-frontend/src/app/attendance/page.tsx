@@ -920,7 +920,18 @@ export default function AttendancePage() {
                                                                 </td>
                                                                 <td className="p-3.5 font-bold text-xs">
                                                                     {emp.status === 'ABSENT' ? (
-                                                                        <span className="text-rose-500 font-bold">غائب</span>
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-rose-500 font-bold">غائب</span>
+                                                                            {(emp.absence_deduction_amount ?? 0) > 0 ? (
+                                                                                <span className="text-[10px] text-rose-500/80 font-bold">
+                                                                                    خصم غياب: {Number(emp.absence_deduction_amount).toFixed(2)} د.ل
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="text-[10px] text-gray-400">
+                                                                                    خصم راتب اليوم
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                     ) : emp.is_late ? (
                                                                         <div className="flex flex-col">
                                                                             <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-black">
