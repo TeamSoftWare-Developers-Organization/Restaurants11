@@ -11,9 +11,16 @@ ROOT_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = ROOT_DIR / "restaurantsApi"
 FRONTEND_DIR = ROOT_DIR / "restaurant-frontend"
 
+# منافذ أجهزة البصمة البيومترية المحظور استخدامها لتطبيقات الويب لمنع التداخل والتعارض
+FINGERPRINT_PORTS = {4370, 4444, 8888, 5003}
+
 def find_available_port(preferred_port: int, max_attempts: int = 50) -> int:
-    """فحص المنفذ واختيار أول منفذ حر تلقائياً في حال كان محجوزاً"""
+    """فحص المنفذ واختيار أول منفذ حر تلقائياً، مع تخطي منافذ أجهزة البصمة فوراً"""
     for port in range(preferred_port, preferred_port + max_attempts):
+        # تخطي منافذ أجهزة البصمة تلقائياً ودون أي تدخل
+        if port in FINGERPRINT_PORTS:
+            continue
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.settimeout(0.5)
             # محاولة ربط المنفذ لاختبار توفره
@@ -28,12 +35,13 @@ def main():
     print(" 🚀 جاري فحص بيئة التشغيل والمنافذ المتوفرة لجهاز العميل...")
     print("=" * 60)
 
-    # 1. تحديد منافذ حرة للباك إند والفرونت إند تلقائياً
+    # 1. تحديد منافذ حرة للباك إند والفرونت إند تلقائياً مع حماية منافذ البصمة
     backend_port = find_available_port(8000)
     frontend_port = find_available_port(3005)
 
     print(f" ✓ تم اعتماد منفذ الواجهة الخلفية (Backend) : {backend_port}")
     print(f" ✓ تم اعتماد منفذ الواجهة الأمامية (Frontend) : {frontend_port}")
+    print(f" 🔒 تم عزل وتأمين منافذ البصمة الشبكية (4370, 4444, 8888, 5003) تلقائياً.")
 
     # 2. حقن المتغيرات البيئية للفرونت إند ليتعرف على منفذ الباك إند الجديد
     env = os.environ.copy()
