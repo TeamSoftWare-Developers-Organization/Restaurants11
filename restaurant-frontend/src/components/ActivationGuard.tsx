@@ -6,7 +6,11 @@ import {
     ShieldCheck,
     KeyRound,
     Lock,
-    Sparkles
+    Sparkles,
+    Clock,
+    Copy,
+    Check,
+    Laptop
 } from 'lucide-react';
 import { useLicenseGuard } from '@/hooks/useLicenseGuard';
 
@@ -18,7 +22,13 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         isActivating,
         errorMessage,
         successMessage,
+        isCopied,
+        isBannerDismissed,
+        setIsBannerDismissed,
+        secondsLeft,
         isLocked,
+        formatCountdown,
+        handleCopyMachineId,
         handleKeyChange,
         handleActivate
     } = useLicenseGuard();
@@ -33,7 +43,7 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         );
     }
 
-    // الحالة 1: النظام غير صالح (انتهت فترة الـ 14 يوماً أو الساعة التجريبية وغير مفعل) -> قفل الواجهة بالكامل
+    // الحالة 1: النظام غير صالح (انتهت فترة الساعة التجريبية وغير مفعل) -> قفل الواجهة بالكامل
     if (isLocked) {
         return (
             <div className="fixed inset-0 z-[999999] bg-gray-950/98 backdrop-blur-2xl flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
@@ -53,6 +63,30 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
                     <p className="text-xs sm:text-sm text-gray-400 font-medium mb-6 leading-relaxed">
                         لقد استنفدت مدة الساعة التجريبية الممنوحة لك لاختبار النظام. لحماية البيانات واستئناف العمليات اليومية ونقاط البيع، يرجى إدخال مفتاح التفعيل الدائم المخصص لهذا الجهاز.
                     </p>
+
+                    {/* Machine ID Box */}
+                    <div className="bg-gray-950 border border-gray-800 rounded-2xl p-4 mb-5 text-right">
+                        <div className="text-xs font-bold text-gray-400 mb-1 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-gray-300">
+                                <Laptop className="w-3.5 h-3.5 text-cyan-400" />
+                                <span>معرف هذا الجهاز الفريد (Machine ID):</span>
+                            </span>
+                            <button
+                                type="button"
+                                onClick={handleCopyMachineId}
+                                className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 text-[11px] font-black cursor-pointer"
+                            >
+                                {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                <span>{isCopied ? 'تم النسخ' : 'نسخ المعرف'}</span>
+                            </button>
+                        </div>
+                        <div className="font-mono text-sm sm:text-base font-black text-amber-300 tracking-wider bg-gray-900 py-2 px-3 rounded-xl border border-gray-800 text-center select-all">
+                            {license?.machine_id || 'جاري استخراج المعرف...'}
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-2">
+                            * شارك هذا المعرف مع فريق الدعم الفني أو المورد لإصدار مفتاح المنتج الخاص بك.
+                        </p>
+                    </div>
 
                     {/* Support Notice */}
                     <div className="bg-gray-950/80 border border-gray-800 rounded-2xl p-4 mb-6 text-right">
@@ -100,7 +134,7 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
                         <button
                             type="submit"
                             disabled={isActivating || !productKey}
-                            className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-lg shadow-emerald-900/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-lg shadow-emerald-900/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                             {isActivating ? (
                                 <>
@@ -120,6 +154,52 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         );
     }
 
-    // الحالة 2: النظام مفعل بصفة دائمة أو التجربة لا زالت سارية
-    return <>{children}</>;
+    // الحالة 2: النظام مفعل بصفة دائمة -> عرض التطبيق مباشرة دون أي تنبيه
+    if (license?.is_activated) {
+        return <>{children}</>;
+    }
+
+    // الحالة 3: النظام ضمن الفترة التجريبية (ساعة كاملة لاختبار النظام) -> إظهار شريط تنبيهي أنيق أعلى الشاشة مع عداد تنازلي حي
+    return (
+        <div className="relative min-h-screen flex flex-col">
+            {!isBannerDismissed && license && license.is_trial_active && (
+                <div
+                    className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-black shadow-md flex flex-col sm:flex-row items-center justify-between gap-2 z-50 transition-all shrink-0"
+                    dir="rtl"
+                >
+                    <div className="flex items-center gap-2 max-w-4xl text-center sm:text-right">
+                        <Clock className="w-4 h-4 shrink-0 animate-pulse text-amber-200 hidden sm:inline-block" />
+                        <span className="leading-relaxed">
+                            نسخة تجريبية نشطة (ساعة كاملة لاختبار النظام): متبقي لك{' '}
+                            <span className="underline decoration-2 font-mono text-xs sm:text-sm px-2 py-0.5 bg-black/30 rounded-md mx-1 font-black tracking-wider inline-block">
+                                ⏳ {formatCountdown(secondsLeft || license.remaining_trial_seconds || 0)}
+                            </span>{' '}
+                            قبل قفل النظام التلقائي وحظر العمليات.
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        <button
+                            type="button"
+                            onClick={handleCopyMachineId}
+                            className="text-amber-100 hover:text-white text-[11px] font-bold px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/30 transition-all cursor-pointer flex items-center gap-1"
+                            title="نسخ معرف الجهاز"
+                        >
+                            {isCopied ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                            <span>{isCopied ? 'تم نسخ المعرف' : 'معرف الجهاز'}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsBannerDismissed(true)}
+                            className="text-amber-100 hover:text-white text-[11px] font-bold px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/30 transition-all cursor-pointer"
+                            title="إخفاء الشريط مؤقتاً"
+                        >
+                            إخفاء
+                        </button>
+                    </div>
+                </div>
+            )}
+            <div className="flex-1 min-w-0 w-full">{children}</div>
+        </div>
+    );
 }
