@@ -116,7 +116,18 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
   - One-click batch settlement for all pending shift deficits (`POST /api/payments/dashboard/settle-all-deficits`).
   - One-click operational profit transfer to main treasury with custom notes and live treasury balance verification (`POST /api/payments/dashboard/transfer-profit-to-treasury`).
 
-#### 8. 👥 Attendance, Working Hours & Multi-Format Timesheets
+#### 8. 👥 Attendance, Scheduled Shifts, Smart Search & Late Deductions
+- **Configurable Work Schedules & Grace Periods:**
+  - Granular configuration for each employee's daily schedule: `work_start_time`, `work_end_time`, `late_grace_period_minutes` (default: 15 min), and custom admin-defined late penalty amount (`late_deduction_amount` in LYD).
+  - Clear shift timing and deduction display in the employee management directory.
+- **Real-Time Lateness Detection & Smart Attendance Search:**
+  - Automated comparison of initial daily punch times against scheduled start hours plus grace window.
+  - Live status badges: On-Time (`حضور في الموعد`), Late with exact delay minutes (`متأخر X دقيقة - خصم Y د.ل`), and Absent (`غائب`).
+  - Integrated smart search bar within daily timesheets supporting keywords (`حاضر`, `متأخر`, `غائب`), role filters, names, and phone numbers.
+- **Automated Late Deductions in Payroll & Admin Approval:**
+  - Monthly attendance aggregation calculating total late days, total late minutes, and suggested late penalties.
+  - Integrated deduction field on salary disbursement slips alongside absence and cash shortages.
+  - Mandatory cryptographic Admin authentication whenever deductions are applied.
 - **Comprehensive Attendance Monitoring & Tracking:**
   - Real-time attendance dashboard tracking `PRESENT`, `CHECKED_OUT`, and `ABSENT` statuses with overall attendance percentages.
   - Time-range and employee-specific filtering for attendance punches and timesheets.
@@ -355,7 +366,18 @@ python manage.py seed_demo_users
   - تسوية جماعية لكافة فروقات وعجوزات الورديات المعلقة بضغطة زر واحدة (`POST /api/payments/dashboard/settle-all-deficits`).
   - ترحيل الأرباح الصافية أو جزء منها وإيداعها مباشرة في الخزينة مع تسجيل الملاحظات وتحديث رصيد الخزينة الفعلي لحظياً (`POST /api/payments/dashboard/transfer-profit-to-treasury`).
 
-#### 8. 👥 كشف الحضور والانصراف، ساعات العمل والطباعة الشاملة
+#### 8. 👥 كشف الحضور والانصراف، مواعيد الدوام، البحث الذكي وخصم التأخير من المرتبات
+- **تحديد مواعيد الحضور والانصراف وفترة السماح لكل موظف:**
+  - إمكانية تحديد موعد الحضور المجدول (`work_start_time`) وموعد الانصراف المجدول (`work_end_time`) وفترة السماح بالدقائق (`late_grace_period_minutes`) وقيمة خصم التأخير المحددة من الإدارة (`late_deduction_amount`) بالدينار الليبي لكل موظف على حدة في شاشة الموظفين.
+  - إظهار مواعيد الدوام وقيمة الخصم مباشرة في جدول إدارة الموظفين تحت عمود مخصص.
+- **كشف الحضور اليومي، احتساب التأخير والبحث الذكي:**
+  - مقارنة وقت أول بصمة حضور بالموعد المجدول وفترة السماح آلياً ولحظياً.
+  - تمييز شارات الحالة: الحضور في الموعد (أخضر)، أو متأخر مع إظهار عدد دقائق التأخير وقيمة الخصم المستحق (أحمر)، أو غائب.
+  - محرك بحث ذكي داخل كشف اليوم يدعم الكلمات الدلالية (`حاضر`، `متأخر`، `غائب`) والبحث بالاسم، رقم الهاتف، والدور الوظيفي، مع تصفية سريعة بنقرة واحدة.
+- **احتساب وخصم التأخير تلقائياً من مسير الرواتب (Salaries Payroll):**
+  - مسح آلي لكافة حركات الشهر واحتساب إجمالي أيام ودقائق التأخير، واقتراح قيمة خصم التأخير تلقائياً في نافذة صرف المرتب.
+  - إدراج خصم التأخير كبند مالي مستقل بجانب خصم الغياب وعجز الورديات.
+  - إلزامية اعتماد المشرف/المدير (Admin Approval) لأي خصم قبل الصرف، وإدراج الخصم في قيود الخزينة وسند الصرف القابل للطباعة.
 - **متابعة تفصيلية وشاملة للحضور والانصراف:**
   - لوحة متابعة ومؤشرات فورية لنسبة الحضور وحالات الموظفين (`حاضر`، `انصرف`، `غائب`).
   - تصفية الحركات بدقة حسب الموظف والفترة الزمنية (تاريخ البدء والانتهاء) ونوع البصمة.
