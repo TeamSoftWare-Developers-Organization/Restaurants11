@@ -70,7 +70,7 @@ export default function AttendancePage() {
     const [overviewDate, setOverviewDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
     const [overviewData, setOverviewData] = useState<any>(null);
     const [isLoadingOverview, setIsLoadingOverview] = useState(true);
-    const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'CHECKED_OUT' | 'ABSENT'>('ALL');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'CHECKED_OUT' | 'ABSENT' | 'LATE'>('ALL');
     const [overviewSearchQuery, setOverviewSearchQuery] = useState('');
 
     // نافذة تسجيل الحضور بجهاز البصمة الشبكي عبر كابل الإيثرنت (Cable EtherNet)
@@ -266,12 +266,12 @@ export default function AttendancePage() {
         }
     };
 
-    const handleOpenManualModal = () => {
+    const handleOpenManualModal = (empId?: number) => {
         const now = new Date();
         setManualForm({
-            employee_id: employees[0]?.id || 0,
+            employee_id: empId || employees[0]?.id || 0,
             punch_type: 'CHECK_IN',
-            date: now.toISOString().split('T')[0],
+            date: overviewDate || now.toISOString().split('T')[0],
             time: now.toTimeString().slice(0, 5),
             notes: ''
         });
@@ -356,7 +356,10 @@ export default function AttendancePage() {
     // Smart filtering for the daily overview summary
     const displayedOverviewEmployees = (overviewData?.employees_summary || []).filter((emp: any) => {
         // Status filter
-        if (statusFilter !== 'ALL' && emp.status !== statusFilter) return false;
+        if (statusFilter === 'PRESENT' && emp.status !== 'PRESENT') return false;
+        if (statusFilter === 'CHECKED_OUT' && emp.status !== 'CHECKED_OUT') return false;
+        if (statusFilter === 'ABSENT' && emp.status !== 'ABSENT') return false;
+        if (statusFilter === 'LATE' && !emp.is_late) return false;
         
         // Smart search query filter
         if (!overviewSearchQuery.trim()) return true;
@@ -380,6 +383,7 @@ export default function AttendancePage() {
     const totalCheckIns = displayedLogs.filter(l => l.punch_type === 'CHECK_IN').length;
     const totalCheckOuts = displayedLogs.filter(l => l.punch_type === 'CHECK_OUT').length;
     const uniqueEmployeesCount = new Set(displayedLogs.map(l => l.employee_id)).size;
+    const lateOverviewCount = (overviewData?.employees_summary || []).filter((e: any) => e.is_late).length;
 
     const handlePrintReport = () => {
         window.print();
@@ -425,7 +429,7 @@ export default function AttendancePage() {
                         {isManager && (
                             <button
                                 type="button"
-                                onClick={handleOpenManualModal}
+                                onClick={() => handleOpenManualModal()}
                                 className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md shadow-cyan-600/20 active:scale-95"
                             >
                                 <Plus className="w-4 h-4" />
@@ -452,19 +456,34 @@ export default function AttendancePage() {
                                 {restaurantSettings?.name || 'مطعمنا'}
                             </h1>
                             <h2 className="text-base font-bold text-gray-700">
-                                كشف حضور وانصراف الموظفين
+                                {activeTab === 'overview'
+                                    ? statusFilter === 'ABSENT'
+                                        ? 'كشف غياب الموظفين وخصومات الغياب المقررة من الإدارة (Admin)'
+                                        : 'كشف متابعة الحضور والغياب اليومي لبصمة الدوام'
+                                    : 'كشف سجلات وحركات الحضور والانصراف التفصيلية'
+                                }
                             </h2>
                             <p className="text-xs text-gray-500 mt-1">
-                                {selectedEmployeeId === 'all' 
-                                    ? 'كشف شامل لجميع المستخدمين والموظفين'
-                                    : `كشف الموظف: ${selectedEmployeeObj ? `${selectedEmployeeObj.first_name} ${selectedEmployeeObj.last_name}` : 'موظف محدد'}`
+                                {activeTab === 'overview'
+                                    ? `التاريخ: ${overviewDate} | الحالة المفلترة: ${statusFilter === 'ABSENT' ? 'الموظفون الغائبون فقط (لم يبصموا)' : statusFilter === 'PRESENT' ? 'الحاضرون فقط' : statusFilter === 'LATE' ? 'المتأخرون فقط' : 'جميع الموظفين'}`
+                                    : (selectedEmployeeId === 'all' ? 'كشف شامل لجميع المستخدمين والموظفين' : `كشف الموظف: ${selectedEmployeeObj ? `${selectedEmployeeObj.first_name} ${selectedEmployeeObj.last_name}` : 'موظف محدد'}`)
                                 }
                             </p>
                         </div>
                         <div className="text-left text-xs text-gray-600">
                             <div>تاريخ استخراج التقرير: {new Date().toLocaleDateString('ar-LY')}</div>
-                            <div>الفترة: من {startDate || 'البداية'} إلى {endDate || 'اليوم'}</div>
-                            <div>إجمالي الحركات: {displayedLogs.length} حركة</div>
+                            {activeTab === 'overview' ? (
+                                <>
+                                    <div>إجمالي الموظفين: {overviewData?.total_employees || 0}</div>
+                                    <div>الغائبون اليوم: {overviewData?.absent_count || 0}</div>
+                                    <div className="font-bold text-red-600">إجمالي خصومات الغياب: {(overviewData?.total_absence_deductions || 0).toFixed(2)} د.ل</div>
+                                </>
+                            ) : (
+                                <>
+                                    <div>الفترة: من {startDate || 'البداية'} إلى {endDate || 'اليوم'}</div>
+                                    <div>إجمالي الحركات: {displayedLogs.length} حركة</div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -500,10 +519,21 @@ export default function AttendancePage() {
 
                 {/* TOP CARDS / STATS (Hidden on Print) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-6 print:hidden">
-                    <div className="bg-card dark:bg-card p-4 rounded-2xl border border-gray-100 dark:border-gray-800/40 shadow-xs">
-                        <div className="flex items-center gap-2 text-cyan-600 mb-1">
-                            <Users className="w-4 h-4" />
-                            <span className="text-[11px] font-black">إجمالي قوة العمل / الموظفين</span>
+                    <button
+                        type="button"
+                        onClick={() => { setStatusFilter('ALL'); setActiveTab('overview'); }}
+                        className={`text-right p-4 rounded-2xl border transition-all cursor-pointer ${
+                            statusFilter === 'ALL' && activeTab === 'overview'
+                                ? 'bg-cyan-50/50 dark:bg-cyan-950/20 border-cyan-500 shadow-sm ring-2 ring-cyan-500/20'
+                                : 'bg-card dark:bg-card border-gray-100 dark:border-gray-800/40 hover:border-cyan-300'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 text-cyan-600">
+                                <Users className="w-4 h-4" />
+                                <span className="text-[11px] font-black">إجمالي قوة العمل</span>
+                            </div>
+                            <span className="text-[10px] text-gray-400 font-bold">فلترة الكل</span>
                         </div>
                         <div className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
                             {overviewData?.total_employees || employees.length}
@@ -511,12 +541,23 @@ export default function AttendancePage() {
                         <div className="text-[10px] text-gray-400 font-bold mt-1">
                             نسبة الحضور: {overviewData?.attendance_rate || '0%'}
                         </div>
-                    </div>
+                    </button>
 
-                    <div className="bg-card dark:bg-card p-4 rounded-2xl border border-gray-100 dark:border-gray-800/40 shadow-xs">
-                        <div className="flex items-center gap-2 text-emerald-600 mb-1">
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span className="text-[11px] font-black">حاضرون حالياً (على رأس العمل)</span>
+                    <button
+                        type="button"
+                        onClick={() => { setStatusFilter('PRESENT'); setActiveTab('overview'); }}
+                        className={`text-right p-4 rounded-2xl border transition-all cursor-pointer ${
+                            statusFilter === 'PRESENT' && activeTab === 'overview'
+                                ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500 shadow-sm ring-2 ring-emerald-500/20'
+                                : 'bg-card dark:bg-card border-gray-100 dark:border-gray-800/40 hover:border-emerald-300'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 text-emerald-600">
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span className="text-[11px] font-black">حاضرون حالياً</span>
+                            </div>
+                            <span className="text-[10px] text-emerald-600 font-bold">فلترة</span>
                         </div>
                         <div className="text-xl md:text-2xl font-black text-emerald-600 dark:text-emerald-400">
                             {overviewData?.present_count || 0}
@@ -524,12 +565,23 @@ export default function AttendancePage() {
                         <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
                             سجلوا حضور ولم ينصرفوا
                         </div>
-                    </div>
+                    </button>
 
-                    <div className="bg-card dark:bg-card p-4 rounded-2xl border border-gray-100 dark:border-gray-800/40 shadow-xs">
-                        <div className="flex items-center gap-2 text-blue-600 mb-1">
-                            <ArrowRightLeft className="w-4 h-4" />
-                            <span className="text-[11px] font-black">أتموا الوردية (انصرفوا)</span>
+                    <button
+                        type="button"
+                        onClick={() => { setStatusFilter('CHECKED_OUT'); setActiveTab('overview'); }}
+                        className={`text-right p-4 rounded-2xl border transition-all cursor-pointer ${
+                            statusFilter === 'CHECKED_OUT' && activeTab === 'overview'
+                                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-500 shadow-sm ring-2 ring-blue-500/20'
+                                : 'bg-card dark:bg-card border-gray-100 dark:border-gray-800/40 hover:border-blue-300'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 text-blue-600">
+                                <ArrowRightLeft className="w-4 h-4" />
+                                <span className="text-[11px] font-black">أتموا الوردية</span>
+                            </div>
+                            <span className="text-[10px] text-blue-600 font-bold">فلترة</span>
                         </div>
                         <div className="text-xl md:text-2xl font-black text-blue-600 dark:text-blue-400">
                             {overviewData?.checked_out_count || 0}
@@ -537,20 +589,37 @@ export default function AttendancePage() {
                         <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-1">
                             سجلوا انصراف اليوم
                         </div>
-                    </div>
+                    </button>
 
-                    <div className="bg-card dark:bg-card p-4 rounded-2xl border border-gray-100 dark:border-gray-800/40 shadow-xs">
-                        <div className="flex items-center gap-2 text-rose-600 mb-1">
-                            <XCircle className="w-4 h-4" />
-                            <span className="text-[11px] font-black">غائبون / لم يسجلوا حضور</span>
+                    <button
+                        type="button"
+                        onClick={() => { setStatusFilter('ABSENT'); setActiveTab('overview'); }}
+                        className={`text-right p-4 rounded-2xl border transition-all cursor-pointer ${
+                            statusFilter === 'ABSENT' && activeTab === 'overview'
+                                ? 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-500 shadow-md ring-2 ring-rose-500/30'
+                                : 'bg-card dark:bg-card border-gray-100 dark:border-gray-800/40 hover:border-rose-400'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 text-rose-600">
+                                <XCircle className="w-4 h-4" />
+                                <span className="text-[11px] font-black">غائبون (لم يبصموا)</span>
+                            </div>
+                            <span className="text-[10px] text-rose-600 font-black bg-rose-100 dark:bg-rose-900/50 px-2 py-0.5 rounded-full">
+                                خصم Admin
+                            </span>
                         </div>
                         <div className="text-xl md:text-2xl font-black text-rose-600 dark:text-rose-400">
                             {overviewData?.absent_count || 0}
                         </div>
                         <div className="text-[10px] text-rose-600 dark:text-rose-400 font-bold mt-1">
-                            لا توجد أي بصمة اليوم
+                            {(overviewData?.total_absence_deductions ?? 0) > 0 ? (
+                                <span>خصم مقرر: {Number(overviewData?.total_absence_deductions).toFixed(2)} د.ل</span>
+                            ) : (
+                                <span>لا توجد أي بصمة اليوم</span>
+                            )}
                         </div>
-                    </div>
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -798,15 +867,35 @@ export default function AttendancePage() {
 
                                             <button
                                                 type="button"
+                                                onClick={() => setStatusFilter('LATE')}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                                                    statusFilter === 'LATE'
+                                                        ? 'bg-amber-600 text-white shadow-sm'
+                                                        : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40'
+                                                }`}
+                                            >
+                                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                                متأخرون ({lateOverviewCount})
+                                            </button>
+
+                                            <button
+                                                type="button"
                                                 onClick={() => setStatusFilter('ABSENT')}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
                                                     statusFilter === 'ABSENT'
-                                                        ? 'bg-rose-600 text-white shadow-sm'
+                                                        ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-500/20'
                                                         : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40'
                                                 }`}
                                             >
                                                 <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                                                غائبون ({overviewData?.absent_count || 0})
+                                                <span>غائبون لم يبصموا ({overviewData?.absent_count || 0})</span>
+                                                {(overviewData?.total_absence_deductions ?? 0) > 0 && (
+                                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                                                        statusFilter === 'ABSENT' ? 'bg-white/20 text-white' : 'bg-rose-200/70 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200'
+                                                    }`}>
+                                                        خصم: {Number(overviewData?.total_absence_deductions).toFixed(2)} د.ل
+                                                    </span>
+                                                )}
                                             </button>
                                         </div>
 
@@ -832,6 +921,33 @@ export default function AttendancePage() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Dedicated Absence Banner when filtered by ABSENT */}
+                                {statusFilter === 'ABSENT' && (
+                                    <div className="mx-4 md:mx-5 my-3 p-3.5 rounded-xl bg-gradient-to-r from-rose-50 via-rose-50/60 to-transparent dark:from-rose-950/40 dark:via-rose-950/20 border-r-4 border-rose-500 border border-rose-200/60 dark:border-rose-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-right animate-in fade-in duration-300 print:hidden">
+                                        <div className="flex items-start gap-2.5">
+                                            <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                                                <XCircle className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-black text-rose-900 dark:text-rose-200">
+                                                    فلترة العمال الغائبين (لم يسجلوا بصمة حضور اليوم)
+                                                </div>
+                                                <div className="text-[11px] text-rose-700 dark:text-rose-300 font-bold mt-0.5">
+                                                    تم رصد ({overviewData?.absent_count || 0}) عامل لم يسجلوا بصمة حضور. يتم تطبيق قيمة خصم الغياب المحددة من قِبل الـ Admin بإجمالي ({(overviewData?.total_absence_deductions || 0).toFixed(2)} د.ل) تخصم آلياً في كشف المرتبات.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => router.push('/salaries')}
+                                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1 shrink-0 self-end sm:self-auto"
+                                        >
+                                            <span>اعتماد الخصومات في المرتبات</span>
+                                        </button>
+                                    </div>
+                                )}
 
                                 {/* Overview Table */}
                                 <div className="overflow-x-auto text-xs scrollbar-thin">
@@ -920,14 +1036,17 @@ export default function AttendancePage() {
                                                                 </td>
                                                                 <td className="p-3.5 font-bold text-xs">
                                                                     {emp.status === 'ABSENT' ? (
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-rose-500 font-bold">غائب</span>
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-black">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                                                                لم يبصم (غائب)
+                                                                            </span>
                                                                             {(emp.absence_deduction_amount ?? 0) > 0 ? (
-                                                                                <span className="text-[10px] text-rose-500/80 font-bold">
-                                                                                    خصم غياب: {Number(emp.absence_deduction_amount).toFixed(2)} د.ل
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 px-1.5 py-0.5 rounded font-black border border-rose-200/50 dark:border-rose-800/40">
+                                                                                    خصم: {Number(emp.absence_deduction_amount).toFixed(2)} د.ل (Admin)
                                                                                 </span>
                                                                             ) : (
-                                                                                <span className="text-[10px] text-gray-400">
+                                                                                <span className="text-[10px] text-gray-400 font-bold">
                                                                                     خصم راتب اليوم
                                                                                 </span>
                                                                             )}
@@ -966,16 +1085,37 @@ export default function AttendancePage() {
                                                                     </span>
                                                                 </td>
                                                                 <td className="p-3.5 text-center print:hidden">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setSelectedEmployeeId(emp.employee_id.toString());
-                                                                            setActiveTab('logs');
-                                                                        }}
-                                                                        className="px-2.5 py-1 text-[11px] font-bold text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 rounded-lg transition-colors border border-cyan-200/50 dark:border-cyan-800/40"
-                                                                    >
-                                                                        عرض الكشف
-                                                                    </button>
+                                                                    {isAbsent ? (
+                                                                        <div className="flex items-center justify-center gap-1">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleOpenManualModal(emp.employee_id)}
+                                                                                className="px-2 py-1 text-[10px] font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors border border-gray-200 dark:border-gray-700"
+                                                                                title="تسجيل حضور يدوي في حال وجود عذر"
+                                                                            >
+                                                                                تسجيل يدوي
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => router.push(`/salaries?employee_id=${emp.employee_id}`)}
+                                                                                className="px-2 py-1 text-[10px] font-black text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors border border-rose-200/50 dark:border-rose-800/40"
+                                                                                title="معاينة خصم الغياب في كشف المرتبات"
+                                                                            >
+                                                                                خصم المرتب
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setSelectedEmployeeId(emp.employee_id.toString());
+                                                                                setActiveTab('logs');
+                                                                            }}
+                                                                            className="px-2.5 py-1 text-[11px] font-bold text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 rounded-lg transition-colors border border-cyan-200/50 dark:border-cyan-800/40"
+                                                                        >
+                                                                            عرض الكشف
+                                                                        </button>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         );
@@ -1183,9 +1323,20 @@ export default function AttendancePage() {
                         {/* Print Footer Summary */}
                         <div className="hidden print:block p-4 mt-6 border-t-2 border-gray-900 text-xs">
                             <div className="flex justify-between items-center font-bold">
-                                <div>إجمالي حركات الحضور: {totalCheckIns}</div>
-                                <div>إجمالي حركات الانصراف: {totalCheckOuts}</div>
-                                <div>توقيع المسؤول / الإدارة: ..............................</div>
+                                {activeTab === 'overview' ? (
+                                    <>
+                                        <div>إجمالي الحاضرين: {overviewData?.present_count || 0}</div>
+                                        <div>إجمالي الغائبين: {overviewData?.absent_count || 0}</div>
+                                        <div>إجمالي خصومات الغياب المقررة: {(overviewData?.total_absence_deductions || 0).toFixed(2)} د.ل</div>
+                                        <div>اعتماد وتوقيع الإدارة (Admin): ..............................</div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>إجمالي حركات الحضور: {totalCheckIns}</div>
+                                        <div>إجمالي حركات الانصراف: {totalCheckOuts}</div>
+                                        <div>توقيع المسؤول / الإدارة: ..............................</div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
