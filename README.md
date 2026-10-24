@@ -62,6 +62,8 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
 - **Automated Dependency Setup (`install_system.bat`):** Automated installation script that checks for and installs Bun runtime, Python dependencies, and project requirements in one run.
 - **Intelligent Dual-Mode API Routing (`api.ts`):** Automatically routes requests to local Django backend (`http://127.0.0.1:8000/api`) when running on localhost or inside Electron, while preserving cloud URLs (`restaurants11.onrender.com`) in production.
 - **Enhanced CORS & Security Headers:** Explicit backend CORS support for custom developer headers (`X-SuperDev-Device-Token`, `X-Device-Machine-Id`) with 15-second request timeouts to prevent connection drops.
+- **Native Desktop App Window (`run_app.pyw` via pywebview & WebView2):** Runs the system in a true native Windows desktop window without any browser bars, URLs, or tabs, and automatically shuts down all background processes (Django, Next.js, Bun) upon closing.
+- **One-Click Silent System Installer (`setup_system.bat`):** Sets up embedded/portable PostgreSQL, initializes database cluster, applies migrations, seeds demo users, builds frontend, and creates a clean desktop shortcut (`Smart Restaurant ERP.lnk`) with zero client configuration.
 - **One-Click Silent System Launcher:** `run_system.bat` and `launch_hidden.vbs` start both frontend and backend seamlessly in the background.
 
 #### 4. 🤖 AI & Machine Learning Suite
@@ -317,6 +319,8 @@ python manage.py seed_demo_users
 - **مثبت البرمجيات المؤتمت (`install_system.bat`):** سكريبت تنصيب فوري يقوم بفحص وتثبيت بيئة Bun ومكتبات بايثون وإعداد المشروع بضغطة زر واحدة.
 - **التوجيه الذكي للاتصال (Dual-Mode API Routing):** توجيه تلقائي ذكي إلى خادم Django المحلي (`http://127.0.0.1:8000/api`) عند التشغيل على localhost أو عبر تطبيق Electron مع حفظ مسار السحابة في الإنتاج.
 - **دعم ترويسات CORS المخصصة وحماية الشبكة:** السماح الشامل بترويسات التحقق العتادية (`X-SuperDev-Device-Token`, `X-Device-Machine-Id`) في إعدادات Django وضبط مهلة استجابة 15 ثانية لمنع أخطاء الشبكة.
+- **نافذة تطبيق مكتبية أصلية (`run_app.pyw` عبر pywebview):** تشغيل النظام كنافذة برنامج حقيقي بدون أشرطة عناوين أو تبويبات متصفح نهائياً، معتمدة على محرك Microsoft Edge WebView2، مع إغلاق آلي لكافة خوادم الباك إند والفرونت إند في الخلفية بمجرد إغلاق نافذة البرنامج.
+- **سكريبت التثبيت الشامل بنقرة واحدة (`setup_system.bat`):** تثبيت وإعداد ذاتي صامت يقوم بتهيئة عنقود قاعدة بيانات PostgreSQL المدمجة/المحمولة، وتطبيق الهجرات، وزرع المستخدمين التجريبيين، وبناء حزمة الإنتاج للواجهة، وتوليد اختصار على سطح المكتب (`Smart Restaurant ERP.lnk`).
 - **مشغل صامت بنقرة واحدة:** ملفات `run_system.bat` و `launch_hidden.vbs` لتشغيل الباك إند والفرونت إند في الخلفية بضغطة واحدة.
 
 #### 4. 🤖 حزمة الذكاء الاصطناعي وتعلم الآلة (AI & ML)
