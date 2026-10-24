@@ -142,6 +142,8 @@ class OverallAttendanceOverviewOut(Schema):
     checked_out_count: int
     absent_count: int
     attendance_rate: str
+    total_absence_deductions: float = 0.0
+    total_late_deductions: float = 0.0
     employees_summary: List[EmployeeAttendanceSummaryOut]
 
 @attendance_router.get("/overview/", response=OverallAttendanceOverviewOut)
@@ -292,6 +294,8 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
         })
 
     attendance_rate = f"{round((present_count + checked_out_count) / max(total_employees, 1) * 100, 1)}%"
+    total_absence_deductions = sum(float(s.get("absence_deduction_amount", 0) or 0) for s in summaries if s.get("status") == "ABSENT")
+    total_late_deductions = sum(float(s.get("late_deduction_amount", 0) or 0) for s in summaries if s.get("is_late"))
 
     return 200, {
         "date": today_date_str,
@@ -300,6 +304,8 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
         "checked_out_count": checked_out_count,
         "absent_count": absent_count,
         "attendance_rate": attendance_rate,
+        "total_absence_deductions": round(total_absence_deductions, 2),
+        "total_late_deductions": round(total_late_deductions, 2),
         "employees_summary": summaries
     }
 

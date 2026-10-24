@@ -27,6 +27,8 @@ export interface OverallAttendanceOverview {
     checked_out_count: number;
     absent_count: number;
     attendance_rate: string;
+    total_absence_deductions?: number;
+    total_late_deductions?: number;
     employees_summary: EmployeeAttendanceSummary[];
 }
 
