@@ -1,32 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/services/api";
-
-interface ReservationRisk {
-  reservation_id: number;
-  guest_name: string;
-  no_show_probability: number;
-  risk_level: "HIGH" | "MEDIUM" | "LOW";
-  risk_factors: string[];
-  suggested_action: string;
-}
+import { useReservationRisk } from "@/hooks/useReservationRisk";
+import { RISK_LEVEL_MAP } from "@/constants";
 
 export default function AIReservationRiskWidget() {
-  const [risks, setRisks] = useState<ReservationRisk[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { risks, loading } = useReservationRisk();
 
-  useEffect(() => {
-    api.get("/reservations/ai/no-show-analysis/")
-      .then((res) => {
-        // عرض الحجوزات التي تحوي مخاطرة متوسطة أو عالية
-        const flagList = res.data.filter((r: ReservationRisk) => r.risk_level !== "LOW");
-        setRisks(flagList);
-      })
-      .catch((err) => console.error("فشل جلب تحليلات الحجوزات", err))
-      .finally(() => setLoading(false));
-  }, []);
-
+  // Guard Clause: الخروج المبكر إذا كانت البيانات غير متوفرة أو في وضع التحميل
   if (loading || risks.length === 0) return null;
 
   return (
@@ -45,39 +25,41 @@ export default function AIReservationRiskWidget() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-        {risks.map((item) => (
-          <div
-            key={item.reservation_id}
-            className="p-3.5 bg-gray-50 dark:bg-[#0b1120] border border-gray-200 dark:border-slate-800 rounded-xl flex flex-col justify-between shadow-xs transition-colors"
-          >
-            <div>
-              <div className="flex justify-between items-start gap-2 mb-2">
-                <span className="font-bold text-sm text-gray-900 dark:text-white">{item.guest_name}</span>
-                <span
-                  className={`text-xs px-2.5 py-1 rounded-lg font-black border whitespace-nowrap ${
-                    item.risk_level === "HIGH"
-                      ? "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30"
-                      : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30"
-                  }`}
-                >
-                  احتمال التخلف: {item.no_show_probability}%
-                </span>
-              </div>
+        {risks.map((item) => {
+          const riskConfig = RISK_LEVEL_MAP[item.risk_level];
 
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {item.risk_factors.map((factor, i) => (
-                  <span key={i} className="text-[11px] bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 px-2 py-0.5 rounded font-medium">
-                    • {factor}
+          return (
+            <div
+              key={item.reservation_id}
+              className="p-3.5 bg-gray-50 dark:bg-[#0b1120] border border-gray-200 dark:border-slate-800 rounded-xl flex flex-col justify-between shadow-xs transition-colors"
+            >
+              <div>
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <span className="font-bold text-sm text-gray-900 dark:text-white">{item.guest_name}</span>
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-lg font-black border whitespace-nowrap ${
+                      riskConfig?.className || "bg-amber-100 text-amber-800 border-amber-200"
+                    }`}
+                  >
+                    احتمال التخلف: {item.no_show_probability}%
                   </span>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <p className="text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/30 p-2.5 rounded-lg border border-indigo-200/80 dark:border-indigo-900/40 mt-2 font-medium leading-relaxed">
-              💡 {item.suggested_action}
-            </p>
-          </div>
-        ))}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {item.risk_factors.map((factor, i) => (
+                    <span key={i} className="text-[11px] bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 px-2 py-0.5 rounded font-medium">
+                      • {factor}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/30 p-2.5 rounded-lg border border-indigo-200/80 dark:border-indigo-900/40 mt-2 font-medium leading-relaxed">
+                💡 {item.suggested_action}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

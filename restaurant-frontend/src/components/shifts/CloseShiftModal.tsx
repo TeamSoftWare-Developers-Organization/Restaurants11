@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
     Banknote,
     AlertCircle,
@@ -16,10 +16,9 @@ import {
     Clock,
     UserCheck
 } from 'lucide-react';
-import { shiftService, ShiftReconciliation } from '@/services/shiftService';
-import { useAuthStore } from '@/store/authStore';
+import { useShiftReconciliation } from '@/hooks/useShiftReconciliation';
 
-interface CloseShiftModalProps {
+export interface CloseShiftModalProps {
     isOpen: boolean;
     onClose: () => void;
     shiftId?: number;
@@ -34,101 +33,31 @@ export function CloseShiftModal({
     expectedCash: initialExpectedCash,
     onSuccess
 }: CloseShiftModalProps) {
-    const { activeShift, setActiveShift, user } = useAuthStore();
-    const [countedCash, setCountedCash] = useState<string>('');
-    const [notes, setNotes] = useState<string>('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [isFetchingRecon, setIsFetchingReFetchingRecon] = useState(false);
-    const [reconData, setReconData] = useState<ShiftReconciliation | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [closingReport, setClosingReport] = useState<any | null>(null);
-
-    const currentShiftId = shiftId || activeShift?.id;
-
-    // Load current live reconciliation when modal opens
-    useEffect(() => {
-        if (!isOpen) {
-            setCountedCash('');
-            setNotes('');
-            setError(null);
-            setClosingReport(null);
-            return;
-        }
-
-        const fetchReconciliation = async () => {
-            setIsFetchingReFetchingRecon(true);
-            try {
-                if (currentShiftId) {
-                    const data = await shiftService.getShiftReconciliation(currentShiftId);
-                    setReconData(data);
-                } else {
-                    const data = await shiftService.getCurrentPosShiftReconciliation();
-                    setReconData(data);
-                }
-            } catch (err: any) {
-                console.warn('Could not fetch pre-closing reconciliation:', err);
-            } finally {
-                setIsFetchingReFetchingRecon(false);
-            }
-        };
-
-        fetchReconciliation();
-    }, [isOpen, currentShiftId]);
+    const {
+        countedCash,
+        setCountedCash,
+        notes,
+        setNotes,
+        isLoading,
+        reconData,
+        error,
+        closingReport,
+        expectedVal,
+        hasEnteredCount,
+        variance,
+        varianceStatus,
+        activeShift,
+        user,
+        handleConfirmClose,
+        handlePrintSummary
+    } = useShiftReconciliation({
+        isOpen,
+        shiftId,
+        expectedCash: initialExpectedCash,
+        onSuccess
+    });
 
     if (!isOpen) return null;
-
-    // Numerical calculations
-    const countedVal = parseFloat(countedCash) || 0;
-    const expectedVal = reconData?.expected_drawer_cash ?? initialExpectedCash ?? Number(activeShift?.opening_balance || 0);
-    const hasEnteredCount = countedCash.trim() !== '';
-    const variance = hasEnteredCount ? Math.round((countedVal - expectedVal) * 100) / 100 : 0;
-
-    let varianceStatus: 'BALANCED' | 'SURPLUS' | 'DEFICIT' | 'EMPTY' = 'EMPTY';
-    if (hasEnteredCount) {
-        if (Math.abs(variance) < 0.01) {
-            varianceStatus = 'BALANCED';
-        } else if (variance > 0) {
-            varianceStatus = 'SURPLUS';
-        } else {
-            varianceStatus = 'DEFICIT';
-        }
-    }
-
-    const handleConfirmClose = async () => {
-        if (!hasEnteredCount) {
-            setError('يرجى إدخال المبلغ الفعلي المعدود في الدرج');
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const targetId = currentShiftId || activeShift?.id;
-            let report: any;
-            if (targetId) {
-                report = await shiftService.closeShiftWithVariance(targetId, countedVal, notes);
-            } else {
-                throw new Error('لا توجد وردية نشطة محددة للإغلاق');
-            }
-
-            setClosingReport(report);
-            if (setActiveShift) {
-                setActiveShift(null);
-            }
-            if (onSuccess) {
-                onSuccess(report);
-            }
-        } catch (err: any) {
-            setError(err?.response?.data?.message || err?.message || 'فشل إغلاق الوردية');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handlePrintSummary = () => {
-        window.print();
-    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
@@ -199,140 +128,125 @@ export function CloseShiftModal({
                                             {(reconData?.total_cash_out ?? 0).toFixed(2)} د.ل
                                         </span>
                                     </div>
-                                    <div className="bg-blue-50 dark:bg-blue-950/40 p-2 rounded-lg border border-blue-200 dark:border-blue-900">
-                                        <span className="text-[11px] text-blue-600 dark:text-blue-300 block font-bold">= النقدية المتوقعة</span>
-                                        <span className="font-bold text-blue-700 dark:text-blue-400 text-xs sm:text-sm">
+                                    <div className="bg-blue-50 dark:bg-blue-950/40 p-2 rounded-lg border border-blue-200 dark:border-blue-900/60">
+                                        <span className="text-[11px] text-blue-700 dark:text-blue-300 block font-bold">الرصيد الدفتري المتوقع</span>
+                                        <span className="font-black text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
                                             {expectedVal.toFixed(2)} د.ل
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Actual Drawer Cash Input */}
+                            {/* Actual Drawer Cash Count Input */}
                             <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                    الرصيد الفعلي المعدود بالدرج (د.ل) <span className="text-rose-500">*</span>
+                                <label className="flex items-center justify-between text-sm font-bold text-slate-800 dark:text-slate-200">
+                                    <span className="flex items-center gap-2">
+                                        <Calculator className="w-4 h-4 text-blue-600" />
+                                        المبلغ الفعلي الموجود في الدرج الآن (د.ل) *
+                                    </span>
+                                    <span className="text-xs text-slate-400 font-normal">
+                                        قم بعد النقدية الفعلية داخل الدرج
+                                    </span>
                                 </label>
                                 <div className="relative">
                                     <input
                                         type="number"
                                         step="0.01"
                                         min="0"
+                                        placeholder="0.00"
                                         value={countedCash}
                                         onChange={(e) => setCountedCash(e.target.value)}
-                                        placeholder="أدخل المبلغ بعد عدّ النقود في الخزينة..."
-                                        className="w-full pl-4 pr-11 py-3 text-lg font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:outline-none transition"
+                                        className="w-full text-2xl font-black px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl outline-hidden transition text-slate-900 dark:text-white"
                                         autoFocus
                                     />
-                                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
                                         د.ل
-                                    </div>
-                                    <Coins className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* Live Variance Calculation Widget */}
+                            {/* Live Variance Calculation Badge */}
                             {hasEnteredCount && (
-                                <div
-                                    className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-                                        varianceStatus === 'BALANCED'
-                                            ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-400 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300'
-                                            : varianceStatus === 'SURPLUS'
-                                            ? 'bg-teal-50 dark:bg-teal-950/30 border-teal-400 dark:border-teal-700 text-teal-800 dark:text-teal-300'
-                                            : 'bg-rose-50 dark:bg-rose-950/30 border-rose-400 dark:border-rose-700 text-rose-800 dark:text-rose-300'
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            {varianceStatus === 'BALANCED' ? (
-                                                <CheckCircle2 className="w-7 h-7 text-emerald-500 shrink-0" />
-                                            ) : varianceStatus === 'SURPLUS' ? (
-                                                <TrendingUp className="w-7 h-7 text-teal-500 shrink-0" />
-                                            ) : (
-                                                <TrendingDown className="w-7 h-7 text-rose-500 shrink-0" />
-                                            )}
-                                            <div>
-                                                <h4 className="font-bold text-base">
-                                                    {varianceStatus === 'BALANCED' && 'مطابقة تامة 100% (BALANCED)'}
-                                                    {varianceStatus === 'SURPLUS' && 'يوجد فائض في الدرج (SURPLUS)'}
-                                                    {varianceStatus === 'DEFICIT' && 'يوجد عجز في الدرج (DEFICIT)'}
-                                                </h4>
-                                                <p className="text-xs opacity-90 mt-0.5">
-                                                    {varianceStatus === 'BALANCED' && 'الرصيد الفعلي في الدرج مساوٍ تماماً للنقدية المتوقعة دفترياً'}
-                                                    {varianceStatus === 'SURPLUS' && `المبلغ المعدود أكبر من المتوقع بفارق ${variance.toFixed(2)} د.ل`}
-                                                    {varianceStatus === 'DEFICIT' && `المبلغ المعدود أقل من المتوقع بفارق ${Math.abs(variance).toFixed(2)} د.ل`}
-                                                </p>
-                                            </div>
+                                <div className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+                                    varianceStatus === 'BALANCED'
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                                        : varianceStatus === 'SURPLUS'
+                                        ? 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300'
+                                        : 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+                                }`}>
+                                    <div className="flex items-center gap-3">
+                                        {varianceStatus === 'BALANCED' && <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />}
+                                        {varianceStatus === 'SURPLUS' && <TrendingUp className="w-6 h-6 text-indigo-600 shrink-0" />}
+                                        {varianceStatus === 'DEFICIT' && <TrendingDown className="w-6 h-6 text-rose-600 shrink-0" />}
+                                        <div>
+                                            <h4 className="font-bold text-sm">
+                                                {varianceStatus === 'BALANCED' && 'مطابقة تامة (متوازن 100%)'}
+                                                {varianceStatus === 'SURPLUS' && 'يوجد فائض في الدرج'}
+                                                {varianceStatus === 'DEFICIT' && 'يوجد عجز في الدرج'}
+                                            </h4>
+                                            <p className="text-xs opacity-80">
+                                                {varianceStatus === 'BALANCED' && 'المبلغ الفعلي يتطابق تماماً مع المسجل دفترياً في النظام.'}
+                                                {varianceStatus === 'SURPLUS' && 'النقدية الفعلية أكثر من المتوقع، سيتم تسجيل الفارق كفائض وردية.'}
+                                                {varianceStatus === 'DEFICIT' && 'النقدية الفعلية أقل من المتوقع، سيتم تسجيل الفارق كعجز وردية.'}
+                                            </p>
                                         </div>
-                                        <div className="text-left font-black text-xl dir-ltr">
-                                            {variance > 0 ? `+${variance.toFixed(2)}` : variance.toFixed(2)} د.ل
-                                        </div>
+                                    </div>
+                                    <div className="text-left font-black text-xl">
+                                        {variance > 0 ? `+${variance.toFixed(2)}` : variance.toFixed(2)} د.ل
                                     </div>
                                 </div>
                             )}
 
-                            {/* Closing Notes */}
+                            {/* Optional Notes */}
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-                                    ملاحظات الإغلاق والتسوية (اختياري)
+                                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                    ملاحظات التسوية / تبرير الفارق (اختياري)
                                 </label>
                                 <textarea
+                                    rows={2}
+                                    placeholder="أي تفاصيل أو ملاحظات حول تسوية هذا الدرج..."
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
-                                    rows={2}
-                                    placeholder="أي توضيحات تخص فروقات الخزينة أو تسليم الوردية..."
-                                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:outline-none"
+                                    className="w-full text-xs p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 outline-hidden transition resize-none text-slate-800 dark:text-slate-200"
                                 />
                             </div>
                         </>
                     ) : (
-                        /* Itemized Shift Closing Receipt / Report */
-                        <div id="shift-closing-print-area" className="space-y-4">
-                            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-center space-y-1">
-                                <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-                                <h3 className="font-bold text-emerald-900 dark:text-emerald-200 text-base">
-                                    تم إغلاق الوردية واعتماد التسوية بنجاح
-                                </h3>
-                                <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                                    رقم الوردية: #{closingReport.shift_id} — {closingReport.shift_name}
-                                </p>
+                        /* Closed Shift Report / Print Preview */
+                        <div className="space-y-4">
+                            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300">
+                                <CheckCircle2 className="w-7 h-7 shrink-0 text-emerald-600" />
+                                <div>
+                                    <h4 className="font-bold text-base">تم إغلاق الوردية وترحيل التسوية بنجاح!</h4>
+                                    <p className="text-xs opacity-90">
+                                        تم قفل الوردية رقم #{closingReport.shift_id || shiftId || activeShift?.id} واحتساب الفروقات النقدية وحفظ التقرير.
+                                    </p>
+                                </div>
                             </div>
 
-                            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2.5 text-sm">
-                                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700">
-                                    <span className="text-slate-500 dark:text-slate-400">الكاشير المسؤول</span>
-                                    <span className="font-bold text-slate-800 dark:text-white">{closingReport.cashier_name}</span>
+                            <div className="bg-slate-50 dark:bg-slate-800/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 font-mono text-xs">
+                                <div className="flex justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500">حالة المطابقة:</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">{closingReport.status_display || closingReport.status}</span>
                                 </div>
-                                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700">
-                                    <span className="text-slate-500 dark:text-slate-400">الرصيد الافتتاحي</span>
-                                    <span className="font-semibold">{Number(closingReport.opening_balance || 0).toFixed(2)} د.ل</span>
+                                <div className="flex justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500">الرصيد الدفتري المتوقع:</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">{(closingReport.expected_cash ?? expectedVal).toFixed(2)} د.ل</span>
                                 </div>
-                                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700">
-                                    <span className="text-slate-500 dark:text-slate-400">مبيعات النقدية (Cash Sales)</span>
-                                    <span className="font-semibold text-emerald-600">+{Number(closingReport.cash_sales || 0).toFixed(2)} د.ل</span>
+                                <div className="flex justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                                    <span className="text-slate-500">المبلغ الفعلي المعدود:</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">{(closingReport.counted_cash ?? parseFloat(countedCash)).toFixed(2)} د.ل</span>
                                 </div>
-                                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700">
-                                    <span className="text-slate-500 dark:text-slate-400">مسحوبات ومصاريف الوردية</span>
-                                    <span className="font-semibold text-rose-600">-{Number(closingReport.cash_out || 0).toFixed(2)} د.ل</span>
-                                </div>
-                                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700 bg-blue-50/50 dark:bg-blue-950/20 px-2 rounded">
-                                    <span className="font-bold text-blue-700 dark:text-blue-300">الرصيد الدفتري المتوقع</span>
-                                    <span className="font-bold text-blue-700 dark:text-blue-300">{Number(closingReport.expected_cash || 0).toFixed(2)} د.ل</span>
-                                </div>
-                                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700 px-2">
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">الرصيد الفعلي المعدود</span>
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">{Number(closingReport.counted_cash || 0).toFixed(2)} د.ل</span>
-                                </div>
-                                <div className="flex justify-between py-2 px-2 rounded font-bold bg-slate-100 dark:bg-slate-700/60">
-                                    <span>فارق الخزينة والتسوية</span>
-                                    <span className={`dir-ltr ${
-                                        closingReport.variance_status === 'BALANCED'
-                                            ? 'text-emerald-600'
-                                            : closingReport.variance_status === 'SURPLUS'
-                                            ? 'text-teal-600'
-                                            : 'text-rose-600'
-                                    }`}>
-                                        {closingReport.variance_status_display}
+                                <div className="flex justify-between text-sm font-black pt-1">
+                                    <span className="text-slate-700 dark:text-slate-300">الفارق النهائي (عجز / فائض):</span>
+                                    <span className={
+                                        (closingReport.variance ?? variance) < 0
+                                            ? 'text-rose-600'
+                                            : (closingReport.variance ?? variance) > 0
+                                            ? 'text-indigo-600'
+                                            : 'text-emerald-600'
+                                    }>
+                                        {(closingReport.variance ?? variance) > 0 ? `+${(closingReport.variance ?? variance).toFixed(2)}` : (closingReport.variance ?? variance).toFixed(2)} د.ل
                                     </span>
                                 </div>
                             </div>
@@ -340,8 +254,8 @@ export function CloseShiftModal({
                     )}
                 </div>
 
-                {/* Footer Buttons */}
-                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+                {/* Footer Controls */}
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
                     {!closingReport ? (
                         <>
                             <button

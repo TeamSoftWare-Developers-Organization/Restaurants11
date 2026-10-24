@@ -1,62 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/services/api";
-import { Clock, ChefHat, Flame, Hourglass, CheckCircle2, RotateCw, AlertTriangle } from "lucide-react";
-
-interface KDSItem {
-  item_id: number;
-  name: string;
-  quantity: number;
-  duration_minutes: number;
-  fire_delay_minutes: number;
-  station_name?: string;
-  station_icon?: string;
-}
-
-interface KDSOrder {
-  order_id: number;
-  order_number: string;
-  table_number: string | null;
-  total_prep_time_minutes: number;
-  estimated_ready_at: string;
-  kitchen_load_factor: number;
-  kitchen_load_status?: string;
-  elapsed_minutes?: number;
-  remaining_minutes?: number;
-  items: KDSItem[];
-}
+import { useKDSQueue } from "@/hooks/useKDSQueue";
+import { Clock, ChefHat, Flame, Hourglass, CheckCircle2, RotateCw } from "lucide-react";
 
 export default function KDSQueueView() {
-  const [orders, setOrders] = useState<KDSOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { orders, loading, currentLoadStatus, fetchKDS, completeOrder } = useKDSQueue(8000);
 
-  const fetchKDS = async () => {
-    try {
-      const res = await api.get("/orders/kitchen/ai/kds-queue/");
-      setOrders(res.data);
-    } catch (err) {
-      console.error("فشل جلب بيانات شاشة المطبخ", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCompleteOrder = async (orderId: number) => {
-    try {
-      await api.post(`/orders/kitchen/ai/kds-queue/${orderId}/complete/`);
-    } catch (err) {
-      console.error("فشل تحديث حالة الطلب", err);
-    }
-    fetchKDS();
-  };
-
-  useEffect(() => {
-    fetchKDS();
-    const interval = setInterval(fetchKDS, 8000); // تحديث دوري كل 8 ثوانٍ
-    return () => clearInterval(interval);
-  }, []);
-
+  // Guard Clause: Loading state
   if (loading) {
     return (
       <div className="p-12 text-center text-gray-500 dark:text-slate-400 font-bold text-sm flex items-center justify-center gap-2">
@@ -65,8 +15,6 @@ export default function KDSQueueView() {
       </div>
     );
   }
-
-  const currentLoadStatus = orders[0]?.kitchen_load_status || "ضغط خفيف 🟢";
 
   return (
     <div className="p-2 sm:p-4 bg-transparent text-gray-900 dark:text-slate-100 min-h-full transition-colors duration-300" dir="rtl">
@@ -219,7 +167,7 @@ export default function KDSQueueView() {
                     معامل ضغط: {ord.kitchen_load_factor}x
                   </span>
                   <button
-                    onClick={() => handleCompleteOrder(ord.order_id)}
+                    onClick={() => completeOrder(ord.order_id)}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2.5 rounded-xl font-black shadow-xs shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <CheckCircle2 className="w-4 h-4" />

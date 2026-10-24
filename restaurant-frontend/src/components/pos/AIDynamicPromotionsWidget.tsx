@@ -1,70 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/services/api";
-import { useCartStore } from "@/store/useCartStore";
+import { useDynamicPromotions } from "@/hooks/useDynamicPromotions";
 import {
   Zap,
   Clock,
-  Sparkles,
   TrendingUp,
-  Tag,
   CheckCircle2,
   Plus,
   Loader2,
   RefreshCw,
   Flame,
-  AlertCircle,
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-
-interface PromoItem {
-  item_id: number;
-  name: string;
-  original_price: number;
-  discounted_price: number;
-  discount_amount?: number;
-  item_cost: number;
-  margin_before?: number;
-  margin_after?: number;
-  classification: string;
-  classification_badge: string;
-}
-
-interface PromotionSuggestion {
-  id: string;
-  title: string;
-  type: "FLASH_DISCOUNT" | "SMART_COMBO" | "VOLUME_BOOSTER";
-  discount_percentage: number;
-  time_window: string;
-  badge: string;
-  rationale: string;
-  projected_sales_boost: string;
-  projected_revenue_lift: string;
-  items: PromoItem[];
-  bundle_original_price?: number;
-  bundle_discounted_price?: number;
-  bundle_profit_margin?: number;
-  is_active: boolean;
-  start_hour: number;
-  end_hour: number;
-}
-
-interface PromotionsResponse {
-  status: string;
-  current_hour: number;
-  is_currently_off_peak: boolean;
-  off_peak_windows: Array<{
-    start_hour: number;
-    end_hour: number;
-    label: string;
-    name: string;
-  }>;
-  promotions: PromotionSuggestion[];
-  active_promotions_count: number;
-  generated_at: string;
-}
 
 interface AIDynamicPromotionsWidgetProps {
   className?: string;
@@ -75,71 +23,19 @@ export default function AIDynamicPromotionsWidget({
   className = "",
   compact = false
 }: AIDynamicPromotionsWidgetProps) {
-  const { addItem } = useCartStore();
-  const [data, setData] = useState<PromotionsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [applyingPromoId, setApplyingPromoId] = useState<string | null>(null);
-  const [addedSuccessId, setAddedSuccessId] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(!compact);
+  const {
+    data,
+    loading,
+    applyingPromoId,
+    addedSuccessId,
+    isExpanded,
+    toggleExpanded,
+    fetchSuggestions,
+    applyPromo,
+    addPromoToCart,
+  } = useDynamicPromotions(!compact);
 
-  const fetchSuggestions = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/ai/promotions/suggestions/");
-      setData(res.data);
-    } catch (err) {
-      console.error("فشل جلب اقتراحات العروض الذكية:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSuggestions();
-  }, []);
-
-  const handleApplyPromo = async (promo: PromotionSuggestion) => {
-    try {
-      setApplyingPromoId(promo.id);
-      const action = promo.is_active ? "deactivate" : "activate";
-      const res = await api.post("/ai/promotions/apply/", {
-        promotion_id: promo.id,
-        action
-      });
-
-      if (res.data?.success) {
-        // تحديث الحالة محلياً
-        setData((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            promotions: prev.promotions.map((p) =>
-              p.id === promo.id ? { ...p, is_active: !promo.is_active } : p
-            )
-          };
-        });
-      }
-    } catch (err) {
-      console.error("فشل تفعيل العرض الترويجي:", err);
-    } finally {
-      setApplyingPromoId(null);
-    }
-  };
-
-  const handleAddToCart = (promo: PromotionSuggestion) => {
-    promo.items.forEach((item) => {
-      addItem({
-        id: item.item_id,
-        name: `${item.name} (${promo.badge})`,
-        price: item.discounted_price,
-        notes: `عرض ذكي: ${promo.title}`
-      });
-    });
-
-    setAddedSuccessId(promo.id);
-    setTimeout(() => setAddedSuccessId(null), 2500);
-  };
-
+  // Guard Clause: Loading without previous data
   if (loading && !data) {
     return (
       <div className={`p-4 bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 rounded-2xl flex items-center justify-center gap-2 text-xs text-gray-400 ${className}`} dir="rtl">
@@ -149,6 +45,7 @@ export default function AIDynamicPromotionsWidget({
     );
   }
 
+  // Guard Clause: Empty or null data
   if (!data || data.promotions.length === 0) return null;
 
   return (
@@ -195,7 +92,7 @@ export default function AIDynamicPromotionsWidget({
           </button>
           {compact && (
             <button
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={toggleExpanded}
               className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition"
             >
               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -293,7 +190,7 @@ export default function AIDynamicPromotionsWidget({
                 {/* زر إضافة العرض للسلة مباشرة */}
                 <button
                   type="button"
-                  onClick={() => handleAddToCart(promo)}
+                  onClick={() => addPromoToCart(promo)}
                   className="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-1.5 rounded-xl font-bold text-xs transition active:scale-95"
                   title="إضافة أصناف هذا العرض مباشرة لسلة المبيعات"
                 >
@@ -313,7 +210,7 @@ export default function AIDynamicPromotionsWidget({
                 {/* زر تفعيل العرض في الـ POS بنقرة واحدة */}
                 <button
                   type="button"
-                  onClick={() => handleApplyPromo(promo)}
+                  onClick={() => applyPromo(promo)}
                   disabled={applyingPromoId === promo.id}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs transition active:scale-95 disabled:opacity-50 shadow-sm ${
                     promo.is_active

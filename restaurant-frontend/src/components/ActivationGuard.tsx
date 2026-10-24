@@ -1,166 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { licenseService, LicenseStatus } from '@/services/licenseService';
+import React from 'react';
 import {
     ShieldAlert,
     ShieldCheck,
     KeyRound,
-    Copy,
-    Check,
     Lock,
-    Sparkles,
-    AlertTriangle,
-    RefreshCw,
-    Clock,
-    Laptop
+    Sparkles
 } from 'lucide-react';
+import { useLicenseGuard } from '@/hooks/useLicenseGuard';
 
 export default function ActivationGuard({ children }: { children: React.ReactNode }) {
-    const [license, setLicense] = useState<LicenseStatus | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [productKey, setProductKey] = useState('');
-    const [isActivating, setIsActivating] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [isCopied, setIsCopied] = useState(false);
-    const [isBannerDismissed, setIsBannerDismissed] = useState(false);
-    const [secondsLeft, setSecondsLeft] = useState<number>(0);
-
-    // حساب التوقيت المطلق لانتهاء التجربة (ساعة كاملة من وقت التثبيت)
-    const expirationTimestamp = React.useMemo(() => {
-        if (!license?.installed_at) return null;
-        const installedMs = new Date(license.installed_at).getTime();
-        const durationMs = (license.trial_duration_seconds || 3600) * 1000;
-        return installedMs + durationMs;
-    }, [license?.installed_at, license?.trial_duration_seconds]);
-
-    // دالة لمزامنة الثواني المتبقية مع التوقيت الفعلي للجهاز (حتى لو كان الجهاز مغلقاً أو في وضع السكون)
-    const syncRemainingTime = React.useCallback(() => {
-        if (!license || !license.is_trial_active || !expirationTimestamp) return;
-
-        const now = Date.now();
-        const remaining = Math.max(0, Math.floor((expirationTimestamp - now) / 1000));
-        setSecondsLeft(remaining);
-
-        if (remaining <= 0) {
-            fetchStatus();
-        }
-    }, [license, expirationTimestamp]);
-
-    // مزامنة فورية عند جلب بيانات الترخيص
-    useEffect(() => {
-        syncRemainingTime();
-    }, [syncRemainingTime]);
-
-    // عداد تنازلي حي يتزامن لحظياً وكل ثانية ومع عودة الجهاز من الإغلاق أو وضع السكون
-    useEffect(() => {
-        if (!license || !license.is_trial_active || !expirationTimestamp) return;
-
-        syncRemainingTime();
-
-        // 1. نبضة كل ثانية لحساب الوقت الحقيقي المنقضي
-        const interval = setInterval(() => {
-            syncRemainingTime();
-        }, 1000);
-
-        // 2. تحديث فوري عند استئناف الجهاز أو فتح الشاشة أو عودة التركيز للنافذة بعد إغلاق الجهاز
-        const handleWakeOrFocus = () => {
-            syncRemainingTime();
-            fetchStatus();
-        };
-
-        document.addEventListener('visibilitychange', handleWakeOrFocus);
-        window.addEventListener('focus', handleWakeOrFocus);
-
-        return () => {
-            clearInterval(interval);
-            document.removeEventListener('visibilitychange', handleWakeOrFocus);
-            window.removeEventListener('focus', handleWakeOrFocus);
-        };
-    }, [license, expirationTimestamp, syncRemainingTime]);
-
-    const formatCountdown = (secs: number) => {
-        if (secs <= 0) return 'انتهت مدة التجربة';
-        const hours = Math.floor(secs / 3600);
-        const mins = Math.floor((secs % 3600) / 60);
-        const s = secs % 60;
-        if (hours > 0) {
-            return `${hours} ساعة و ${mins} دقيقة و ${s} ثانية`;
-        }
-        return `${mins} دقيقة و ${s} ثانية`;
-    };
-
-    // فحص حالة الترخيص عند تحميل المكون
-    const fetchStatus = async (retryCount = 1) => {
-        try {
-            const data = await licenseService.getLicenseStatus();
-            setLicense(data);
-        } catch (err: any) {
-            console.warn('[ActivationGuard] Could not fetch license status:', err?.message || err);
-            if (retryCount > 0) {
-                setTimeout(() => fetchStatus(retryCount - 1), 3000);
-                return;
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchStatus();
-    }, []);
-
-    // نسخ معرف الجهاز
-    const handleCopyMachineId = () => {
-        if (!license?.machine_id) return;
-        navigator.clipboard.writeText(license.machine_id);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2500);
-    };
-
-    // معالجة إدخال مفتاح المنتج وتنسيقه XXXX-XXXX-XXXX-XXXX
-    const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        if (val.length > 16) val = val.slice(0, 16);
-        // تقسيم إلى مجموعات من 4
-        const parts = val.match(/.{1,4}/g);
-        setProductKey(parts ? parts.join('-') : val);
-        setErrorMessage(null);
-    };
-
-    // إرسال كود التفعيل
-    const handleActivate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!productKey.trim()) {
-            setErrorMessage('يرجى إدخال مفتاح المنتج المكون من 16 حرفاً.');
-            return;
-        }
-
-        setIsActivating(true);
-        setErrorMessage(null);
-        setSuccessMessage(null);
-
-        try {
-            const res = await licenseService.activateProductKey(productKey);
-            if (res.success) {
-                setSuccessMessage(res.message);
-                if (res.license_status) {
-                    setLicense(res.license_status);
-                }
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                setErrorMessage(res.message);
-            }
-        } catch (err: any) {
-            const msg = err.response?.data?.message || 'فشل التحقق من المفتاح، يرجى المحاولة لاحقاً.';
-            setErrorMessage(msg);
-        } finally {
-            setIsActivating(false);
-        }
-    };
+    const {
+        license,
+        isLoading,
+        productKey,
+        isActivating,
+        errorMessage,
+        successMessage,
+        isLocked,
+        handleKeyChange,
+        handleActivate
+    } = useLicenseGuard();
 
     // أثناء التحميل الأولي لا نحجب الشاشة بالكامل ولكن ننتظر الثواني الأولى
     if (isLoading) {
@@ -172,9 +33,7 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         );
     }
 
-    // الحالة 1: النظام غير صالح (انتهت فترة الـ 14 يوماً وغير مفعل) -> قفل الواجهة بالكامل
-    const isLocked = license && !license.is_valid;
-
+    // الحالة 1: النظام غير صالح (انتهت فترة الـ 14 يوماً أو الساعة التجريبية وغير مفعل) -> قفل الواجهة بالكامل
     if (isLocked) {
         return (
             <div className="fixed inset-0 z-[999999] bg-gray-950/98 backdrop-blur-2xl flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
@@ -205,10 +64,11 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
                             للحصول على مفتاح التفعيل الدائم المخصص لمنشأتك، يرجى التواصل مباشرة مع المطورين المعتمدين للنظام (فريق الدعم الفني) وإدخال المفتاح أدناه.
                         </p>
                     </div>
+
                     {/* Product Key Input Form */}
                     <form onSubmit={handleActivate} className="space-y-4 text-right">
                         <div>
-                            <label className="text-xs font-black text-gray-300 block mb-1.5 flex items-center gap-1.5">
+                            <label className="text-xs font-black text-gray-300 mb-1.5 flex items-center gap-1.5">
                                 <KeyRound className="w-4 h-4 text-amber-400" />
                                 <span>أدخل مفتاح المنتج (Product Key):</span>
                             </label>
@@ -240,7 +100,7 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
                         <button
                             type="submit"
                             disabled={isActivating || !productKey}
-                            className="w-full h-12 rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-lg shadow-emerald-900/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-lg shadow-emerald-900/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isActivating ? (
                                 <>
@@ -260,11 +120,6 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         );
     }
 
-    // الحالة 2: النظام مفعل بصفة دائمة -> عرض التطبيق مباشرة دون أي شريط
-    if (license?.is_activated) {
-        return <>{children}</>;
-    }
-
-    // تم إخفاء الشريط العلوي في نافذة النظام بالكامل وعرض محتوى التطبيق مباشرة
+    // الحالة 2: النظام مفعل بصفة دائمة أو التجربة لا زالت سارية
     return <>{children}</>;
 }

@@ -9,6 +9,7 @@ import { useSettingsStore } from "@/store/settingsStore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PurchaseInvoiceDocument from "@/components/invoices/PurchaseInvoiceDocument";
+import { useAutoPurchase } from "@/hooks/useAutoPurchase";
 import {
   FileText,
   Plus,
@@ -97,16 +98,6 @@ export default function PurchasesPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
 
-  // Auto Purchase Order states
-  const [isAutoPOModalOpen, setIsAutoPOModalOpen] = useState(false);
-  const [isLoadingAutoPOPreview, setIsLoadingAutoPOPreview] = useState(false);
-  const [isSubmittingAutoPO, setIsSubmittingAutoPO] = useState(false);
-  const [autoPOItems, setAutoPOItems] = useState<DepletedItemPreview[]>([]);
-  const [suppliersList, setSuppliersList] = useState<SupplierOption[]>([]);
-  const [selectedSupplierId, setSelectedSupplierId] = useState<number | "">("");
-  const [receivingInvoiceId, setReceivingInvoiceId] = useState<number | null>(null);
-  const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
-
   const loadInvoices = async () => {
     try {
       setIsLoading(true);
@@ -119,106 +110,33 @@ export default function PurchasesPage() {
     }
   };
 
-  const openAutoPOModal = async () => {
-    try {
-      setIsAutoPOModalOpen(true);
-      setIsLoadingAutoPOPreview(true);
-
-      const [previewRes, suppliersRes] = await Promise.all([
-        api.get("/purchases/auto-generate/preview/"),
-        api.get("/suppliers/")
-      ]);
-
-      setAutoPOItems(previewRes.data || []);
-      const sups: SupplierOption[] = suppliersRes.data || [];
-      setSuppliersList(sups);
-      if (sups.length > 0) {
-        setSelectedSupplierId(sups[0].id);
-      }
-    } catch (err) {
-      console.error("Failed to load auto PO preview", err);
-      setNotification({
-        type: "error",
-        message: "تعذر تحميل بيانات معاينة أمر الشراء الآلي. يرجى المحاولة لاحقاً."
-      });
-    } finally {
-      setIsLoadingAutoPOPreview(false);
-    }
-  };
-
-  const handleQuantityChange = (index: number, newQty: number) => {
-    const validQty = Math.max(0.1, Number(newQty) || 0.1);
-    setAutoPOItems((prev) => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        suggested_qty: validQty,
-        estimated_total: Math.round(validQty * updated[index].unit_price * 100) / 100
-      };
-      return updated;
-    });
-  };
-
-  const handleRemoveItem = (index: number) => {
-    setAutoPOItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleConfirmAutoPO = async () => {
-    if (autoPOItems.length === 0) {
-      setNotification({ type: "error", message: "لا توجد مواد محددة في أمر الشراء." });
-      return;
-    }
-
-    try {
-      setIsSubmittingAutoPO(true);
-      const payload = {
-        supplier_id: selectedSupplierId ? Number(selectedSupplierId) : undefined,
-        items: autoPOItems.map((item) => ({
-          ingredient_id: item.ingredient_id,
-          quantity: item.suggested_qty,
-          unit_price: item.unit_price
-        }))
-      };
-
-      const res = await api.post("/purchases/auto-generate/", payload);
-      setIsAutoPOModalOpen(false);
-      setNotification({
-        type: "success",
-        message: res.data?.message || "تم إنشاء مسودة أمر الشراء الآلي بنجاح!"
-      });
-      await loadInvoices();
-    } catch (err) {
-      console.error("Failed to generate auto PO", err);
-      setNotification({
-        type: "error",
-        message: "حدث خطأ أثناء توليد أمر الشراء الآلي. يرجى التحقق وإعادة المحاولة."
-      });
-    } finally {
-      setIsSubmittingAutoPO(false);
-    }
-  };
+  const {
+    isAutoPOModalOpen,
+    setIsAutoPOModalOpen,
+    isLoadingAutoPOPreview,
+    isSubmittingAutoPO,
+    autoPOItems,
+    suppliersList,
+    selectedSupplierId,
+    setSelectedSupplierId,
+    receivingInvoiceId,
+    notification,
+    setNotification,
+    openAutoPOModal,
+    handleQuantityChange,
+    handleRemoveItem,
+    handleConfirmAutoPO,
+    handleReceiveInvoice: receiveInvoiceHook
+  } = useAutoPurchase({
+    onSuccess: loadInvoices
+  });
 
   const handleReceiveInvoice = async (invoiceId: number) => {
-    try {
-      setReceivingInvoiceId(invoiceId);
-      const res = await api.post(`/purchases/${invoiceId}/receive/`);
-      setNotification({
-        type: "success",
-        message: res.data?.message || "تم اعتماد واستلام الفاتورة وترحيل الكميات للمخزن بنجاح!"
-      });
-      await loadInvoices();
+    await receiveInvoiceHook(invoiceId, () => {
       if (selectedInvoice && selectedInvoice.id === invoiceId) {
         setSelectedInvoice((prev) => (prev ? { ...prev, status: "RECEIVED", status_display: "تم الترحيل" } : null));
       }
-    } catch (err) {
-      console.error("Failed to receive invoice", err);
-      setNotification({
-        type: "error",
-        message: "حدث خطأ أثناء ترحيل الفاتورة للمخزن."
-      });
-    } finally {
-      setReceivingInvoiceId(null);
-    }
+    });
   };
 
   useEffect(() => {
