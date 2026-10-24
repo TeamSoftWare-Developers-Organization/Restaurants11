@@ -195,44 +195,16 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
                         لقد استنفدت مدة الساعة التجريبية الممنوحة لك لاختبار النظام. لحماية البيانات واستئناف العمليات اليومية ونقاط البيع، يرجى إدخال مفتاح التفعيل الدائم المخصص لهذا الجهاز.
                     </p>
 
-                    {/* Machine ID Box */}
+                    {/* Support Notice */}
                     <div className="bg-gray-950/80 border border-gray-800 rounded-2xl p-4 mb-6 text-right">
-                        <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
-                            <span className="flex items-center gap-1.5 font-bold">
-                                <Laptop className="w-4 h-4 text-emerald-400" />
-                                <span>معرف الجهاز الفريد (Machine ID):</span>
-                            </span>
-                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-mono">
-                                فريد ومشفر
-                            </span>
+                        <div className="flex items-center gap-2 text-xs text-amber-400 font-bold mb-1.5">
+                            <Sparkles className="w-4 h-4 shrink-0" />
+                            <span>تفعيل النسخة الرسمية الدائمة:</span>
                         </div>
-                        <div className="flex items-center justify-between gap-2 bg-gray-900 px-3 py-2.5 rounded-xl border border-gray-800">
-                            <span className="font-mono font-black text-sm sm:text-base text-emerald-400 tracking-wider">
-                                {license?.machine_id}
-                            </span>
-                            <button
-                                type="button"
-                                onClick={handleCopyMachineId}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold transition-all active:scale-95 shrink-0"
-                            >
-                                {isCopied ? (
-                                    <>
-                                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                        <span className="text-emerald-400">تم النسخ</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Copy className="w-3.5 h-3.5" />
-                                        <span>نسخ المعرف</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                        <p className="text-[11px] text-gray-500 mt-2">
-                            * شارك هذا المعرف مع فريق الدعم الفني أو المورد لإصدار مفتاح المنتج الخاص بك.
+                        <p className="text-xs text-gray-400 leading-relaxed">
+                            للحصول على مفتاح التفعيل الدائم المخصص لمنشأتك، يرجى التواصل مباشرة مع المطورين المعتمدين للنظام (فريق الدعم الفني) وإدخال المفتاح أدناه.
                         </p>
                     </div>
-
                     {/* Product Key Input Form */}
                     <form onSubmit={handleActivate} className="space-y-4 text-right">
                         <div>
