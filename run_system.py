@@ -7,13 +7,52 @@ import urllib.request
 import webbrowser
 from pathlib import Path
 
-# إعداد المسارات الأساسية للمشروع
-ROOT_DIR = Path(__file__).resolve().parent
-BACKEND_DIR = ROOT_DIR / "restaurantsApi"
-FRONTEND_DIR = ROOT_DIR / "restaurant-frontend"
+def resolve_project_root() -> tuple[Path, Path, Path]:
+    """
+    اكتشاف المسار الرئيسي الحقيقي للمشروع ومجلدي الباك إند والفرونت إند بمرونة وذكاء
+    سواء تم تشغيل السكربت من الجذر، أو من مجلد فرعي، أو من مجلد dist / win-unpacked.
+    """
+    initial_dir = Path(__file__).resolve().parent
+
+    # المرشحون المحتملون لمسار جذر المشروع
+    candidates = [
+        initial_dir,
+        initial_dir.parent,
+        initial_dir.parent.parent,
+        Path.cwd(),
+        Path.cwd().parent,
+        # مسارات شائعة على أجهزة ويندوز
+        Path(r"E:\restaurants"),
+        Path(r"C:\restaurants"),
+        Path(r"D:\restaurants"),
+        Path.home() / "restaurants",
+        Path.home() / "Documents" / "restaurants",
+        Path.home() / "Desktop" / "restaurants"
+    ]
+
+    for cand in candidates:
+        try:
+            b_dir = cand / "restaurantsApi"
+            f_dir = cand / "restaurant-frontend"
+            if b_dir.is_dir() and f_dir.is_dir() and (b_dir / "manage.py").exists():
+                return cand.resolve(), b_dir.resolve(), f_dir.resolve()
+        except Exception:
+            continue
+
+    # في حال لم يتم العثور على المسار التلقائي، نرجع المسار الافتراضي للتحقق منه لاحقاً
+    return initial_dir, initial_dir / "restaurantsApi", initial_dir / "restaurant-frontend"
+
+ROOT_DIR, BACKEND_DIR, FRONTEND_DIR = resolve_project_root()
 
 # منافذ أجهزة البصمة البيومترية المحظور استخدامها لتطبيقات الويب لمنع التداخل والتعارض
 FINGERPRINT_PORTS = {4370, 4444, 8888, 5003}
+
+def get_python_executable(backend_dir: Path) -> str:
+    """الحصول على بايثون الخاص بالبيئة الافتراضية إذا كان متوفراً وإلا استخدام بايثون النظام"""
+    venv_py = backend_dir / "venv" / "Scripts" / "python.exe"
+    if venv_py.exists():
+        return str(venv_py)
+    return sys.executable
 
 def find_available_port(preferred_port: int, max_attempts: int = 50) -> int:
     """فحص المنفذ واختيار أول منفذ حر تلقائياً، مع تخطي منافذ أجهزة البصمة فوراً"""
@@ -44,9 +83,11 @@ def wait_for_server(url: str, timeout: int = 30) -> bool:
             time.sleep(1)
     return False
 
-def clean_stale_lock():
+def clean_stale_lock(frontend_dir: Path):
     """حذف ملف القفل القديم لـ Next.js إذا كان معلقاً لمنع خطأ Unable to acquire lock"""
-    lock_file = FRONTEND_DIR / ".next" / "dev" / "lock"
+    if not frontend_dir.is_dir():
+        return
+    lock_file = frontend_dir / ".next" / "dev" / "lock"
     if lock_file.exists():
         try:
             lock_file.unlink()
@@ -54,35 +95,40 @@ def clean_stale_lock():
         except Exception:
             pass
 
-def run_database_migrations():
+def run_database_migrations(backend_dir: Path):
     """تطبيق أي هجرات جديدة في قاعدة البيانات تلقائياً قبل تشغيل السيرفر"""
+    if not backend_dir.is_dir() or not (backend_dir / "manage.py").exists():
+        return
     print("\n[*] جاري التحقق من تحديثات قاعدة البيانات وتطبيق الجداول (Migrations)...")
     try:
+        py_exe = get_python_executable(backend_dir)
         subprocess.run(
-            [sys.executable, "manage.py", "migrate", "--noinput"],
-            cwd=BACKEND_DIR,
+            [py_exe, "manage.py", "migrate", "--noinput"],
+            cwd=backend_dir,
             check=True
         )
         print(" [V] قاعدة البيانات محدثة وجاهزة بالكامل.")
     except Exception as e:
         print(f" [!] تنبيه أثناء فحص قاعدة البيانات: {e}")
 
-def launch_desktop_window(target_url: str):
+def launch_desktop_window(target_url: str, root_dir: Path):
     """
     تشغيل واجهة النظام في نافذة تطبيق مستقلة بدون أشرطة تصفح أو علامات تبويب
     الأولوية: Electron أولاً -> نمط التطبيق المستقل Edge App Mode -> نمط Chrome App Mode
     """
     # 1. محاولة التشغيل عبر Electron إن كان متوفراً محلياً
     electron_executables = [
-        ROOT_DIR / "node_modules" / ".bin" / "electron.cmd",
-        ROOT_DIR / "node_modules" / "electron" / "dist" / "electron.exe",
+        root_dir / "dist" / "win-unpacked" / "RestoERP.exe",
+        root_dir / "node_modules" / "electron" / "dist" / "electron.exe",
+        Path(os.environ.get("APPDATA", "")) / "npm" / "electron.cmd",
     ]
+
     for el_exe in electron_executables:
         if el_exe.exists():
             try:
                 env_electron = os.environ.copy()
                 env_electron["APP_URL"] = target_url
-                subprocess.Popen([str(el_exe), str(ROOT_DIR / "electron" / "main.js")], cwd=ROOT_DIR, env=env_electron)
+                subprocess.Popen([str(el_exe), str(root_dir / "electron" / "main.js")], cwd=root_dir, env=env_electron)
                 print(" ✓ تم فتح النظام في نافذة تطبيق سطح المكتب المستقلة (Electron Desktop Window).")
                 return True
             except Exception:
@@ -116,15 +162,42 @@ def launch_desktop_window(target_url: str):
     return False
 
 def main():
+    global ROOT_DIR, BACKEND_DIR, FRONTEND_DIR
+    ROOT_DIR, BACKEND_DIR, FRONTEND_DIR = resolve_project_root()
+
+    # التحقق الحاسم من وجود خوادم ومجلدات المشروع
+    if not BACKEND_DIR.is_dir() or not (BACKEND_DIR / "manage.py").exists() or not FRONTEND_DIR.is_dir():
+        print("=" * 70)
+        print(" ❌ تنبيه هام: تعذر العثور على خادم ومجلدات النظام الأساسية!")
+        print("=" * 70)
+        print(f" 📍 المسار الحالي المشغّل منه السكربت:\n    {Path(__file__).resolve().parent}")
+        print(f"\n ⚠️ مجلد الباك إند المفقود:\n    {BACKEND_DIR}")
+        print(f" ⚠️ مجلد الواجهة المفقود:\n    {FRONTEND_DIR}")
+        print("\n 🔍 سبب الخطأ [WinError 267]:")
+        print(f"    تم تشغيل السكربت من داخل مجلد '{Path(__file__).resolve().parent.name}'.")
+        print("    مجلد win-unpacked يحتوي فقط على مشغل النافذة (Electron) وليس كود وخوادم النظام.")
+        print("\n 💡 طريقة التشغيل الصحيحة:")
+        print("    1. يجب تشغيل السكربت أو ملف start_system.bat من المجلد الرئيسي للمشروع (restaurants)")
+        print("       الذي يحتوي بداخله على (restaurantsApi) و (restaurant-frontend).")
+        print("    2. إذا قمت بنسخ النظام إلى جهاز آخر، تأكد من نسخ كامل مجلد المشروع (restaurants)")
+        print("       أو عمل Git Clone للمستودع وتشغيل install_system.bat.")
+        print("=" * 70 + "\n")
+        try:
+            input("اضغط على Enter للإغلاق...")
+        except Exception:
+            pass
+        sys.exit(1)
+
     print("=" * 60)
     print(" 🚀 جاري فحص بيئة التشغيل والمنافذ المتوفرة لجهاز العميل...")
     print("=" * 60)
+    print(f" 📁 مسار المشروع المعتمد: {ROOT_DIR}")
 
     # تنظيف أي قفل قديم للواجهة
-    clean_stale_lock()
+    clean_stale_lock(FRONTEND_DIR)
 
     # تطبيق هجرات قاعدة البيانات تلقائياً
-    run_database_migrations()
+    run_database_migrations(BACKEND_DIR)
 
     # 1. تحديد منافذ حرة للباك إند والفرونت إند تلقائياً مع حماية منافذ البصمة
     backend_port = find_available_port(8000)
@@ -140,8 +213,9 @@ def main():
     env["NEXT_PUBLIC_API_URL"] = f"http://127.0.0.1:{backend_port}/api"
 
     # 3. تشغيل الواجهة الخلفية (Django)
+    py_exe = get_python_executable(BACKEND_DIR)
     backend_cmd = [
-        sys.executable,
+        py_exe,
         "manage.py",
         "runserver",
         f"127.0.0.1:{backend_port}",
@@ -155,19 +229,26 @@ def main():
     wait_for_server(f"http://127.0.0.1:{backend_port}/api/docs", timeout=15)
 
     # 4. تشغيل الواجهة الأمامية (Bun / Next.js)
-    runner = "bun" if subprocess.run(["where" if os.name == "nt" else "which", "bun"], capture_output=True).returncode == 0 else "npm"
+    # فحص مسار bun المدمج داخل مجلد bin أولاً
+    bundled_bun = ROOT_DIR / "bin" / "bun.exe"
+    if bundled_bun.exists():
+        runner = str(bundled_bun)
+    elif subprocess.run(["where" if os.name == "nt" else "which", "bun"], capture_output=True).returncode == 0:
+        runner = "bun"
+    else:
+        runner = "npm"
 
     # استخدام npx next dev أو bun run dev مباشرة لتمرير المنفذ الصحيح
     has_valid_build = (FRONTEND_DIR / ".next" / "BUILD_ID").exists()
     if has_valid_build:
-        if runner == "bun":
-            frontend_cmd = ["bun", "x", "next", "start", "-p", str(frontend_port)]
+        if runner.endswith("bun.exe") or runner == "bun":
+            frontend_cmd = [runner, "x", "next", "start", "-p", str(frontend_port)]
         else:
             frontend_cmd = ["npx", "next", "start", "-p", str(frontend_port)]
         mode_desc = "الإنتاج السريع (Production Mode)"
     else:
-        if runner == "bun":
-            frontend_cmd = ["bun", "x", "next", "dev", "--webpack", "-p", str(frontend_port)]
+        if runner.endswith("bun.exe") or runner == "bun":
+            frontend_cmd = [runner, "x", "next", "dev", "--webpack", "-p", str(frontend_port)]
         else:
             frontend_cmd = ["npx", "next", "dev", "--webpack", "-p", str(frontend_port)]
         mode_desc = "التشغيل الفوري (Development Mode)"
@@ -185,7 +266,7 @@ def main():
         print(" ⚠️ الواجهة تأخذ وقتاً أطول في الإقلاع، جاري فتح النافذة الآن...")
 
     # تشغيل نافذة التطبيق المستقلة دون التوجيه للمتصفح العادي
-    launch_desktop_window(target_url)
+    launch_desktop_window(target_url, ROOT_DIR)
 
     print("=" * 60)
     print(" ✅ النظام يعمل بنجاح الآن كشاشة نقطة بيع مستقلة! لا تغلق هذه النافذة أثناء العمل.")
