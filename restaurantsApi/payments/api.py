@@ -106,6 +106,8 @@ class SalaryPaymentIn(Schema):
     absence_days: Optional[int] = 0
     daily_rate: Optional[float] = 0.0
     absence_deduction: Optional[float] = 0.0
+    late_deduction: Optional[float] = 0.0
+    late_minutes: Optional[int] = 0
     bonus_amount: Optional[float] = 0.0
     deduction_reason: Optional[str] = None
     absence_dates_detail: Optional[str] = None
@@ -125,6 +127,8 @@ class SalaryPaymentOut(Schema):
     absence_days: int = 0
     daily_rate: float = 0.0
     absence_deduction: float = 0.0
+    late_deduction: float = 0.0
+    late_minutes: int = 0
     bonus_amount: float = 0.0
     deduction_reason: Optional[str] = None
     absence_dates_detail: Optional[str] = None
@@ -202,6 +206,10 @@ class AbsenceCalculationOut(Schema):
     absence_dates_list: List[AbsenceDayItem] = []
     total_uncovered_shortage: float = 0.0
     detected_shortages: List[ShiftDeficitItem] = []
+    total_late_minutes: int = 0
+    total_late_days: int = 0
+    suggested_late_deduction: float = 0.0
+    late_deduction_rate_per_day: float = 0.0
 
 class VerifyAdminIn(Schema):
     admin_username: str
