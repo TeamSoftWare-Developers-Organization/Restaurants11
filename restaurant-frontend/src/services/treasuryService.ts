@@ -117,6 +117,11 @@ export interface AbsenceCalculation {
     total_late_days?: number;
     suggested_late_deduction?: number;
     late_deduction_rate_per_day?: number;
+    suggested_absence_deduction?: number;
+    custom_absence_rate_per_day?: number;
+    absence_deduction_type?: string;
+    scheduled_start_time?: string;
+    late_grace_period_minutes?: number;
 }
 
 export interface AdminVerifyResult {

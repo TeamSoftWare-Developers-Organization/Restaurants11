@@ -34,6 +34,13 @@ export interface RestaurantSettings {
     // Biometric Device Network Configuration (SuperDev exclusive)
     biometric_device_ip?: string;
     biometric_device_port?: number;
+
+    // Attendance & Penalty Policy (Admin Policy)
+    default_work_start_time?: string;
+    default_work_end_time?: string;
+    default_late_grace_period_minutes?: number;
+    default_late_deduction_amount?: number;
+    default_absence_deduction_amount?: number;
 }
 
 export const settingsService = {

@@ -117,9 +117,11 @@ A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resou
   - One-click operational profit transfer to main treasury with custom notes and live treasury balance verification (`POST /api/payments/dashboard/transfer-profit-to-treasury`).
 
 #### 8. 👥 Attendance, Scheduled Shifts, Smart Search & Late Deductions
-- **Configurable Work Schedules & Grace Periods:**
-  - Granular configuration for each employee's daily schedule: `work_start_time`, `work_end_time`, `late_grace_period_minutes` (default: 15 min), and custom admin-defined late penalty amount (`late_deduction_amount` in LYD).
-  - Clear shift timing and deduction display in the employee management directory.
+- **Admin-Defined Attendance Schedules, Late Penalties & Absence Deductions:**
+  - Granular configuration for each employee and system-wide default policy: scheduled clock-in time (`work_start_time`), departure time (`work_end_time`), late grace period (`late_grace_period_minutes`), admin-defined late penalty value (`late_deduction_amount`), and admin-defined daily absence deduction value (`absence_deduction_amount`).
+  - If an employee clocks in after the scheduled time (past grace period), the admin-specified late penalty is automatically applied.
+  - If an employee is absent, the admin-specified daily absence deduction amount is automatically used in salary calculations.
+  - Clear shift timings, late penalties, and absence deduction rates prominently displayed in employee directories and restaurant settings.
 - **Real-Time Lateness Detection & Smart Attendance Search:**
   - Automated comparison of initial daily punch times against scheduled start hours plus grace window.
   - Live status badges: On-Time (`حضور في الموعد`), Late with exact delay minutes (`متأخر X دقيقة - خصم Y د.ل`), and Absent (`غائب`).
@@ -367,9 +369,11 @@ python manage.py seed_demo_users
   - ترحيل الأرباح الصافية أو جزء منها وإيداعها مباشرة في الخزينة مع تسجيل الملاحظات وتحديث رصيد الخزينة الفعلي لحظياً (`POST /api/payments/dashboard/transfer-profit-to-treasury`).
 
 #### 8. 👥 كشف الحضور والانصراف، مواعيد الدوام، البحث الذكي وخصم التأخير من المرتبات
-- **تحديد مواعيد الحضور والانصراف وفترة السماح لكل موظف:**
-  - إمكانية تحديد موعد الحضور المجدول (`work_start_time`) وموعد الانصراف المجدول (`work_end_time`) وفترة السماح بالدقائق (`late_grace_period_minutes`) وقيمة خصم التأخير المحددة من الإدارة (`late_deduction_amount`) بالدينار الليبي لكل موظف على حدة في شاشة الموظفين.
-  - إظهار مواعيد الدوام وقيمة الخصم مباشرة في جدول إدارة الموظفين تحت عمود مخصص.
+- **تحديد موعد البصمة للحضور وقيم خصم التأخير والغياب بواسطة الأدمن:**
+  - تحديد موعد البصمة المجدول للحضور (`work_start_time` - الساعة) وموعد الانصراف وفترة السماح لكل موظف وعبر الإعدادات العامة للمطعم.
+  - احتساب وتطبيق قيمة الخصم المحددة من الأدمن في حال التأخير عن موعد البصمة بعد انتهاء فترة السماح.
+  - تحديد قيمة الخصم المعتمدة من الأدمن في حال الغياب (`absence_deduction_amount` بالدينار الليبي)، واحتسابها تلقائياً عند غياب الموظف بدقة في مسير الرواتب.
+  - إظهار موعد الحضور وقيم خصم التأخير والغياب بوضوح في جدول الموظفين، نافذة صرف المرتبات، وكشف الحضور اليومي.
 - **كشف الحضور اليومي، احتساب التأخير والبحث الذكي:**
   - مقارنة وقت أول بصمة حضور بالموعد المجدول وفترة السماح آلياً ولحظياً.
   - تمييز شارات الحالة: الحضور في الموعد (أخضر)، أو متأخر مع إظهار عدد دقائق التأخير وقيمة الخصم المستحق (أحمر)، أو غائب.

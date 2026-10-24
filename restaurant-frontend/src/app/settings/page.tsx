@@ -33,7 +33,8 @@ import {
     Key,
     Database,
     Network,
-    Cable
+    Cable,
+    Clock
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -1015,6 +1016,108 @@ export default function SettingsPage() {
                                                 }`}
                                             />
                                         </button>
+                                    </div>
+                                </div>
+
+                                {/* Attendance & Deduction Policy Card (Admin Policy) */}
+                                <div className="p-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                            <Clock className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-black text-gray-900 dark:text-white">
+                                                    سياسة مواعيد الحضور والانصراف والخصومات العامة
+                                                </h3>
+                                                <span className="text-[10px] bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full">
+                                                    صلاحية الإدارة (Admin)
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                                                تحديد موعد تسجيل حضور الموظفين بالبصمة، واحتساب قيمة الخصم المعتمدة عند التأخير، وتحديد قيمة الخصم في حالة الغياب.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                                        {/* Scheduled Start Time */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                                                موعد الحضور الافتراضي
+                                            </label>
+                                            <input
+                                                type="time"
+                                                value={localSettings?.default_work_start_time || '09:00'}
+                                                onChange={(e) => handleChange('default_work_start_time', e.target.value)}
+                                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-bold text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                                            />
+                                            <span className="text-[10px] text-gray-400 block">وقت بدء العمل المعتمد لحساب التأخير</span>
+                                        </div>
+
+                                        {/* Scheduled End Time */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                                                موعد الانصراف الافتراضي
+                                            </label>
+                                            <input
+                                                type="time"
+                                                value={localSettings?.default_work_end_time || '17:00'}
+                                                onChange={(e) => handleChange('default_work_end_time', e.target.value)}
+                                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-bold text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                                            />
+                                            <span className="text-[10px] text-gray-400 block">وقت نهاية الوردية الرسمية</span>
+                                        </div>
+
+                                        {/* Grace Period */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                                                فترة السماح بالتأخير (دقائق)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="120"
+                                                value={localSettings?.default_late_grace_period_minutes ?? 15}
+                                                onChange={(e) => handleChange('default_late_grace_period_minutes', parseInt(e.target.value) || 0)}
+                                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-mono font-bold text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                                            />
+                                            <span className="text-[10px] text-gray-400 block">دقائق مسموح بها قبل تسجيل التأخير (مثال: 15د)</span>
+                                        </div>
+
+                                        {/* Late Deduction Amount */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                                                قيمة خصم التأخير المعتمدة (د.ل)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={localSettings?.default_late_deduction_amount ?? 0}
+                                                onChange={(e) => handleChange('default_late_deduction_amount', parseFloat(e.target.value) || 0)}
+                                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-mono font-bold text-sm text-rose-600 dark:text-rose-400 focus:ring-2 focus:ring-rose-500 outline-none"
+                                            />
+                                            <span className="text-[10px] text-gray-400 block">قيمة الخصم عند البصمة بعد موعد الحضور والسماح</span>
+                                        </div>
+
+                                        {/* Absence Deduction Amount */}
+                                        <div className="space-y-1.5 sm:col-span-2">
+                                            <label className="text-xs font-black text-gray-700 dark:text-gray-300 block">
+                                                قيمة خصم الغياب اليومي المعتمدة (د.ل)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={localSettings?.default_absence_deduction_amount ?? 0}
+                                                onChange={(e) => handleChange('default_absence_deduction_amount', parseFloat(e.target.value) || 0)}
+                                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-mono font-bold text-sm text-rose-600 dark:text-rose-400 focus:ring-2 focus:ring-rose-500 outline-none"
+                                            />
+                                            <span className="text-[10px] text-gray-400 block">
+                                                إذا كانت (0.00 د.ل) سيقوم النظام تلقائياً بخصم راتب اليوم الفعلي (الراتب ÷ 30). وإذا تم تحديد قيمة، سيتم تطبيقها كخصم ثابت لليوم.
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 

@@ -210,6 +210,11 @@ class AbsenceCalculationOut(Schema):
     total_late_days: int = 0
     suggested_late_deduction: float = 0.0
     late_deduction_rate_per_day: float = 0.0
+    suggested_absence_deduction: float = 0.0
+    custom_absence_rate_per_day: float = 0.0
+    absence_deduction_type: str = "daily_rate"
+    scheduled_start_time: Optional[str] = "09:00 AM"
+    late_grace_period_minutes: int = 15
 
 class VerifyAdminIn(Schema):
     admin_username: str
@@ -499,8 +504,18 @@ def calculate_employee_absence(request, employee_id: int, month: str):
     absence_days = max(0, effective_days - attended_days)
     basic_salary = float(getattr(employee, 'basic_salary', 0.0) or 0.0)
     daily_rate = round(basic_salary / 30.0, 2) if basic_salary > 0 else 0.0
-    suggested_deduction = round(absence_days * daily_rate, 2)
-    suggested_net = max(0.0, round(basic_salary - suggested_deduction, 2))
+
+    # قيمة خصم الغياب المحددة من قبل Admin لليوم الواحد
+    custom_absence_rate = float(getattr(employee, 'absence_deduction_amount', 0.0) or 0.0)
+    if custom_absence_rate > 0:
+        deduction_rate_used = custom_absence_rate
+        absence_deduction_type = "custom"
+    else:
+        deduction_rate_used = daily_rate
+        absence_deduction_type = "daily_rate"
+
+    suggested_absence_deduction = round(absence_days * deduction_rate_used, 2)
+    suggested_deduction = suggested_absence_deduction
 
     # فحص وحساب أي عجز مسجل على الموظف في الورديات (Shortage/Deficit Detection)
     detected_shortages = []
@@ -568,6 +583,8 @@ def calculate_employee_absence(request, employee_id: int, month: str):
 
     today_str = today.isoformat()
     current_day_name = ARABIC_DAYS.get(today.weekday(), '')
+    suggested_net = max(0.0, round(basic_salary - suggested_absence_deduction - suggested_late_deduction - total_uncovered_shortage, 2))
+    sched_start_display = employee.work_start_time.strftime("%I:%M %p") if getattr(employee, 'work_start_time', None) else "09:00 AM"
 
     return {
         "employee_id": employee.id,
@@ -581,7 +598,8 @@ def calculate_employee_absence(request, employee_id: int, month: str):
         "attended_days": attended_days,
         "absence_days": absence_days,
         "daily_rate": daily_rate,
-        "suggested_deduction": suggested_deduction,
+        "suggested_deduction": suggested_absence_deduction,
+        "suggested_absence_deduction": suggested_absence_deduction,
         "suggested_net": suggested_net,
         "absence_dates_list": absence_dates_list,
         "total_uncovered_shortage": round(total_uncovered_shortage, 2),
@@ -589,7 +607,11 @@ def calculate_employee_absence(request, employee_id: int, month: str):
         "total_late_minutes": total_late_minutes,
         "total_late_days": total_late_days,
         "suggested_late_deduction": round(suggested_late_deduction, 2),
-        "late_deduction_rate_per_day": late_ded_cfg
+        "late_deduction_rate_per_day": late_ded_cfg,
+        "custom_absence_rate_per_day": custom_absence_rate,
+        "absence_deduction_type": absence_deduction_type,
+        "scheduled_start_time": sched_start_display,
+        "late_grace_period_minutes": getattr(employee, 'late_grace_period_minutes', 15) or 0
     }
 
 @payments_router.post("/salaries/verify-admin", response={200: VerifyAdminOut, 400: VerifyAdminOut, 403: VerifyAdminOut}, auth=JWTAuth())

@@ -34,6 +34,7 @@ export interface Employee {
     work_end_time?: string;
     late_grace_period_minutes?: number;
     late_deduction_amount?: number;
+    absence_deduction_amount?: number;
 }
 
 export const AVAILABLE_PERMISSIONS = [

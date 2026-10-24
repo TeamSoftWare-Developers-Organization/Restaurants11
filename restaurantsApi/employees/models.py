@@ -29,6 +29,7 @@ class Employee(models.Model):
     work_end_time = models.TimeField(null=True, blank=True, default='17:00', verbose_name="موعد الانصراف المجدول")
     late_grace_period_minutes = models.IntegerField(default=15, verbose_name="فترة السماح بالتأخير (بالدقائق)")
     late_deduction_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="قيمة خصم التأخير المحددة من Admin (د.ل)")
+    absence_deduction_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="قيمة خصم الغياب اليومي المحددة من Admin (د.ل)")
 
     @classmethod
     def get_default_permissions_for_role(cls, role: str) -> dict:

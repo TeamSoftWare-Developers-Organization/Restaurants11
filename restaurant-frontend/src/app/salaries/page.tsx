@@ -140,7 +140,11 @@ export default function SalariesPage() {
 
             const base = baseSalOverride && baseSalOverride > 0 ? baseSalOverride : (calc.basic_salary || 0);
             const rate = base > 0 ? Math.round((base / 30) * 100) / 100 : 0;
-            const deduction = Math.round((calc.absence_days * rate) * 100) / 100;
+            const customAbsenceRate = calc.custom_absence_rate_per_day || 0;
+            const effectiveAbsenceRate = customAbsenceRate > 0 ? customAbsenceRate : rate;
+            const deduction = calc.suggested_absence_deduction !== undefined
+                ? calc.suggested_absence_deduction
+                : Math.round((calc.absence_days * effectiveAbsenceRate) * 100) / 100;
             const detectedShortage = calc.total_uncovered_shortage || 0;
             const detectedLate = calc.suggested_late_deduction || 0;
             const detectedLateMins = calc.total_late_minutes || 0;
@@ -154,7 +158,7 @@ export default function SalariesPage() {
             setShortageReason(detectedShortage > 0 ? `خصم عجز مالي مرصود في الورديات لشهر ${targetMonth}` : '');
             setLateDeduction(detectedLate.toString());
             setLateMinutes(detectedLateMins);
-            setLateReason(detectedLateMins > 0 ? `خصم تأخير عن الدوام (${calc.total_late_days || 0} أيام، إجمالي ${detectedLateMins} دقيقة)` : '');
+            setLateReason(detectedLateMins > 0 ? `خصم تأخير عن موعد الحضور (${calc.total_late_days || 0} أيام، إجمالي ${detectedLateMins} دقيقة)` : '');
             setBonusAmount('0');
             setNetAmount(net.toString());
             setDeductionReason(calc.absence_days > 0 ? `خصم غياب ${calc.absence_days} أيام خلال شهر ${targetMonth}` : '');
@@ -190,7 +194,9 @@ export default function SalariesPage() {
 
         let finalDeduction = newDeduction;
         if (!manualDeduction) {
-            finalDeduction = Math.round((newAbsDays * rate) * 100) / 100;
+            const customAbsenceRate = absenceInfo?.custom_absence_rate_per_day || 0;
+            const effectiveAbsenceRate = customAbsenceRate > 0 ? customAbsenceRate : rate;
+            finalDeduction = Math.round((newAbsDays * effectiveAbsenceRate) * 100) / 100;
             setAbsenceDeduction(finalDeduction.toString());
         }
 
@@ -676,10 +682,32 @@ export default function SalariesPage() {
                                     </strong>
                                 </div>
                                 <div className="bg-white/80 dark:bg-gray-900/80 p-2 rounded-xl border border-amber-100 dark:border-amber-900/20">
-                                    <span className="text-[10px] font-bold text-gray-400 block">أجر اليومية المحسوب</span>
+                                    <span className="text-[10px] font-bold text-gray-400 block">
+                                        {absenceInfo.custom_absence_rate_per_day && absenceInfo.custom_absence_rate_per_day > 0 ? 'خصم الغياب اليومي (إداري)' : 'أجر اليومية المحسوب'}
+                                    </span>
                                     <strong className="text-xs font-black text-gray-800 dark:text-gray-200 font-mono">
-                                        {absenceInfo.daily_rate} د.ل
+                                        {absenceInfo.custom_absence_rate_per_day && absenceInfo.custom_absence_rate_per_day > 0
+                                            ? `${absenceInfo.custom_absence_rate_per_day} د.ل`
+                                            : `${absenceInfo.daily_rate} د.ل`}
                                     </strong>
+                                </div>
+                            </div>
+                        )}
+
+                        {absenceInfo && (
+                            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-amber-100/60 dark:bg-amber-900/30 rounded-xl text-[11px] font-bold text-amber-900 dark:text-amber-200 border border-amber-200/60 dark:border-amber-900/40">
+                                <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>موعد الحضور المعتمد: <strong className="font-mono text-gray-900 dark:text-white">{absenceInfo.scheduled_start_time || '09:00 AM'}</strong> (فترة سماح {absenceInfo.late_grace_period_minutes ?? 15}د)</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span>خصم التأخير: <strong className="font-mono text-rose-600 dark:text-rose-400">{Number(absenceInfo.late_deduction_rate_per_day || 0).toFixed(2)} د.ل</strong>/تأخير</span>
+                                    <span>•</span>
+                                    <span>خصم الغياب: <strong className="font-mono text-rose-600 dark:text-rose-400">
+                                        {absenceInfo.custom_absence_rate_per_day && absenceInfo.custom_absence_rate_per_day > 0
+                                            ? `${Number(absenceInfo.custom_absence_rate_per_day).toFixed(2)} د.ل/يوم (إداري)`
+                                            : `${Number(absenceInfo.daily_rate || 0).toFixed(2)} د.ل/يوم (راتب اليوم)`}
+                                    </strong></span>
                                 </div>
                             </div>
                         )}
@@ -746,7 +774,7 @@ export default function SalariesPage() {
                                     onChange={(e) => {
                                         const val = parseFloat(e.target.value) || 0;
                                         setBasicSalary(e.target.value);
-                                        updateCalculations(val, absenceDays, parseFloat(absenceDeduction) || 0, parseFloat(bonusAmount) || 0, true, parseFloat(shortageDeduction) || 0);
+                                        updateCalculations(val, absenceDays, parseFloat(absenceDeduction) || 0, parseFloat(bonusAmount) || 0, true, parseFloat(shortageDeduction) || 0, parseFloat(lateDeduction) || 0);
                                     }}
                                     className="w-full h-11 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 font-mono font-black text-sm outline-none focus:ring-2 focus:ring-emerald-600/20"
                                     required
@@ -767,24 +795,37 @@ export default function SalariesPage() {
                                         setAbsenceDays(days);
                                         const base = parseFloat(basicSalary) || 0;
                                         const rate = base > 0 ? base / 30 : 0;
-                                        const deduction = Math.round((days * rate) * 100) / 100;
+                                        const customAbsenceRate = absenceInfo?.custom_absence_rate_per_day || 0;
+                                        const effectiveRate = customAbsenceRate > 0 ? customAbsenceRate : rate;
+                                        const deduction = Math.round((days * effectiveRate) * 100) / 100;
                                         setAbsenceDeduction(deduction.toString());
-                                        updateCalculations(base, days, deduction, parseFloat(bonusAmount) || 0, true, parseFloat(shortageDeduction) || 0);
+                                        updateCalculations(base, days, deduction, parseFloat(bonusAmount) || 0, true, parseFloat(shortageDeduction) || 0, parseFloat(lateDeduction) || 0);
                                     }}
                                     className="w-full h-11 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 font-mono font-black text-sm outline-none focus:ring-2 focus:ring-emerald-600/20"
                                 />
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider block mb-1">
-                                    معدل أجر اليوم (د.ل)
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider block mb-1 flex items-center justify-between">
+                                    <span>معدل خصم اليوم للغياب (د.ل)</span>
+                                    {absenceInfo?.custom_absence_rate_per_day && absenceInfo.custom_absence_rate_per_day > 0 && (
+                                        <span className="text-[9px] text-amber-600 font-bold">(محدد من Admin)</span>
+                                    )}
                                 </label>
                                 <input
                                     type="number"
                                     step="0.01"
+                                    min="0"
                                     value={dailyRate}
-                                    readOnly
-                                    className="w-full h-11 bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-xl px-3 font-mono font-black text-sm text-gray-500 outline-none"
+                                    onChange={(e) => {
+                                        const newRate = parseFloat(e.target.value) || 0;
+                                        setDailyRate(e.target.value);
+                                        const days = parseInt(absenceDays.toString()) || 0;
+                                        const newDed = Math.round((days * newRate) * 100) / 100;
+                                        setAbsenceDeduction(newDed.toString());
+                                        updateCalculations(parseFloat(basicSalary) || 0, days, newDed, parseFloat(bonusAmount) || 0, true, parseFloat(shortageDeduction) || 0, parseFloat(lateDeduction) || 0);
+                                    }}
+                                    className="w-full h-11 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 font-mono font-black text-sm outline-none focus:ring-2 focus:ring-emerald-600/20"
                                 />
                             </div>
                         </div>
