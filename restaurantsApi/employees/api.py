@@ -27,6 +27,7 @@ class EmployeeIn(Schema):
     work_end_time: Optional[str] = "17:00"
     late_grace_period_minutes: Optional[int] = 15
     late_deduction_amount: Optional[float] = 0.0
+    absence_deduction_amount: Optional[float] = 0.0
 
 class EmployeePermissionsIn(Schema):
     permissions: dict
@@ -48,6 +49,7 @@ class EmployeeOut(Schema):
     work_end_time: Optional[str] = "17:00"
     late_grace_period_minutes: int = 15
     late_deduction_amount: float = 0.0
+    absence_deduction_amount: float = 0.0
 
     @staticmethod
     def resolve_work_start_time(obj):
@@ -64,6 +66,10 @@ class EmployeeOut(Schema):
     @staticmethod
     def resolve_late_deduction_amount(obj):
         return float(getattr(obj, 'late_deduction_amount', 0.0) or 0.0)
+
+    @staticmethod
+    def resolve_absence_deduction_amount(obj):
+        return float(getattr(obj, 'absence_deduction_amount', 0.0) or 0.0)
 
     @staticmethod
     def resolve_email(obj):
@@ -142,7 +148,8 @@ def create_employee(request, employee_data: EmployeeIn):
                 work_start_time=employee_data.work_start_time or "09:00",
                 work_end_time=employee_data.work_end_time or "17:00",
                 late_grace_period_minutes=employee_data.late_grace_period_minutes if employee_data.late_grace_period_minutes is not None else 15,
-                late_deduction_amount=employee_data.late_deduction_amount or 0.0
+                late_deduction_amount=employee_data.late_deduction_amount or 0.0,
+                absence_deduction_amount=employee_data.absence_deduction_amount or 0.0
             )
             return 200, employee
             
@@ -179,6 +186,8 @@ def update_employee(request, employee_id: int, employee_data: EmployeeIn):
                 employee.late_grace_period_minutes = employee_data.late_grace_period_minutes
             if employee_data.late_deduction_amount is not None:
                 employee.late_deduction_amount = employee_data.late_deduction_amount
+            if employee_data.absence_deduction_amount is not None:
+                employee.absence_deduction_amount = employee_data.absence_deduction_amount
             employee.save()
             return 200, employee
     except Exception as e:

@@ -62,6 +62,9 @@ export default function SalariesPage() {
     const [absenceDatesDetail, setAbsenceDatesDetail] = useState<string>('');
     const [shortageDeduction, setShortageDeduction] = useState<string>('0');
     const [shortageReason, setShortageReason] = useState<string>('');
+    const [lateDeduction, setLateDeduction] = useState<string>('0');
+    const [lateMinutes, setLateMinutes] = useState<number>(0);
+    const [lateReason, setLateReason] = useState<string>('');
     const [notes, setNotes] = useState('');
 
     // Absence detection details from backend
@@ -139,7 +142,9 @@ export default function SalariesPage() {
             const rate = base > 0 ? Math.round((base / 30) * 100) / 100 : 0;
             const deduction = Math.round((calc.absence_days * rate) * 100) / 100;
             const detectedShortage = calc.total_uncovered_shortage || 0;
-            const net = Math.max(0, Math.round((base - deduction - detectedShortage) * 100) / 100);
+            const detectedLate = calc.suggested_late_deduction || 0;
+            const detectedLateMins = calc.total_late_minutes || 0;
+            const net = Math.max(0, Math.round((base - deduction - detectedShortage - detectedLate) * 100) / 100);
 
             setBasicSalary(base.toString());
             setAbsenceDays(calc.absence_days);
@@ -147,6 +152,9 @@ export default function SalariesPage() {
             setAbsenceDeduction(deduction.toString());
             setShortageDeduction(detectedShortage.toString());
             setShortageReason(detectedShortage > 0 ? `خصم عجز مالي مرصود في الورديات لشهر ${targetMonth}` : '');
+            setLateDeduction(detectedLate.toString());
+            setLateMinutes(detectedLateMins);
+            setLateReason(detectedLateMins > 0 ? `خصم تأخير عن الدوام (${calc.total_late_days || 0} أيام، إجمالي ${detectedLateMins} دقيقة)` : '');
             setBonusAmount('0');
             setNetAmount(net.toString());
             setDeductionReason(calc.absence_days > 0 ? `خصم غياب ${calc.absence_days} أيام خلال شهر ${targetMonth}` : '');
@@ -174,7 +182,8 @@ export default function SalariesPage() {
         newDeduction: number,
         newBonus: number,
         manualDeduction: boolean = false,
-        newShortage: number = parseFloat(shortageDeduction) || 0
+        newShortage: number = parseFloat(shortageDeduction) || 0,
+        newLate: number = parseFloat(lateDeduction) || 0
     ) => {
         const rate = newBase > 0 ? Math.round((newBase / 30) * 100) / 100 : 0;
         setDailyRate(rate.toString());
@@ -185,7 +194,7 @@ export default function SalariesPage() {
             setAbsenceDeduction(finalDeduction.toString());
         }
 
-        const net = Math.max(0, Math.round((newBase - finalDeduction - newShortage + newBonus) * 100) / 100);
+        const net = Math.max(0, Math.round((newBase - finalDeduction - newShortage - newLate + newBonus) * 100) / 100);
         setNetAmount(net.toString());
     };
 
@@ -227,11 +236,12 @@ export default function SalariesPage() {
 
         const deductionNum = parseFloat(absenceDeduction) || 0;
         const shortageNum = parseFloat(shortageDeduction) || 0;
-        const totalDeductions = deductionNum + shortageNum;
+        const lateNum = parseFloat(lateDeduction) || 0;
+        const totalDeductions = deductionNum + shortageNum + lateNum;
 
         // Check Admin approval requirement
         if (totalDeductions > 0 && !isCurrentUserAdmin && !verifiedAdminName) {
-            setError('تنبيه: تطبيق أو تحديد خصومات المرتبات (الغياب أو العجز) يتطلب إذن واعتماد المشرف أو المدير (Admin).');
+            setError('تنبيه: تطبيق أو تحديد خصومات المرتبات (الغياب أو العجز أو التأخير) يتطلب إذن واعتماد المشرف أو المدير (Admin).');
             setShowAdminAuthBox(true);
             return;
         }
@@ -249,6 +259,8 @@ export default function SalariesPage() {
                 absence_deduction: deductionNum,
                 shortage_deduction: shortageNum,
                 shortage_reason: shortageReason || (shortageNum > 0 ? `خصم عجز مالي بالخزينة/الوردية` : undefined),
+                late_deduction: lateNum,
+                late_minutes: lateMinutes,
                 bonus_amount: parseFloat(bonusAmount) || 0,
                 deduction_reason: deductionReason || (deductionNum > 0 ? `خصم غياب ${absenceDays} أيام` : undefined),
                 absence_dates_detail: absenceDatesDetail || undefined,
@@ -268,6 +280,9 @@ export default function SalariesPage() {
             setAbsenceDeduction('0');
             setShortageDeduction('0');
             setShortageReason('');
+            setLateDeduction('0');
+            setLateMinutes(0);
+            setLateReason('');
             setBonusAmount('0');
             setNetAmount('0');
             setDeductionReason('');
@@ -450,6 +465,7 @@ export default function SalariesPage() {
                                         <th className="px-4 py-4">عن شهر</th>
                                         <th className="px-4 py-4">الأساسي</th>
                                         <th className="px-4 py-4">خصم الغياب</th>
+                                        <th className="px-4 py-4">خصم التأخير</th>
                                         <th className="px-4 py-4">خصم العجز</th>
                                         <th className="px-4 py-4">إذن الاعتماد</th>
                                         <th className="px-4 py-4">الصافي المصروف</th>
@@ -462,7 +478,8 @@ export default function SalariesPage() {
                                         const emp = employees.find(e => e.id === h.employee_id);
                                         const hasAbsenceDeduction = Number(h.absence_deduction || 0) > 0;
                                         const hasShortageDeduction = Number(h.shortage_deduction || 0) > 0;
-                                        const hasAnyDeduction = hasAbsenceDeduction || hasShortageDeduction;
+                                        const hasLateDeduction = Number(h.late_deduction || 0) > 0;
+                                        const hasAnyDeduction = hasAbsenceDeduction || hasShortageDeduction || hasLateDeduction;
                                         return (
                                             <tr key={h.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors">
                                                 <td className="px-5 py-4">
@@ -491,6 +508,22 @@ export default function SalariesPage() {
                                                         </div>
                                                     ) : (
                                                         <span className="text-[11px] font-bold text-gray-400">بدون خصم</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    {hasLateDeduction ? (
+                                                        <div className="text-xs">
+                                                            <span className="font-bold text-rose-500 font-mono">
+                                                                -{Number(h.late_deduction).toLocaleString('ar-LY')} د.ل
+                                                            </span>
+                                                            {Number(h.late_minutes || 0) > 0 && (
+                                                                <span className="block text-[10px] text-gray-400 font-bold">
+                                                                    ({h.late_minutes} دقيقة)
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[11px] font-bold text-gray-400">لا يوجد تأخير</span>
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-4">
@@ -545,7 +578,7 @@ export default function SalariesPage() {
                                         );
                                     }) : (
                                         <tr>
-                                            <td colSpan={8} className="px-6 py-12 text-center text-gray-300 font-bold italic">
+                                            <td colSpan={9} className="px-6 py-12 text-center text-gray-300 font-bold italic">
                                                 لا يوجد سجل مدفوعات مسبقة
                                             </td>
                                         </tr>
@@ -757,7 +790,7 @@ export default function SalariesPage() {
                         </div>
 
                         {/* Deductions & Bonus Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                             <div>
                                 <div className="flex items-center justify-between mb-1">
                                     <label className="text-[10px] font-black text-rose-600 uppercase tracking-wider flex items-center gap-1">
@@ -772,9 +805,30 @@ export default function SalariesPage() {
                                     onChange={(e) => {
                                         const val = parseFloat(e.target.value) || 0;
                                         setAbsenceDeduction(e.target.value);
-                                        updateCalculations(parseFloat(basicSalary) || 0, absenceDays, val, parseFloat(bonusAmount) || 0, true, parseFloat(shortageDeduction) || 0);
+                                        updateCalculations(parseFloat(basicSalary) || 0, absenceDays, val, parseFloat(bonusAmount) || 0, true, parseFloat(shortageDeduction) || 0, parseFloat(lateDeduction) || 0);
                                     }}
                                     className="w-full h-11 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-xl px-3 font-mono font-black text-sm text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20"
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className="text-[10px] font-black text-rose-500 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        خصم التأخير (د.ل)
+                                    </label>
+                                </div>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={lateDeduction}
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setLateDeduction(e.target.value);
+                                        updateCalculations(parseFloat(basicSalary) || 0, absenceDays, parseFloat(absenceDeduction) || 0, parseFloat(bonusAmount) || 0, true, parseFloat(shortageDeduction) || 0, val);
+                                    }}
+                                    placeholder="0.00"
+                                    className="w-full h-11 bg-rose-50/40 dark:bg-rose-950/20 border border-rose-300 dark:border-rose-900/40 rounded-xl px-3 font-mono font-black text-sm text-rose-700 dark:text-rose-300 outline-none focus:ring-2 focus:ring-rose-500/20"
                                 />
                             </div>
 
@@ -792,7 +846,7 @@ export default function SalariesPage() {
                                     onChange={(e) => {
                                         const val = parseFloat(e.target.value) || 0;
                                         setShortageDeduction(e.target.value);
-                                        updateCalculations(parseFloat(basicSalary) || 0, absenceDays, parseFloat(absenceDeduction) || 0, parseFloat(bonusAmount) || 0, true, val);
+                                        updateCalculations(parseFloat(basicSalary) || 0, absenceDays, parseFloat(absenceDeduction) || 0, parseFloat(bonusAmount) || 0, true, val, parseFloat(lateDeduction) || 0);
                                     }}
                                     placeholder="0.00"
                                     className="w-full h-11 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-900/40 rounded-xl px-3 font-mono font-black text-sm text-amber-700 dark:text-amber-300 outline-none focus:ring-2 focus:ring-amber-500/20"
@@ -810,7 +864,7 @@ export default function SalariesPage() {
                                     onChange={(e) => {
                                         const bonus = parseFloat(e.target.value) || 0;
                                         setBonusAmount(e.target.value);
-                                        updateCalculations(parseFloat(basicSalary) || 0, absenceDays, parseFloat(absenceDeduction) || 0, bonus, true, parseFloat(shortageDeduction) || 0);
+                                        updateCalculations(parseFloat(basicSalary) || 0, absenceDays, parseFloat(absenceDeduction) || 0, bonus, true, parseFloat(shortageDeduction) || 0, parseFloat(lateDeduction) || 0);
                                     }}
                                     className="w-full h-11 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 font-mono font-black text-sm outline-none focus:ring-2 focus:ring-emerald-600/20"
                                     placeholder="0.00"
@@ -819,7 +873,7 @@ export default function SalariesPage() {
                         </div>
 
                         {/* Deductions Reasons Row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider block mb-1">
                                     سبب / مبرر خصم الغياب
@@ -828,8 +882,21 @@ export default function SalariesPage() {
                                     type="text"
                                     value={deductionReason}
                                     onChange={(e) => setDeductionReason(e.target.value)}
-                                    placeholder="مثال: غياب يومي الأحد والثلاثاء بدون إذن مسبق"
+                                    placeholder="مثال: غياب يومي الأحد والثلاثاء"
                                     className="w-full h-10 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-600/20"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider block mb-1">
+                                    بيان خصم التأخير عن الدوام
+                                </label>
+                                <input
+                                    type="text"
+                                    value={lateReason}
+                                    onChange={(e) => setLateReason(e.target.value)}
+                                    placeholder="مثال: تأخير عن موعد الحضور"
+                                    className="w-full h-10 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 text-xs font-bold outline-none focus:ring-2 focus:ring-rose-600/20"
                                 />
                             </div>
 
@@ -848,7 +915,7 @@ export default function SalariesPage() {
                         </div>
 
                         {/* Admin Permission Status Section */}
-                        {(parseFloat(absenceDeduction) > 0 || parseFloat(shortageDeduction) > 0) && (
+                        {(parseFloat(absenceDeduction) > 0 || parseFloat(shortageDeduction) > 0 || parseFloat(lateDeduction) > 0) && (
                             <div className="p-3.5 rounded-2xl border transition-all">
                                 {isCurrentUserAdmin ? (
                                     <div className="flex items-center gap-2.5 text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl">
@@ -946,7 +1013,7 @@ export default function SalariesPage() {
                             <div>
                                 <span className="text-xs font-black text-gray-500 block">صافي المرتب المستحق للصرف</span>
                                 <span className="text-[11px] font-bold text-gray-400">
-                                    الأساسي ({basicSalary}) - الغياب ({absenceDeduction}) {parseFloat(shortageDeduction || '0') > 0 ? `- العجز (${shortageDeduction})` : ''} + المكافأة ({bonusAmount})
+                                    الأساسي ({basicSalary}) - الغياب ({absenceDeduction}) {parseFloat(lateDeduction || '0') > 0 ? `- التأخير (${lateDeduction})` : ''} {parseFloat(shortageDeduction || '0') > 0 ? `- العجز (${shortageDeduction})` : ''} + المكافأة ({bonusAmount})
                                 </span>
                             </div>
                             <div className="text-left font-mono">
@@ -1063,6 +1130,15 @@ export default function SalariesPage() {
                                         <span>خصم الغياب ({selectedSalaryForSlip.absence_days || 0} يوم):</span>
                                         <span className="font-mono">
                                             -{Number(selectedSalaryForSlip.absence_deduction).toLocaleString('ar-LY')} د.ل
+                                        </span>
+                                    </div>
+                                )}
+
+                                {Number(selectedSalaryForSlip.late_deduction || 0) > 0 && (
+                                    <div className="flex justify-between text-rose-500 font-bold">
+                                        <span>خصم التأخير عن الدوام ({selectedSalaryForSlip.late_minutes || 0} دقيقة):</span>
+                                        <span className="font-mono">
+                                            -{Number(selectedSalaryForSlip.late_deduction).toLocaleString('ar-LY')} د.ل
                                         </span>
                                     </div>
                                 )}

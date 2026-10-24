@@ -132,6 +132,7 @@ class EmployeeAttendanceSummaryOut(Schema):
     is_late: bool = False
     late_minutes: int = 0
     late_deduction_amount: float = 0.0
+    absence_deduction_amount: float = 0.0
     late_status_display: Optional[str] = None
 
 class OverallAttendanceOverviewOut(Schema):
@@ -176,6 +177,13 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
         logs_for_emp = emp_logs_map.get(emp.id, [])
         if not logs_for_emp:
             absent_count += 1
+            absence_ded_cfg = float(getattr(emp, 'absence_deduction_amount', 0.0) or 0.0)
+            if absence_ded_cfg <= 0:
+                b_sal = float(getattr(emp, 'basic_salary', 0.0) or 0.0)
+                absence_ded_cfg = round(b_sal / 30.0, 2) if b_sal > 0 else 0.0
+            
+            absence_status_note = f"غياب كامل (خصم غياب: {absence_ded_cfg} د.ل)" if absence_ded_cfg > 0 else "غياب كامل"
+
             summaries.append({
                 "employee_id": emp.id,
                 "employee_name": emp.name,
@@ -194,7 +202,8 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
                 "is_late": False,
                 "late_minutes": 0,
                 "late_deduction_amount": 0.0,
-                "late_status_display": "غياب كامل"
+                "absence_deduction_amount": absence_ded_cfg,
+                "late_status_display": absence_status_note
             })
             continue
 
@@ -278,6 +287,7 @@ def get_attendance_overview(request, target_date: Optional[str] = None):
             "is_late": is_late,
             "late_minutes": late_minutes,
             "late_deduction_amount": late_ded_applied,
+            "absence_deduction_amount": 0.0,
             "late_status_display": late_status_disp
         })
 

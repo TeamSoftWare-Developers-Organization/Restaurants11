@@ -27,7 +27,8 @@ import {
     Sparkles,
     Smartphone,
     Network,
-    Cable
+    Cable,
+    Clock
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -61,7 +62,11 @@ export default function EmployeesPage() {
         phone_number: '',
         basic_salary: 0,
         username: '',
-        password: ''
+        password: '',
+        work_start_time: '09:00',
+        work_end_time: '17:00',
+        late_grace_period_minutes: 15,
+        late_deduction_amount: 0
     });
 
     // Permission Edit Modal
@@ -113,7 +118,11 @@ export default function EmployeesPage() {
                 phone_number: cleanPhone,
                 basic_salary: item.basic_salary || 0,
                 username: item.username,
-                password: '' // Don't show password
+                password: '', // Don't show password
+                work_start_time: item.work_start_time || '09:00',
+                work_end_time: item.work_end_time || '17:00',
+                late_grace_period_minutes: item.late_grace_period_minutes !== undefined ? item.late_grace_period_minutes : 15,
+                late_deduction_amount: item.late_deduction_amount || 0
             });
         } else {
             setEditingItem(null);
@@ -124,7 +133,11 @@ export default function EmployeesPage() {
                 phone_number: '',
                 basic_salary: 0,
                 username: '',
-                password: ''
+                password: '',
+                work_start_time: '09:00',
+                work_end_time: '17:00',
+                late_grace_period_minutes: 15,
+                late_deduction_amount: 0
             });
         }
         setIsModalOpen(true);
@@ -433,6 +446,7 @@ export default function EmployeesPage() {
                                     <tr className="bg-gray-50/40 dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-800/40">
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">المستخدم</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الدور الوظيفي</th>
+                                        <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">مواعيد الدوام (البصمة)</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الهاتف</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">الصلاحيات الممنوحة</th>
                                         <th className="px-6 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest text-center">بصمة الإصبع</th>
@@ -441,9 +455,9 @@ export default function EmployeesPage() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50 dark:divide-gray-800/30">
                                     {isLoading ? (
-                                        <tr><td colSpan={6} className="p-8 text-center text-gray-400 font-bold italic">جاري التحميل...</td></tr>
+                                        <tr><td colSpan={7} className="p-8 text-center text-gray-400 font-bold italic">جاري التحميل...</td></tr>
                                     ) : filteredEmployees.length === 0 ? (
-                                        <tr><td colSpan={6} className="p-8 text-center text-gray-400 font-bold">لا يوجد مستخدمون مطابقون.</td></tr>
+                                        <tr><td colSpan={7} className="p-8 text-center text-gray-400 font-bold">لا يوجد مستخدمون مطابقون.</td></tr>
                                     ) : filteredEmployees.map((employee) => {
                                         const grantedCount = Object.values(employee.permissions || {}).filter(Boolean).length;
 
@@ -461,6 +475,15 @@ export default function EmployeesPage() {
                                                     <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black border ${getRoleBadgeStyle(employee.role)}`}>
                                                         {getRoleName(employee.role)}
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-xs font-bold">
+                                                    <div className="flex items-center gap-1.5 text-gray-800 dark:text-gray-200 font-mono">
+                                                        <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                                        <span>{employee.work_start_time || '09:00'} - {employee.work_end_time || '17:00'}</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold mt-0.5">
+                                                        سماح {employee.late_grace_period_minutes ?? 15}د · خصم {Number(employee.late_deduction_amount || 0).toLocaleString('ar-LY')} د.ل
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 font-black text-gray-700 dark:text-gray-300 tabular-nums text-xs">
                                                     {employee.phone_number || '---'}
@@ -945,6 +968,61 @@ export default function EmployeesPage() {
                             placeholder="مثال: 1800.00"
                         />
                     </div>
+                    {/* سياسة مواعيد العمل والخصم المعتمدة من Admin */}
+                    <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 rounded-xl space-y-3">
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-amber-600" />
+                            <span className="text-xs font-black text-amber-900 dark:text-amber-200">
+                                سياسة مواعيد الدوام للبصمة وخصم التأخير (إدارة Admin)
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-gray-500 block">موعد الحضور المجدول</label>
+                                <input
+                                    type="time"
+                                    value={formData.work_start_time || '09:00'}
+                                    onChange={(e) => setFormData({ ...formData, work_start_time: e.target.value })}
+                                    className="w-full h-9 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-amber-500/20"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-gray-500 block">موعد الانصراف المجدول</label>
+                                <input
+                                    type="time"
+                                    value={formData.work_end_time || '17:00'}
+                                    onChange={(e) => setFormData({ ...formData, work_end_time: e.target.value })}
+                                    className="w-full h-9 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-amber-500/20"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-gray-500 block">فترة السماح بالتأخير (دقائق)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={formData.late_grace_period_minutes !== undefined ? formData.late_grace_period_minutes : 15}
+                                    onChange={(e) => setFormData({ ...formData, late_grace_period_minutes: parseInt(e.target.value) || 0 })}
+                                    className="w-full h-9 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-amber-500/20"
+                                    placeholder="15 دقيقة"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-gray-500 block">قيمة الخصم عند التأخير (د.ل)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={formData.late_deduction_amount !== undefined ? formData.late_deduction_amount : 0}
+                                    onChange={(e) => setFormData({ ...formData, late_deduction_amount: parseFloat(e.target.value) || 0 })}
+                                    className="w-full h-9 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 text-xs font-bold font-mono outline-none focus:ring-2 focus:ring-amber-500/20"
+                                    placeholder="0.00 د.ل"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-1">كلمة المرور {editingItem && '(اختياري لتغييرها)'}</label>
                         <input

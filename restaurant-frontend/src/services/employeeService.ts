@@ -30,6 +30,10 @@ export interface Employee {
     username: string;
     permissions?: UserPermissions;
     has_fingerprint?: boolean;
+    work_start_time?: string;
+    work_end_time?: string;
+    late_grace_period_minutes?: number;
+    late_deduction_amount?: number;
 }
 
 export const AVAILABLE_PERMISSIONS = [

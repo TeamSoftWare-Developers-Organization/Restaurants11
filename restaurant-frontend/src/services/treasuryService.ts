@@ -61,6 +61,8 @@ export interface SalaryPayment {
     absence_days?: number;
     daily_rate?: number;
     absence_deduction?: number;
+    late_deduction?: number;
+    late_minutes?: number;
     shortage_deduction?: number;
     shortage_reason?: string;
     bonus_amount?: number;
@@ -81,6 +83,8 @@ export interface SalaryPaymentPayload {
     absence_days?: number;
     daily_rate?: number;
     absence_deduction?: number;
+    late_deduction?: number;
+    late_minutes?: number;
     shortage_deduction?: number;
     shortage_reason?: string;
     bonus_amount?: number;
@@ -109,6 +113,10 @@ export interface AbsenceCalculation {
     absence_dates_list?: AbsenceDayItem[];
     total_uncovered_shortage?: number;
     detected_shortages?: ShiftDeficitItem[];
+    total_late_minutes?: number;
+    total_late_days?: number;
+    suggested_late_deduction?: number;
+    late_deduction_rate_per_day?: number;
 }
 
 export interface AdminVerifyResult {

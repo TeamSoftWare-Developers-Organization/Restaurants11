@@ -841,7 +841,9 @@ export default function AttendancePage() {
                                                 <th className="p-3.5 font-black">الموظف</th>
                                                 <th className="p-3.5 font-black">الدور الوظيفي</th>
                                                 <th className="p-3.5 font-black">الحالة العامة</th>
+                                                <th className="p-3.5 font-black">الدوام المجدول</th>
                                                 <th className="p-3.5 font-black">أول حضور</th>
+                                                <th className="p-3.5 font-black">حالة الالتزام / التأخير</th>
                                                 <th className="p-3.5 font-black">آخر انصراف</th>
                                                 <th className="p-3.5 font-black">مدة الدوام المحسوبة</th>
                                                 <th className="p-3.5 font-black text-center print:hidden">إجراء</th>
@@ -850,19 +852,19 @@ export default function AttendancePage() {
                                         <tbody className="divide-y divide-gray-50 dark:divide-gray-800/30 print:divide-gray-300">
                                             {isLoadingOverview ? (
                                                 <tr>
-                                                    <td colSpan={7} className="p-10 text-center text-gray-400 font-bold italic">
+                                                    <td colSpan={9} className="p-10 text-center text-gray-400 font-bold italic">
                                                         جاري تحميل مجمل حالات الحضور...
                                                     </td>
                                                 </tr>
                                             ) : !overviewData?.employees_summary || overviewData.employees_summary.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={7} className="p-10 text-center text-gray-400 font-bold">
+                                                    <td colSpan={9} className="p-10 text-center text-gray-400 font-bold">
                                                         لا يوجد موظفون مسجلون في النظام.
                                                     </td>
                                                 </tr>
                                             ) : displayedOverviewEmployees.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={7} className="p-10 text-center text-gray-400 font-bold">
+                                                    <td colSpan={9} className="p-10 text-center text-gray-400 font-bold">
                                                         لا توجد نتائج مطابقة لبحثك في كشف هذا اليوم.
                                                     </td>
                                                 </tr>
@@ -906,8 +908,39 @@ export default function AttendancePage() {
                                                                         <span>{emp.status_display}</span>
                                                                     </span>
                                                                 </td>
+                                                                <td className="p-3.5 font-bold text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                                                                    {emp.scheduled_start && emp.scheduled_end ? (
+                                                                        <span>{emp.scheduled_start} - {emp.scheduled_end}</span>
+                                                                    ) : (
+                                                                        <span className="text-gray-400">غير محدد</span>
+                                                                    )}
+                                                                </td>
                                                                 <td className="p-3.5 font-bold text-gray-700 dark:text-gray-300 tabular-nums">
                                                                     {emp.first_check_in || '—'}
+                                                                </td>
+                                                                <td className="p-3.5 font-bold text-xs">
+                                                                    {emp.status === 'ABSENT' ? (
+                                                                        <span className="text-rose-500 font-bold">غائب</span>
+                                                                    ) : emp.is_late ? (
+                                                                        <div className="flex flex-col">
+                                                                            <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-black">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                                                متأخر {emp.late_minutes} دقيقة
+                                                                            </span>
+                                                                            {emp.late_deduction_amount > 0 && (
+                                                                                <span className="text-[10px] text-rose-500/80 font-bold">
+                                                                                    خصم: {Number(emp.late_deduction_amount).toFixed(2)} د.ل
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : emp.first_check_in ? (
+                                                                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                            حضور في الموعد
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-gray-400">—</span>
+                                                                    )}
                                                                 </td>
                                                                 <td className="p-3.5 font-bold text-gray-700 dark:text-gray-300 tabular-nums">
                                                                     {emp.last_check_out || '—'}

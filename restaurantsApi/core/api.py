@@ -35,10 +35,35 @@ class RestaurantSettingsIn(Schema):
     purchase_return_terms: Optional[str] = None
     biometric_device_ip: Optional[str] = "192.168.1.201"
     biometric_device_port: Optional[int] = 4370
+    default_work_start_time: Optional[str] = "09:00"
+    default_work_end_time: Optional[str] = "17:00"
+    default_late_grace_period_minutes: Optional[int] = 15
+    default_late_deduction_amount: Optional[float] = 0.0
+    default_absence_deduction_amount: Optional[float] = 0.0
 
 
 class RestaurantSettingsOut(RestaurantSettingsIn):
     logo: Optional[str] = None
+
+    @staticmethod
+    def resolve_default_work_start_time(obj):
+        if getattr(obj, 'default_work_start_time', None):
+            return obj.default_work_start_time.strftime('%H:%M')
+        return "09:00"
+
+    @staticmethod
+    def resolve_default_work_end_time(obj):
+        if getattr(obj, 'default_work_end_time', None):
+            return obj.default_work_end_time.strftime('%H:%M')
+        return "17:00"
+
+    @staticmethod
+    def resolve_default_late_deduction_amount(obj):
+        return float(getattr(obj, 'default_late_deduction_amount', 0.0) or 0.0)
+
+    @staticmethod
+    def resolve_default_absence_deduction_amount(obj):
+        return float(getattr(obj, 'default_absence_deduction_amount', 0.0) or 0.0)
 
     @staticmethod
     def resolve_logo(obj):

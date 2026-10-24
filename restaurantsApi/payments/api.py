@@ -533,6 +533,39 @@ def calculate_employee_absence(request, employee_id: int, month: str):
                     "notes": f"عجز وردية {s.start_time.strftime('%Y-%m-%d')}"
                 })
 
+    # فحص وحساب أي تأخير مسجل على الموظف في بصمات الحضور خلال الشهر
+    total_late_minutes = 0
+    total_late_days = 0
+    suggested_late_deduction = 0.0
+    late_ded_cfg = float(getattr(employee, 'late_deduction_amount', 0.0) or 0.0)
+
+    if getattr(employee, 'work_start_time', None):
+        sched_time = employee.work_start_time
+        grace_mins = getattr(employee, 'late_grace_period_minutes', 15) or 0
+        emp_checkins = AttendanceLog.objects.filter(
+            employee=employee,
+            timestamp__year=year,
+            timestamp__month=month_num,
+            punch_type='CHECK_IN'
+        ).order_by('timestamp')
+
+        # فحص أول بصمة حضور لكل يوم
+        seen_days = set()
+        for cin in emp_checkins:
+            cin_local = timezone.localtime(cin.timestamp)
+            day_key = cin_local.date()
+            if day_key in seen_days:
+                continue
+            seen_days.add(day_key)
+
+            sched_dt = timezone.make_aware(timezone.datetime.combine(day_key, sched_time))
+            diff_sec = (cin_local - sched_dt).total_seconds()
+            if diff_sec > (grace_mins * 60):
+                late_mins = int(diff_sec // 60)
+                total_late_minutes += late_mins
+                total_late_days += 1
+                suggested_late_deduction += late_ded_cfg
+
     today_str = today.isoformat()
     current_day_name = ARABIC_DAYS.get(today.weekday(), '')
 
@@ -552,7 +585,11 @@ def calculate_employee_absence(request, employee_id: int, month: str):
         "suggested_net": suggested_net,
         "absence_dates_list": absence_dates_list,
         "total_uncovered_shortage": round(total_uncovered_shortage, 2),
-        "detected_shortages": detected_shortages
+        "detected_shortages": detected_shortages,
+        "total_late_minutes": total_late_minutes,
+        "total_late_days": total_late_days,
+        "suggested_late_deduction": round(suggested_late_deduction, 2),
+        "late_deduction_rate_per_day": late_ded_cfg
     }
 
 @payments_router.post("/salaries/verify-admin", response={200: VerifyAdminOut, 400: VerifyAdminOut, 403: VerifyAdminOut}, auth=JWTAuth())
@@ -589,11 +626,12 @@ def record_salary_payment(request, data: SalaryPaymentIn):
     employee = get_object_or_404(Employee, id=data.employee_id)
     
     absence_deduction = float(data.absence_deduction or 0.0)
+    late_deduction = float(data.late_deduction or 0.0)
     shortage_deduction = float(data.shortage_deduction or 0.0)
-    total_deductions = absence_deduction + shortage_deduction
+    total_deductions = absence_deduction + late_deduction + shortage_deduction
     approved_by_admin = None
 
-    # التحقق من إذن واعتماد الأدمن إذا وجد خصم غياب أو خصم عجز
+    # التحقق من إذن واعتماد الأدمن إذا وجد خصم غياب، تأخير، أو خصم عجز
     if total_deductions > 0:
         if is_user_admin_or_manager(request.auth):
             approved_by_admin = request.auth
@@ -606,7 +644,7 @@ def record_salary_payment(request, data: SalaryPaymentIn):
             approved_by_admin = admin_user
         else:
             return 403, {
-                "message": "تحديد أو تطبيق خصومات المرتبات (الغياب أو العجز) يتطلب إذن واعتماد المشرف أو المدير (Admin)."
+                "message": "تحديد أو تطبيق خصومات المرتبات (الغياب أو التأخير أو العجز) يتطلب إذن واعتماد المشرف أو المدير (Admin)."
             }
 
     # إذا كان للموظف مرتب أساسي ولم يكن محفوظاً في البروفايل، نحدثه
@@ -622,6 +660,8 @@ def record_salary_payment(request, data: SalaryPaymentIn):
         absence_days=data.absence_days or 0,
         daily_rate=data.daily_rate or 0.0,
         absence_deduction=absence_deduction,
+        late_deduction=late_deduction,
+        late_minutes=data.late_minutes or 0,
         shortage_deduction=shortage_deduction,
         shortage_reason=data.shortage_reason,
         bonus_amount=data.bonus_amount or 0.0,
@@ -636,6 +676,8 @@ def record_salary_payment(request, data: SalaryPaymentIn):
     deductions_list = []
     if absence_deduction > 0:
         deductions_list.append(f"خصم غياب: {absence_deduction} د.ل")
+    if late_deduction > 0:
+        deductions_list.append(f"خصم تأخير: {late_deduction} د.ل")
     if shortage_deduction > 0:
         deductions_list.append(f"خصم عجز: {shortage_deduction} د.ل")
     deduction_note = f" ({' | '.join(deductions_list)})" if deductions_list else ""

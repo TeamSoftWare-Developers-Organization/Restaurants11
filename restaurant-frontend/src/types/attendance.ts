@@ -11,6 +11,12 @@ export interface EmployeeAttendanceSummary {
     work_duration_minutes: number;
     punch_count: number;
     latest_punch_time?: string | null;
+    scheduled_start?: string | null;
+    scheduled_end?: string | null;
+    is_late?: boolean;
+    late_minutes?: number;
+    late_deduction_amount?: number;
+    late_status_display?: string | null;
 }
 
 export interface OverallAttendanceOverview {

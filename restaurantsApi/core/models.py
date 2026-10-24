@@ -42,6 +42,13 @@ class RestaurantSettings(models.Model):
     biometric_device_ip = models.CharField(max_length=100, default="192.168.1.201", verbose_name="عنوان IP لجهاز البصمة الشبكي")
     biometric_device_port = models.IntegerField(default=4370, verbose_name="منفذ جهاز البصمة الشبكي")
 
+    # سياسة مواعيد العمل والخصومات المعتمدة من الأدمن
+    default_work_start_time = models.TimeField(null=True, blank=True, default='09:00', verbose_name="موعد الحضور الافتراضي المجدول")
+    default_work_end_time = models.TimeField(null=True, blank=True, default='17:00', verbose_name="موعد الانصراف الافتراضي المجدول")
+    default_late_grace_period_minutes = models.IntegerField(default=15, verbose_name="فترة السماح الافتراضية بالتأخير (بالدقائق)")
+    default_late_deduction_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="قيمة خصم التأخير الافتراضية المحددة من Admin (د.ل)")
+    default_absence_deduction_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="قيمة خصم الغياب الافتراضية لليوم المحددة من Admin (د.ل)")
+
 
     def save(self, *args, **kwargs):
         if not self.pk and RestaurantSettings.objects.exists():
