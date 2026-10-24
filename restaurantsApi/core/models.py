@@ -170,8 +170,14 @@ class SystemLicense(models.Model):
     def elapsed_seconds(self) -> int:
         """
         الوقت المنقضي بالثواني منذ بدء التثبيت أو إعادة تعيين الفترة التجريبية
+        يتم حسابه بالوقت الحقيقي المطلق (Wall-clock Time) بحيث تستمر المدة
+        بالنقصان حتى ولو كان الجهاز مغلقاً أو مطفأً أو في وضع السكون.
         """
-        delta = timezone.now() - self.installed_at
+        now = timezone.now()
+        # حماية ضد التلاعب بساعة النظام: إذا قام المستخدم بإرجاع ساعة الجهاز قبل تاريخ التثبيت
+        if now < self.installed_at:
+            return self.trial_duration_seconds + 1
+        delta = now - self.installed_at
         return max(0, int(delta.total_seconds()))
 
     @property

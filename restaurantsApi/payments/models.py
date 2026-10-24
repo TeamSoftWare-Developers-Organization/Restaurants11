@@ -217,6 +217,8 @@ class SalaryPayment(models.Model):
     absence_days = models.IntegerField(default=0, verbose_name="أيام الغياب")
     daily_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="أجر اليوم")
     absence_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="قيمة خصم الغياب")
+    late_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="قيمة خصم التأخير عن الدوام")
+    late_minutes = models.IntegerField(default=0, verbose_name="إجمالي دقائق التأخير")
     bonus_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="مكافآت وإضافي")
     deduction_reason = models.CharField(max_length=255, blank=True, null=True, verbose_name="سبب / إذن الخصم")
     absence_dates_detail = models.TextField(blank=True, null=True, verbose_name="تفاصيل وتواريخ أيام الغياب")

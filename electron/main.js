@@ -169,6 +169,7 @@ function createWindow() {
         icon: iconPath,
         backgroundColor: '#070b14',
         show: false,
+        frame: false,
         autoHideMenuBar: true,
         menuBarVisible: false,
         webPreferences: {

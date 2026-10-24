@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
 };
 
-import { ThemeProvider, GlobalModals, ActivationGuard } from "@/components";
+import { ThemeProvider, GlobalModals, ActivationGuard, ElectronWindowControls } from "@/components";
 import { SettingsInitializer } from "@/components/SettingsInitializer";
 
 export default function RootLayout({
@@ -30,6 +30,7 @@ export default function RootLayout({
       <body className={`${cairo.variable} antialiased font-cairo`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <SettingsInitializer />
+          <ElectronWindowControls />
           <ActivationGuard>
             {children}
           </ActivationGuard>

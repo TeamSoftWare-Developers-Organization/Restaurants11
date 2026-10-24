@@ -24,6 +24,12 @@ class Employee(models.Model):
     # مصفوفة الميزات المستخرجة لبصمة الإصبع بواسطة الذكاء الاصطناعي (TensorFlow)
     fingerprint_vector = models.JSONField(null=True, blank=True, help_text="مصفوفة ميزات بصمة الإصبع عبر الذكاء الاصطناعي")
 
+    # مواعيد العمل المجدولة للبصمة وسياسة التأخير المعتمدة من Admin
+    work_start_time = models.TimeField(null=True, blank=True, default='09:00', verbose_name="موعد الحضور المجدول")
+    work_end_time = models.TimeField(null=True, blank=True, default='17:00', verbose_name="موعد الانصراف المجدول")
+    late_grace_period_minutes = models.IntegerField(default=15, verbose_name="فترة السماح بالتأخير (بالدقائق)")
+    late_deduction_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="قيمة خصم التأخير المحددة من Admin (د.ل)")
+
     @classmethod
     def get_default_permissions_for_role(cls, role: str) -> dict:
         """إرجاع الصلاحيات الافتراضية لكل دور وظيفي"""

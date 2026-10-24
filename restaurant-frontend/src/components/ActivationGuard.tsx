@@ -27,30 +27,58 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
     const [isBannerDismissed, setIsBannerDismissed] = useState(false);
     const [secondsLeft, setSecondsLeft] = useState<number>(0);
 
-    // تحديث الثواني عند جلب حالة الترخيص
-    useEffect(() => {
-        if (license && license.is_trial_active && license.remaining_trial_seconds !== undefined) {
-            setSecondsLeft(license.remaining_trial_seconds);
+    // حساب التوقيت المطلق لانتهاء التجربة (ساعة كاملة من وقت التثبيت)
+    const expirationTimestamp = React.useMemo(() => {
+        if (!license?.installed_at) return null;
+        const installedMs = new Date(license.installed_at).getTime();
+        const durationMs = (license.trial_duration_seconds || 3600) * 1000;
+        return installedMs + durationMs;
+    }, [license?.installed_at, license?.trial_duration_seconds]);
+
+    // دالة لمزامنة الثواني المتبقية مع التوقيت الفعلي للجهاز (حتى لو كان الجهاز مغلقاً أو في وضع السكون)
+    const syncRemainingTime = React.useCallback(() => {
+        if (!license || !license.is_trial_active || !expirationTimestamp) return;
+
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((expirationTimestamp - now) / 1000));
+        setSecondsLeft(remaining);
+
+        if (remaining <= 0) {
+            fetchStatus();
         }
-    }, [license]);
+    }, [license, expirationTimestamp]);
 
-    // عداد تنازلي حي بالثواني للفترة التجريبية (ساعة واحدة)
+    // مزامنة فورية عند جلب بيانات الترخيص
     useEffect(() => {
-        if (!license || !license.is_trial_active || secondsLeft <= 0) return;
+        syncRemainingTime();
+    }, [syncRemainingTime]);
 
+    // عداد تنازلي حي يتزامن لحظياً وكل ثانية ومع عودة الجهاز من الإغلاق أو وضع السكون
+    useEffect(() => {
+        if (!license || !license.is_trial_active || !expirationTimestamp) return;
+
+        syncRemainingTime();
+
+        // 1. نبضة كل ثانية لحساب الوقت الحقيقي المنقضي
         const interval = setInterval(() => {
-            setSecondsLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(interval);
-                    fetchStatus();
-                    return 0;
-                }
-                return prev - 1;
-            });
+            syncRemainingTime();
         }, 1000);
 
-        return () => clearInterval(interval);
-    }, [license, secondsLeft]);
+        // 2. تحديث فوري عند استئناف الجهاز أو فتح الشاشة أو عودة التركيز للنافذة بعد إغلاق الجهاز
+        const handleWakeOrFocus = () => {
+            syncRemainingTime();
+            fetchStatus();
+        };
+
+        document.addEventListener('visibilitychange', handleWakeOrFocus);
+        window.addEventListener('focus', handleWakeOrFocus);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleWakeOrFocus);
+            window.removeEventListener('focus', handleWakeOrFocus);
+        };
+    }, [license, expirationTimestamp, syncRemainingTime]);
 
     const formatCountdown = (secs: number) => {
         if (secs <= 0) return 'انتهت مدة التجربة';
