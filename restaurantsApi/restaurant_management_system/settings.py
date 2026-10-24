@@ -232,6 +232,12 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.vercel.app',
 ]
 
+# السماح للاتصال من أي منفذ محلي يتم اختياره تلقائياً
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
+]
+
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_ALL_ORIGINS = True
