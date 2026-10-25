@@ -2,15 +2,13 @@ Set WshShell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 strPath = fso.GetParentFolderName(WScript.ScriptFullName)
 
-' تشغيل سكريبت run_system.pyw بواسطة pythonw دون فتح أي نافذة CMD
-pythonwCmd = "pythonw """ & strPath & "\run_system.pyw"""
-
-' فحص بايثون البيئة الافتراضية أولاً لضمان وجود pythonw
-venvPyw = strPath & "\restaurantsApi\venv\Scripts\pythonw.exe"
-If fso.FileExists(venvPyw) Then
-    pythonwCmd = """" & venvPyw & """ """ & strPath & "\run_system.pyw"""
+' فحص مسار pythonw.exe في البيئة الافتراضية venv أولاً أو مسار النظام
+pythonwExe = "pythonw"
+If fso.FileExists(strPath & "\restaurantsApi\venv\Scripts\pythonw.exe") Then
+    pythonwExe = """" & strPath & "\restaurantsApi\venv\Scripts\pythonw.exe"""
 End If
 
+WshShell.CurrentDirectory = strPath
 ' المعامل 0 يمنع فتح أي نافذة CMD أو Terminal نهائياً
-WshShell.Run pythonwCmd, 0, False
+WshShell.Run pythonwExe & " """ & strPath & "\run_system.pyw""", 0, False
 Set WshShell = Nothing

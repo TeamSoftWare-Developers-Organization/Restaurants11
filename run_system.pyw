@@ -37,16 +37,12 @@ def main():
     env["NEXT_PUBLIC_API_URL"] = f"http://127.0.0.1:{backend_port}/api"
 
     # 2. تشغيل الواجهة الخلفية (Django) عبر pythonw الصامت تماماً
+    python_exe = sys.executable
     venv_pythonw = BACKEND_DIR / "venv" / "Scripts" / "pythonw.exe"
-    venv_python = BACKEND_DIR / "venv" / "Scripts" / "python.exe"
     if venv_pythonw.exists():
         python_exe = str(venv_pythonw)
-    elif venv_python.exists():
-        python_exe = str(venv_python)
-    else:
-        python_exe = sys.executable
-        if "python.exe" in python_exe.lower():
-            python_exe = python_exe.lower().replace("python.exe", "pythonw.exe")
+    elif "python.exe" in python_exe.lower():
+        python_exe = python_exe.lower().replace("python.exe", "pythonw.exe")
 
     backend_cmd = [python_exe, "manage.py", "runserver", f"127.0.0.1:{backend_port}", "--noreload"]
     subprocess.Popen(
@@ -62,12 +58,9 @@ def main():
     time.sleep(2)
 
     # 3. تشغيل الواجهة الأمامية (Bun أو NPM) في الخلفية بدون نوافذ
-    bundled_bun = ROOT_DIR / "bin" / "bun.exe"
-    user_bun = Path(os.environ.get("USERPROFILE", "")) / ".bun" / "bin" / "bun.exe"
-    if bundled_bun.exists():
-        runner = str(bundled_bun)
-    elif user_bun.exists():
-        runner = str(user_bun)
+    bin_bun = ROOT_DIR / "bin" / "bun.exe"
+    if bin_bun.exists():
+        runner = str(bin_bun)
     elif subprocess.run(["where" if os.name == "nt" else "which", "bun"], capture_output=True).returncode == 0:
         runner = "bun"
     else:
