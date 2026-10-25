@@ -17,19 +17,21 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: تشغيل معالج التثبيت التفاعلي الرسومي لاختيار المكونات
+:: 1. تشغيل معالج التثبيت التفاعلي الرسومي (مع خيار التثبيت النظيف وتصفير الإعدادات)
 python setup_wizard.py
 
 if %errorlevel% equ 0 (
     exit /b 0
 )
 
-:: في حال تشغيل بيئة طرفية خالية من الواجهات الرسومية، يتم التثبيت التلقائي كبديل
+:: 2. وضع التثبيت النظيف السريع للطرفية في حال عدم توفر بيئة رسومية
 echo.
-echo [*] جاري تشغيل وضع التثبيت السريع التلقائي...
+echo [*] جاري تشغيل وضع التثبيت النظيف التلقائي وتصفير الإعدادات القديمة...
 echo.
 
-:: 1. Bun
+python fresh_reset.py
+
+:: Bun
 if not exist "%SCRIPT_DIR%bin" mkdir "%SCRIPT_DIR%bin"
 if not exist "%SCRIPT_DIR%bin\bun.exe" (
     if exist "%USERPROFILE%\.bun\bin\bun.exe" (
@@ -38,7 +40,7 @@ if not exist "%SCRIPT_DIR%bin\bun.exe" (
 )
 set "PATH=%SCRIPT_DIR%bin;%USERPROFILE%\.bun\bin;%PATH%"
 
-:: 2. Frontend
+:: Frontend
 cd /d "%SCRIPT_DIR%restaurant-frontend"
 where bun.exe >nul 2>nul
 if %errorlevel% equ 0 (
@@ -47,7 +49,7 @@ if %errorlevel% equ 0 (
     call npm install
 )
 
-:: 3. Backend
+:: Backend
 cd /d "%SCRIPT_DIR%restaurantsApi"
 python -m pip install -r requirements.txt --quiet
 python manage.py migrate --noinput
@@ -55,6 +57,6 @@ python manage.py seed_demo_users
 
 cd /d "%SCRIPT_DIR%"
 echo ===============================================================================
-echo            [V] تم تثبيت وتهيئة النظام وكافة قواعد البيانات بنجاح تام!
+echo            [V] تم تثبيت وتهيئة النظام كنسخة جديدة نظيفة بنجاح تام!
 echo ===============================================================================
 pause

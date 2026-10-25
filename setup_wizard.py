@@ -1,13 +1,14 @@
 """
 RestoERP Setup Wizard - مثبت النظام التفاعلي
 واجهة رسومية تفاعلية حديثة تتيح للمستخدم أو العميل اختيار المكونات والأدوات المراد تثبيتها
-مثل البرامج والتطبيقات الاحترافية (Custom Setup Wizard).
+مع دعم التثبيت النظيف (Clean Install) وتصفير الإعدادات القديمة بالكامل.
 """
 
 import os
 import sys
 import time
 import socket
+import shutil
 import threading
 import subprocess
 from pathlib import Path
@@ -24,8 +25,8 @@ class ModernSetupWizard(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("RestoERP — معالج تثبيت النظام وإعداد المكونات")
-        self.geometry("740x580")
-        self.minsize(700, 520)
+        self.geometry("760x640")
+        self.minsize(720, 560)
         self.configure(bg="#0F172A")  # لون خلفية كحلي داكن عصري
 
         # أيقونة إن وجدت
@@ -37,11 +38,12 @@ class ModernSetupWizard(tk.Tk):
                 pass
 
         # متغيرات الاختيارات التفاعلية للمكونات (Components Selection)
-        self.var_backend = tk.BooleanVar(value=True)       # خادم النظام الأساسي Django
-        self.var_frontend = tk.BooleanVar(value=True)      # واجهة الكاشير ونقاط البيع Next.js
-        self.var_bun = tk.BooleanVar(value=True)           # محرك Bun السريع
-        self.var_postgres = tk.BooleanVar(value=True)      # قاعدة بيانات PostgreSQL
-        self.var_demo_users = tk.BooleanVar(value=True)    # حسابات المستخدمين والبيانات الافتراضية
+        self.var_clean_install = tk.BooleanVar(value=True)  # مسح وتصفير الإعدادات وقواعد البيانات القديمة (Clean Install)
+        self.var_backend = tk.BooleanVar(value=True)        # خادم النظام الأساسي Django
+        self.var_frontend = tk.BooleanVar(value=True)       # واجهة الكاشير ونقاط البيع Next.js
+        self.var_bun = tk.BooleanVar(value=True)            # محرك Bun السريع
+        self.var_postgres = tk.BooleanVar(value=True)       # قاعدة بيانات PostgreSQL
+        self.var_demo_users = tk.BooleanVar(value=True)     # حسابات المستخدمين والبيانات الافتراضية
         self.var_desktop_shortcut = tk.BooleanVar(value=True) # اختصار سطح المكتب
 
         # بناء الواجهة
@@ -64,7 +66,7 @@ class ModernSetupWizard(tk.Tk):
 
         subtitle_lbl = tk.Label(
             header_frame,
-            text="حدد المكونات والأدوات التي ترغب في تثبيتها وتهيئتها على هذا الحاسوب:",
+            text="حدد المكونات والأدوات المطلوبة، مع إمكانية مسح الإعدادات القديمة لبدء نسخة جديدة نظيفة:",
             font=("Segoe UI", 10),
             fg="#94A3B8",
             bg="#1E293B"
@@ -72,10 +74,45 @@ class ModernSetupWizard(tk.Tk):
         subtitle_lbl.pack(anchor="w", pady=(4, 0))
 
     def create_body(self):
-        self.body_frame = tk.Frame(self, bg="#0F172A", padx=25, pady=15)
+        self.body_frame = tk.Frame(self, bg="#0F172A", padx=25, pady=12)
         self.body_frame.pack(fill=tk.BOTH, expand=True)
 
-        # بطاقة اختيار المكونات
+        # 1. قسم التثبيت النظيف (Clean Install Box)
+        clean_box = tk.LabelFrame(
+            self.body_frame,
+            text="  ⚡ خيارات التثبيت النظيف وتصفير الإعدادات السابقة  ",
+            font=("Segoe UI", 9, "bold"),
+            fg="#F59E0B",
+            bg="#1E293B",
+            padx=15,
+            pady=8
+        )
+        clean_box.pack(fill=tk.X, pady=(0, 10))
+
+        cb_clean = tk.Checkbutton(
+            clean_box,
+            text="تثبيت نسخة نظيفة جديدة بالكامل (مسح الإعدادات المؤقتة والبيانات القديمة)",
+            variable=self.var_clean_install,
+            font=("Segoe UI", 9, "bold"),
+            fg="#FDE68A",
+            bg="#1E293B",
+            activebackground="#1E293B",
+            activeforeground="#F59E0B",
+            selectcolor="#0F172A"
+        )
+        cb_clean.pack(anchor="w")
+
+        clean_desc = tk.Label(
+            clean_box,
+            text="يقوم بحذف ملفات .env القديمة والكاش وإعادة تصفير قاعدة البيانات لبدء النظام كنسخة جديدة تماماً.",
+            font=("Segoe UI", 8),
+            fg="#94A3B8",
+            bg="#1E293B",
+            padx=22
+        )
+        clean_desc.pack(anchor="w")
+
+        # 2. بطاقة اختيار المكونات (Components Selection)
         comp_group = tk.LabelFrame(
             self.body_frame,
             text="  حزم وأدوات النظام المتاحة للتثبيت (Custom Components)  ",
@@ -83,7 +120,7 @@ class ModernSetupWizard(tk.Tk):
             fg="#38BDF8",
             bg="#0F172A",
             padx=15,
-            pady=10
+            pady=8
         )
         comp_group.pack(fill=tk.BOTH, expand=True)
 
@@ -127,14 +164,14 @@ class ModernSetupWizard(tk.Tk):
         ]
 
         for var, title, desc, required in components:
-            row = tk.Frame(comp_group, bg="#0F172A", pady=3)
+            row = tk.Frame(comp_group, bg="#0F172A", pady=2)
             row.pack(fill=tk.X, anchor="w")
 
             cb = tk.Checkbutton(
                 row,
                 text=title,
                 variable=var,
-                font=("Segoe UI", 10, "bold"),
+                font=("Segoe UI", 9, "bold"),
                 fg="#F1F5F9",
                 bg="#0F172A",
                 activebackground="#0F172A",
@@ -156,7 +193,7 @@ class ModernSetupWizard(tk.Tk):
             desc_lbl.pack(anchor="w")
 
         # شريط التقدم وسجل السجلات
-        self.progress_frame = tk.Frame(self.body_frame, bg="#0F172A", pady=8)
+        self.progress_frame = tk.Frame(self.body_frame, bg="#0F172A", pady=6)
         self.progress_frame.pack(fill=tk.X)
 
         self.status_lbl = tk.Label(
@@ -207,7 +244,7 @@ class ModernSetupWizard(tk.Tk):
         )
         self.btn_install.pack(side=tk.RIGHT)
 
-    def log(self, message: str, step: int = 0, total_steps: int = 6):
+    def log(self, message: str, step: int = 0, total_steps: int = 7):
         self.status_lbl.config(text=message)
         if total_steps > 0:
             percentage = int((step / total_steps) * 100)
@@ -224,10 +261,16 @@ class ModernSetupWizard(tk.Tk):
         thread.start()
 
     def run_install_tasks(self):
-        total_steps = 6
+        total_steps = 7 if self.var_clean_install.get() else 6
         current_step = 0
 
         try:
+            # 0. تصفير ومسح الإعدادات القديمة إن طُلب تثبيت نظيف (Clean Install)
+            if self.var_clean_install.get():
+                current_step += 1
+                self.log(f"[{current_step}/{total_steps}] جاري مسح الإعدادات القديمة والكاش وقواعد البيانات السابقة...", current_step, total_steps)
+                self.perform_clean_reset()
+
             # 1. تثبيت محرك Bun إن تم تحديده
             if self.var_bun.get():
                 current_step += 1
@@ -237,7 +280,6 @@ class ModernSetupWizard(tk.Tk):
                 user_bun = Path(os.path.expandvars(r"%USERPROFILE%\.bun\bin\bun.exe"))
                 local_bun = bin_dir / "bun.exe"
                 if not local_bun.exists() and user_bun.exists():
-                    import shutil
                     shutil.copy2(user_bun, local_bun)
 
                 # إضافة لمسار النظام
@@ -283,7 +325,7 @@ class ModernSetupWizard(tk.Tk):
 
             # اكتمال التثبيت
             self.log("✅ اكتمل تثبيت وتجهيز كافة المكونات المحددة بنجاح!", total_steps, total_steps)
-            messagebox.showinfo("تم التثبيت بنجاح", "تهانينا! تم تثبيت وإعداد نظام RestoERP بنجاح تام.\nيمكنك الآن تشغيل النظام مباشرة.")
+            messagebox.showinfo("تم التثبيت بنجاح", "تهانينا! تم تثبيت وإعداد نظام RestoERP كنسخة جديدة نظيفة بنجاح تام.\nيمكنك الآن تشغيل النظام مباشرة.")
             self.destroy()
 
         except Exception as err:
@@ -291,6 +333,92 @@ class ModernSetupWizard(tk.Tk):
             messagebox.showerror("خطأ أثناء التثبيت", f"حدث خطأ أثناء تثبيت المكونات:\n{err}")
             self.btn_exit.config(state="normal")
             self.btn_install.config(state="normal", bg="#059669")
+
+    def perform_clean_reset(self):
+        """مسح ملفات البيئة القديمة والكاش وإعادة تصفير قاعدة بيانات SQLite و PostgreSQL"""
+        # مسح .env القديمة
+        for p in [BACKEND_DIR / ".env", FRONTEND_DIR / ".env.local", FRONTEND_DIR / ".env.development"]:
+            if p.exists():
+                try:
+                    p.unlink()
+                except Exception:
+                    pass
+
+        # مسح الكاش
+        for c in [FRONTEND_DIR / ".next" / "dev", FRONTEND_DIR / ".next" / "cache"]:
+            if c.exists():
+                try:
+                    shutil.rmtree(c, ignore_errors=True)
+                except Exception:
+                    pass
+
+        # مسح sqlite القديمة
+        sqlite_file = BACKEND_DIR / "db.sqlite3"
+        if sqlite_file.exists():
+            try:
+                sqlite_file.unlink()
+            except Exception:
+                pass
+
+        # تصفير قاعدة بيانات postgres إذا كانت متصلة
+        self.reset_postgres_database()
+
+        # كتابة .env جديد نظيف
+        clean_env_content = """# Fresh Production Environment Settings
+USE_POSTGRES=True
+DB_NAME=restaurant_db
+DB_USER=postgres
+DB_PASSWORD=0918147613a
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DEBUG=True
+SECRET_KEY=django-insecure-fresh-restoerp-setup-key-2026-clean-instance
+"""
+        try:
+            with open(BACKEND_DIR / ".env", "w", encoding="utf-8") as f:
+                f.write(clean_env_content)
+        except Exception:
+            pass
+
+    def reset_postgres_database(self):
+        """إسقاط وإعادة إنشاء قاعدة البيانات من الصفر"""
+        host = "127.0.0.1"
+        port = 5432
+        db_name = "restaurant_db"
+        db_user = "postgres"
+        db_pass = "0918147613a"
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1.5)
+            is_live = (sock.connect_ex((host, port)) == 0)
+            sock.close()
+        except Exception:
+            is_live = False
+
+        if is_live:
+            try:
+                import psycopg2
+                from psycopg2 import sql
+                from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+                conn = psycopg2.connect(dbname="postgres", user=db_user, password=db_pass, host=host, port=port)
+                conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = %s
+                      AND pid <> pg_backend_pid();
+                """, (db_name,))
+                cur.execute(sql.SQL("DROP DATABASE IF EXISTS {};").format(sql.Identifier(db_name)))
+                cur.execute(sql.SQL("CREATE DATABASE {} WITH OWNER {} ENCODING 'UTF8';").format(
+                    sql.Identifier(db_name),
+                    sql.Identifier(db_user)
+                ))
+                cur.close()
+                conn.close()
+            except Exception:
+                pass
 
     def provision_postgres_db(self):
         """فحص خادم Postgres وإنشاء قاعدة البيانات restaurant_db تلقائياً"""
