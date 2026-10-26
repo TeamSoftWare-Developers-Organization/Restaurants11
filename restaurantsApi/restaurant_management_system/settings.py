@@ -17,15 +17,20 @@ import sys
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# مسار مجلد الواجهة المبنية (Next.js Static Export)
+# مسار مجلد الواجهة المبنية (Next.js Static Export / Closed-Source Distribution)
 if getattr(sys, 'frozen', False):
     _MEIPASS_DIR = Path(getattr(sys, '_MEIPASS', sys.executable))
-    if (_MEIPASS_DIR / "restaurant-frontend" / "out").exists():
-        FRONTEND_DIST = _MEIPASS_DIR / "restaurant-frontend" / "out"
-    elif (_MEIPASS_DIR / "out").exists():
-        FRONTEND_DIST = _MEIPASS_DIR / "out"
-    else:
-        FRONTEND_DIST = Path(sys.executable).parent / "out"
+    _EXE_DIR = Path(sys.executable).parent
+    possible_dists = [
+        _MEIPASS_DIR / "restaurant-frontend" / "out",
+        _MEIPASS_DIR / "frontend",
+        _MEIPASS_DIR / "out",
+        _EXE_DIR / "frontend",
+        _EXE_DIR / "out",
+        _EXE_DIR.parent / "frontend",
+        _EXE_DIR.parent.parent / "frontend",
+    ]
+    FRONTEND_DIST = next((p for p in possible_dists if p.exists()), _EXE_DIR / "frontend")
 else:
     FRONTEND_DIST = (BASE_DIR.parent / "restaurant-frontend" / "out").resolve()
 

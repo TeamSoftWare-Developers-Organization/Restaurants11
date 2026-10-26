@@ -7,6 +7,9 @@ __pycache__/
 build/
 dist/
 *.spec
+ClosedSource_Release/
+OutputSetup/
+*.log
 develop-eggs/
 dist/win-unpacked/
 downloads/
@@ -36,6 +39,9 @@ out/
 build/
 dist/
 *.spec
+ClosedSource_Release/
+OutputSetup/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

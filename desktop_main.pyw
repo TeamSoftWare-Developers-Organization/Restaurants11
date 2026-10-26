@@ -83,7 +83,9 @@ def setup_embedded_postgres():
     possible_pg_dirs = [
         ROOT_DIR / "pgsql",
         BUNDLE_DIR / "pgsql",
-        ROOT_DIR / "restaurantsApi" / "pgsql"
+        ROOT_DIR / "restaurantsApi" / "pgsql",
+        ROOT_DIR.parent / "pgsql",
+        ROOT_DIR.parent.parent / "pgsql",
     ]
 
     pg_dir = None
