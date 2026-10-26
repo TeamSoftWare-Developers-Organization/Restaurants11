@@ -5,6 +5,8 @@ __pycache__/
 *.so
 .Python
 build/
+dist/
+*.spec
 develop-eggs/
 dist/win-unpacked/
 downloads/
@@ -32,6 +34,8 @@ node_modules/
 .next/
 out/
 build/
+dist/
+*.spec
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

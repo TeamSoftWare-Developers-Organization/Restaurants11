@@ -1,7 +1,8 @@
 # restaurant_management_system/urls.py
 
 from django.contrib import admin
-from django.urls import path 
+from django.urls import path, re_path
+from django.views.static import serve
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
@@ -59,9 +60,47 @@ add_router_safe("/ai", ai_router)
 #     return {"message": "Hello from Django Ninja!"}
 
 urlpatterns = [
-    path('', lambda request: redirect('/api/docs'), name='root_redirect'),
+
     path('admin/', admin.site.urls),
-    path('api/', api.urls), # هذا هو المسار الذي سيستضيف جميع واجهات برمجة التطبيقات الخاصة بك
+    path('api/', api.urls),
+]
+
+def serve_frontend(request, path=""):
+    dist_dir = getattr(settings, 'FRONTEND_DIST', None)
+    if not dist_dir or not dist_dir.exists():
+        return redirect('/api/docs')
+    
+    clean_path = path.strip("/\\")
+    
+    if not clean_path:
+        return serve(request, "index.html", document_root=str(dist_dir))
+    
+    target_file = dist_dir / clean_path
+    if target_file.is_file():
+        return serve(request, clean_path, document_root=str(dist_dir))
+        
+    target_dir_index = dist_dir / clean_path / "index.html"
+    if target_dir_index.is_file():
+        return serve(request, f"{clean_path}/index.html", document_root=str(dist_dir))
+        
+    target_html = dist_dir / f"{clean_path}.html"
+    if target_html.is_file():
+        return serve(request, f"{clean_path}.html", document_root=str(dist_dir))
+        
+    root_index = dist_dir / "index.html"
+    if root_index.exists():
+        return serve(request, "index.html", document_root=str(dist_dir))
+        
+    return redirect('/api/docs')
+
+if getattr(settings, 'FRONTEND_DIST', None) and settings.FRONTEND_DIST.exists():
+    urlpatterns += [
+        re_path(r'^_next/(?P<path>.*)$', serve, {'document_root': str(settings.FRONTEND_DIST / '_next')}),
+        re_path(r'^(?!api/|admin/|media/|static/).*$', serve_frontend),
+    ]
+else:
+    urlpatterns += [
+        path('', lambda request: redirect('/api/docs'), name='root_redirect'),
 ]
 
 if settings.DEBUG:

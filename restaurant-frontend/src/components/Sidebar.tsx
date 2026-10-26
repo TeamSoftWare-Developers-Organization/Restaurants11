@@ -38,6 +38,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { getApiBaseUrl } from '@/lib/api';
 
 const links = [
     { label: 'لوحة التحكم', icon: Home, href: '/', color: 'indigo', perm: 'dashboard' },
@@ -145,7 +146,7 @@ export default function Sidebar({ className }: SidebarProps) {
     const getFullLogoUrl = (path?: string) => {
         if (!path) return null;
         if (path.startsWith('http://') || path.startsWith('https://')) return path;
-        const baseApi = process.env.NEXT_PUBLIC_API_URL || 'https://restaurants11.onrender.com/api';
+        const baseApi = getApiBaseUrl();
         const baseUrl = baseApi.replace(/\/api\/?$/, '');
         return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
     };

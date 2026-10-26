@@ -12,9 +12,22 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# مسار مجلد الواجهة المبنية (Next.js Static Export)
+if getattr(sys, 'frozen', False):
+    _MEIPASS_DIR = Path(getattr(sys, '_MEIPASS', sys.executable))
+    if (_MEIPASS_DIR / "restaurant-frontend" / "out").exists():
+        FRONTEND_DIST = _MEIPASS_DIR / "restaurant-frontend" / "out"
+    elif (_MEIPASS_DIR / "out").exists():
+        FRONTEND_DIST = _MEIPASS_DIR / "out"
+    else:
+        FRONTEND_DIST = Path(sys.executable).parent / "out"
+else:
+    FRONTEND_DIST = (BASE_DIR.parent / "restaurant-frontend" / "out").resolve()
 
 try:
     from dotenv import load_dotenv
@@ -83,7 +96,7 @@ ROOT_URLCONF = 'restaurant_management_system.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [FRONTEND_DIST] if FRONTEND_DIST.exists() else [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -198,6 +211,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_DIRS = []
+if FRONTEND_DIST.exists():
+    STATICFILES_DIRS.append(FRONTEND_DIST)
+    _next_static = FRONTEND_DIST / "_next"
+    if _next_static.exists():
+        STATICFILES_DIRS.append(_next_static)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
