@@ -4,21 +4,34 @@
 PyInstaller Build Script for Smart Restaurant & Cafe ERP Desktop
 يقوم هذا السكريبت بـ:
 1. التأكد من بناء الواجهة وتوليد مجلد (restaurant-frontend/out).
-2. تجميع خادم Django + خادم Waitress + الواجهة + محرك pywebview داخل مجلد تنفيذي واحد (dist/SmartRestaurantERP).
-3. تضمين قاعدة البيانات المحمولة (pgsql) تلقائياً في حال تواجدها.
+2. استبعاد مجلد venv لتفادي خطأ Windows MAX_PATH وتصغير حجم الحزمة.
+3. تجميع خادم Django + خادم Waitress + الواجهة + محرك pywebview داخل مجلد تنفيذي واحد (dist/SmartRestaurantERP).
+4. تضمين قاعدة البيانات المحمولة (pgsql) تلقائياً في حال تواجدها.
 """
 
 import os
 import sys
+import io
 import shutil
 import subprocess
 from pathlib import Path
+
+# ضبط ترميز الطرفية في ويندوز لدعم اللغة العربية دون أخطاء cp1252
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 ROOT_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = ROOT_DIR / "restaurant-frontend"
 FRONTEND_OUT = FRONTEND_DIR / "out"
 BACKEND_DIR = ROOT_DIR / "restaurantsApi"
 PGSQL_DIR = ROOT_DIR / "pgsql"
+
+VENV_PYTHON = BACKEND_DIR / "venv" / "Scripts" / "python.exe"
+PYTHON_EXE = str(VENV_PYTHON) if VENV_PYTHON.exists() else sys.executable
 
 SEP = ";" if os.name == "nt" else ":"
 
@@ -47,12 +60,54 @@ def check_and_build_frontend():
         print("✓ تم العثور على مجلد التصدير الجاهز (restaurant-frontend/out).")
 
 
+def prepare_backend_staging() -> Path:
+    """تجهيز نسخة نظيفة من الباك إند لاستبعاد venv وتفادي أخطاء طول المسار"""
+    staging_dir = ROOT_DIR / "build_staging" / "restaurantsApi"
+    if staging_dir.parent.exists():
+        shutil.rmtree(staging_dir.parent, ignore_errors=True)
+    staging_dir.mkdir(parents=True, exist_ok=True)
+
+    include_apps = [
+        "auth",
+        "core",
+        "employees",
+        "inventory",
+        "media",
+        "menu",
+        "ml_services",
+        "models",
+        "orders",
+        "payments",
+        "reservations",
+        "restaurant_management_system",
+    ]
+
+    for item in include_apps:
+        src = BACKEND_DIR / item
+        if src.exists():
+            shutil.copytree(
+                src,
+                staging_dir / item,
+                ignore=shutil.ignore_patterns(
+                    "__pycache__", "*.pyc", "*.pyo", ".git*", ".vscode", "venv*"
+                )
+            )
+
+    for filename in ["manage.py", ".env"]:
+        src_file = BACKEND_DIR / filename
+        if src_file.exists():
+            shutil.copy2(src_file, staging_dir / filename)
+
+    return staging_dir
+
+
 def build_desktop_bundle():
     step_banner("2/3 تجميع التطبيق المكتبي باستخدام PyInstaller")
+    staging_backend = prepare_backend_staging()
 
     # تجميع وسائط --add-data
     add_data = [
-        f"{BACKEND_DIR}{SEP}restaurantsApi",
+        f"{staging_backend}{SEP}restaurantsApi",
         f"{FRONTEND_OUT}{SEP}restaurant-frontend/out",
     ]
 
@@ -105,14 +160,15 @@ def build_desktop_bundle():
     ]
 
     cmd = [
-        sys.executable,
+        PYTHON_EXE,
         "-m",
         "PyInstaller",
-        "--noconsole",
+        "--noconfirm",
         "--onedir",
         "--clean",
         "--name=SmartRestaurantERP",
         f"--paths={BACKEND_DIR}",
+        f"--paths={staging_backend}",
     ]
 
     for item in add_data:
@@ -126,6 +182,10 @@ def build_desktop_bundle():
 
     print("جاري تشغيل PyInstaller لبناء حزمة البرنامج...")
     res = subprocess.run(cmd, cwd=str(ROOT_DIR))
+
+    if staging_backend.parent.exists():
+        shutil.rmtree(staging_backend.parent, ignore_errors=True)
+
     if res.returncode != 0:
         print("❌ فشل تجميع الحزمة عبر PyInstaller!")
         sys.exit(res.returncode)

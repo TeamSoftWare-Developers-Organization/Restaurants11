@@ -213,8 +213,7 @@ class ZKTecoEthernetBridge:
                     self.connect()
 
         except KeyboardInterrupt:
-            print("
-🛑 إيقاف خدمة ربط جهاز البصمة الشبكي...")
+            print("\n🛑 إيقاف خدمة ربط جهاز البصمة الشبكي...")
         finally:
             if self.conn:
                 try:

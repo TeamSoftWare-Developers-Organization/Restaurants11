@@ -3,17 +3,27 @@
 أداة بناء النسخة التجارية المغلقة بالكامل (Closed-Source Proprietary Binary)
 يقوم هذا السكريبت بـ:
 1. بناء وتصدير الواجهة الأمامية وإزالة أي سورس كود (tsx/ts/map).
-2. ترجمة كود Django بالكامل إلى بايتكود مجمّع ومحرك تنفيذي ثنائي (RestoCore.exe).
-3. حذف وإبادة كافة ملفات .py المفتوحة من مجلد الإصدار النهائي لضمان عدم كشف خوارزمية التراخيص ومفتاح الملح (Secret Salt).
-4. تجهيز مجلد ClosedSource_Release ليكون جاهزاً لبرنامج Inno Setup لإنشاء Setup.exe.
+2. استبعاد مجلد venv والملفات المؤقتة لتفادي أخطاء طول المسار في ويندوز (Windows MAX_PATH).
+3. ترجمة كود Django بالكامل إلى بايتكود مجمّع ومحرك تنفيذي ثنائي (RestoCore.exe).
+4. حذف وإبادة كافة ملفات .py المفتوحة من مجلد الإصدار النهائي لضمان عدم كشف خوارزمية التراخيص والـ Secret Salt.
+5. تجهيز مجلد ClosedSource_Release ليكون جاهزاً لبرنامج Inno Setup لإنشاء Setup.exe.
 """
 
 import os
 import sys
+import io
 import shutil
 import compileall
 import subprocess
 from pathlib import Path
+
+# ضبط ترميز الطرفية في ويندوز لدعم اللغة العربية دون أخطاء cp1252
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 ROOT_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = ROOT_DIR / "restaurant-frontend"
@@ -29,9 +39,17 @@ SEP = ";" if os.name == "nt" else ":"
 
 def clean_old_builds():
     """حذف أي بناء قديم لضمان نظافة النسخة المغلقة"""
-    if RELEASE_DIR.exists():
-        print("جاري حذف مجلد ClosedSource_Release القديم...")
-        shutil.rmtree(RELEASE_DIR, ignore_errors=True)
+    for folder in [RELEASE_DIR, ROOT_DIR / "build", ROOT_DIR / "build_staging"]:
+        if folder.exists():
+            print(f"جاري تنظيف مجلد {folder.name}...")
+            shutil.rmtree(folder, ignore_errors=True)
+
+    for spec in ROOT_DIR.glob("*.spec"):
+        try:
+            spec.unlink()
+        except Exception:
+            pass
+
     RELEASE_DIR.mkdir(parents=True, exist_ok=True)
     print("✓ تم تنظيف مسار التوزيع السابق.")
 
@@ -41,7 +59,6 @@ def build_frontend_bundle():
     print("\n[1/3] جاري تجميع الواجهة الأمامية وإخفاء السورس كود...")
 
     out_dir = FRONTEND_DIR / "out"
-    # فحص هل تم البناء حديثاً أم يتطلب إعادة بناء
     runner = "bun" if shutil.which("bun") else ("npm" if shutil.which("npm") else None)
     if not (out_dir / "index.html").exists():
         if not runner:
@@ -70,9 +87,56 @@ def build_frontend_bundle():
     print(f"✓ تم استخراج الواجهة كحزم مشفرة ومضغوطة (خالية من ملفات tsx/ts، وحُذف {maps_removed} ملف map).")
 
 
+def prepare_backend_staging() -> Path:
+    """
+    تجهيز نسخة نظيفة من كود الباك إند لاستبعاد مجلد venv والملفات المؤقتة.
+    هذا يمنع خطأ Windows MAX_PATH (مسارات أطول من 260 حرف في TensorFlow) 
+    ويقلل حجم الحزمة ويسرع عملية التجميع بشكل كبير.
+    """
+    staging_dir = ROOT_DIR / "build_staging" / "restaurantsApi"
+    if staging_dir.parent.exists():
+        shutil.rmtree(staging_dir.parent, ignore_errors=True)
+    staging_dir.mkdir(parents=True, exist_ok=True)
+
+    include_apps = [
+        "auth",
+        "core",
+        "employees",
+        "inventory",
+        "media",
+        "menu",
+        "ml_services",
+        "models",
+        "orders",
+        "payments",
+        "reservations",
+        "restaurant_management_system",
+    ]
+
+    for item in include_apps:
+        src = BACKEND_DIR / item
+        if src.exists():
+            shutil.copytree(
+                src,
+                staging_dir / item,
+                ignore=shutil.ignore_patterns(
+                    "__pycache__", "*.pyc", "*.pyo", ".git*", ".vscode", "venv*"
+                )
+            )
+
+    for filename in ["manage.py", ".env"]:
+        src_file = BACKEND_DIR / filename
+        if src_file.exists():
+            shutil.copy2(src_file, staging_dir / filename)
+
+    print("✓ تم تجهيز كود الباك إند النظيف بنجاح واستبعاد مجلد venv والملفات المؤقتة.")
+    return staging_dir
+
+
 def compile_backend_to_binary():
     """2. ترجمة كود بايثون وجانغو إلى ملفات ثنائية Executable لمنع قراءتها"""
     print("\n[2/3] جاري ترجمة كود Django إلى ملفات ثنائية Executable عبر PyInstaller...")
+    staging_backend = prepare_backend_staging()
     entry_script = ROOT_DIR / "desktop_main.pyw"
 
     pyinstaller_cmd = [
@@ -85,8 +149,9 @@ def compile_backend_to_binary():
         "--clean",
         "--name=RestoCore",
         f"--distpath={RELEASE_DIR / 'core'}",
-        f"--add-data={BACKEND_DIR}{SEP}restaurantsApi",
+        f"--add-data={staging_backend}{SEP}restaurantsApi",
         f"--paths={BACKEND_DIR}",
+        f"--paths={staging_backend}",
         "--hidden-import=waitress",
         "--hidden-import=webview",
         "--hidden-import=webview.platforms.winforms",
@@ -124,7 +189,7 @@ def compile_backend_to_binary():
 
     if core_app_dir.exists():
         print("جاري تحويل السورس كود الداخلي إلى Bytecode ثنائي...")
-        compileall.compile_dir(str(core_app_dir), force=True, quiet=1)
+        compileall.compile_dir(str(core_app_dir), force=True, legacy=True, quiet=1)
 
     print("جاري إزالة وحذف كافة ملفات (.py) المفتوحة من الحزمة الناتجة...")
     core_root = RELEASE_DIR / "core" / "RestoCore"
@@ -136,6 +201,10 @@ def compile_backend_to_binary():
                 deleted_py += 1
             except Exception:
                 pass
+
+    # حذف مجلد staging بعد التجميع
+    if staging_backend.parent.exists():
+        shutil.rmtree(staging_backend.parent, ignore_errors=True)
 
     print(f"✓ تم تنظيف وحذف {deleted_py} ملف (.py) مفتوح المصدر نهائياً.")
     print("✓ تم تجميع الباك إند بنجاح كملفات مكتبية ثنائية ومحرك تنفيذي (RestoCore.exe).")
