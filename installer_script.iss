@@ -15,6 +15,10 @@ PrivilegesRequired=admin
 SetupIconFile=restaurant-frontend\public\favicon.ico
 UninstallDisplayIcon={app}\frontend\favicon.ico
 
+[Dirs]
+; منح صلاحيات الكتابة الكاملة لكافة المستخدمين لتفادي خطأ Permission Denied في Program Files
+Name: "{app}"; Permissions: users-full
+
 [Files]
 ; نسخ كافة ملفات النسخة المغلقة (بدون أي كود مصدري مفتوح)
 Source: "ClosedSource_Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

@@ -34,7 +34,22 @@ if getattr(sys, 'frozen', False):
 else:
     FRONTEND_DIST = (BASE_DIR.parent / "restaurant-frontend" / "out").resolve()
 
+def _resolve_data_dir():
+    try:
+        test_file = BASE_DIR / '.write_test'
+        with open(test_file, 'w') as f:
+            f.write('ok')
+        test_file.unlink()
+        return BASE_DIR
+    except Exception:
+        app_data = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'SmartRestaurantERP'
+        app_data.mkdir(parents=True, exist_ok=True)
+        return app_data
+
+DATA_DIR = _resolve_data_dir()
+
 try:
+
     from dotenv import load_dotenv
     load_dotenv(BASE_DIR / '.env')
 except ImportError:
@@ -144,7 +159,7 @@ elif os.environ.get('CI') or not USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': DATA_DIR / 'db.sqlite3',
         }
     }
 else:
@@ -174,7 +189,7 @@ else:
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
+                'NAME': DATA_DIR / 'db.sqlite3',
             }
         }
 
@@ -229,7 +244,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Media files (uploads)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 
 # ====================================
 # Session & Authentication Settings

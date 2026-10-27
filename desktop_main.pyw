@@ -38,14 +38,34 @@ if str(BACKEND_DIR) not in sys.path:
 # ضبط متغيرات البيئة لـ Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "restaurant_management_system.settings")
 
-# إعداد سجل داخلي للأخطاء والأحداث
-LOG_FILE = ROOT_DIR / "desktop_system.log"
-logging.basicConfig(
-    filename=str(LOG_FILE),
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    encoding="utf-8"
-)
+def get_writable_app_dir() -> Path:
+    """تحديد مجلد آمن ومتاح للكتابة لتخزين السجلات والبيانات الديناميكية"""
+    try:
+        test_file = ROOT_DIR / ".write_test"
+        with open(test_file, "w") as f:
+            f.write("ok")
+        test_file.unlink()
+        return ROOT_DIR
+    except Exception:
+        app_data = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "SmartRestaurantERP"
+        app_data.mkdir(parents=True, exist_ok=True)
+        return app_data
+
+APP_DATA_DIR = get_writable_app_dir()
+LOG_FILE = APP_DATA_DIR / "desktop_system.log"
+
+try:
+    logging.basicConfig(
+        filename=str(LOG_FILE),
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        encoding="utf-8"
+    )
+except Exception:
+    try:
+        logging.basicConfig(level=logging.INFO)
+    except Exception:
+        pass
 
 CREATE_NO_WINDOW = 0x08000000 if os.name == 'nt' else 0
 
