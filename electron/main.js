@@ -1,21 +1,22 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const http = require('http');
+const fs = require('fs');
 const { spawn } = require('child_process');
 const os = require('os');
 const crypto = require('crypto');
 
-// Define app constants
-const FRONTEND_PORT = 3005;
+// إعداد المنافذ والروابط
 const BACKEND_PORT = 8000;
-const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
+const FRONTEND_DEV_PORT = 3005;
 const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`;
+const FRONTEND_DEV_URL = `http://localhost:${FRONTEND_DEV_PORT}`;
 
 let mainWindow = null;
 let backendProcess = null;
 let frontendProcess = null;
 
-// Ensure single instance lock
+// قفل تشغيل نسخة واحدة فقط من التطبيق (Single Instance Lock)
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     app.quit();
@@ -29,9 +30,9 @@ if (!gotTheLock) {
 }
 
 /**
- * Check if an HTTP service is responding
+ * فحص استجابة خادم الويب المحلي
  */
-function checkServerReady(url, maxRetries = 25, intervalMs = 1000) {
+function checkServerReady(url, maxRetries = 35, intervalMs = 600) {
     return new Promise((resolve) => {
         let attempts = 0;
         const check = () => {
@@ -54,7 +55,7 @@ function checkServerReady(url, maxRetries = 25, intervalMs = 1000) {
                 }
             });
 
-            req.setTimeout(1500, () => {
+            req.setTimeout(1200, () => {
                 req.destroy();
                 if (attempts < maxRetries) {
                     setTimeout(check, intervalMs);
@@ -68,102 +69,158 @@ function checkServerReady(url, maxRetries = 25, intervalMs = 1000) {
 }
 
 /**
- * Launch backend Django if not already running
+ * العثور على مسار ملف سيرفر Django التنفيذي
  */
-function startBackendIfNeeded() {
-    checkServerReady(`${BACKEND_URL}/api/docs/`, 3, 500).then((isAlive) => {
+function getBackendExecutablePath() {
+    const isPackaged = app.isPackaged;
+    const projectRoot = path.join(__dirname, '..');
+
+    if (isPackaged) {
+        // المسارات المحتملة بعد التحزيم داخل resources
+        const candidatePaths = [
+            path.join(process.resourcesPath, 'django_server', 'django_server.exe'),
+            path.join(process.resourcesPath, 'backend_server', 'backend_server.exe'),
+            path.join(process.resourcesPath, 'backend', 'django_server.exe'),
+            path.join(process.resourcesPath, 'core', 'RestoCore', 'RestoCore.exe'),
+            path.join(path.dirname(process.execPath), 'resources', 'django_server', 'django_server.exe'),
+        ];
+
+        for (const p of candidatePaths) {
+            if (fs.existsSync(p)) {
+                return p;
+            }
+        }
+    } else {
+        // مسارات أثناء وضع التطوير
+        const devCandidatePaths = [
+            path.join(projectRoot, 'backend_dist', 'django_server', 'django_server.exe'),
+            path.join(projectRoot, 'dist', 'django_server', 'django_server.exe'),
+            path.join(projectRoot, 'ClosedSource_Release', 'core', 'RestoCore', 'RestoCore.exe'),
+        ];
+
+        for (const p of devCandidatePaths) {
+            if (fs.existsSync(p)) {
+                return p;
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * تشغيل خادم Django الخلفي
+ */
+function startBackend() {
+    checkServerReady(`${BACKEND_URL}/api/docs`, 2, 400).then((isAlive) => {
         if (isAlive) {
-            console.log('[Electron] Backend Django is already running on port ' + BACKEND_PORT);
+            console.log('[Electron] سيرفر الباك إند يعمل مسبقاً على المنفذ ' + BACKEND_PORT);
             return;
         }
 
-        const projectRoot = path.join(__dirname, '..');
-        const apiDir = path.join(projectRoot, 'restaurantsApi');
-        // Prefer pythonw.exe (windowless GUI runner) to completely suppress any cmd/console window
-        const venvPythonW = path.join(apiDir, 'venv', 'Scripts', 'pythonw.exe');
-        const venvPython = path.join(apiDir, 'venv', 'Scripts', 'python.exe');
-        const pythonExe = fs.existsSync(venvPythonW) ? venvPythonW : (fs.existsSync(venvPython) ? venvPython : 'python');
+        const exePath = getBackendExecutablePath();
 
-        console.log('[Electron] Starting Django backend service silently with:', pythonExe);
-        try {
-            backendProcess = spawn(pythonExe, ['manage.py', 'runserver', `127.0.0.1:${BACKEND_PORT}`], {
-                cwd: apiDir,
-                shell: false,
-                windowsHide: true,
-                detached: false,
-                stdio: 'ignore'
-            });
+        if (exePath && fs.existsSync(exePath)) {
+            console.log('[Electron] تشغيل سيرفر الباك إند المستقل من:', exePath);
+            try {
+                backendProcess = spawn(exePath, [String(BACKEND_PORT)], {
+                    cwd: path.dirname(exePath),
+                    shell: false,
+                    windowsHide: true,
+                    stdio: 'ignore'
+                });
 
-            backendProcess.on('error', (err) => {
-                console.error('[Electron] Failed to start Django:', err);
-            });
-        } catch (e) {
-            console.error('[Electron] Error spawning backend process:', e);
+                backendProcess.on('error', (err) => {
+                    console.error('[Electron] فشل تشغيل سيرفر الباك إند التنفيذي:', err);
+                });
+            } catch (err) {
+                console.error('[Electron] استثناء أثناء تشغيل سيرفر الباك إند:', err);
+            }
+        } else {
+            // وضع التطوير إذا لم يتم بناء الملف التنفيذي بعد
+            console.log('[Electron] لم يتم العثور على ملف تنفيذي للباك إند، محاولة تشغيل بيئة بايثون الافتراضية...');
+            const projectRoot = path.join(__dirname, '..');
+            const apiDir = path.join(projectRoot, 'restaurantsApi');
+            const venvPythonW = path.join(apiDir, 'venv', 'Scripts', 'pythonw.exe');
+            const venvPython = path.join(apiDir, 'venv', 'Scripts', 'python.exe');
+            const pythonExe = fs.existsSync(venvPythonW) ? venvPythonW : (fs.existsSync(venvPython) ? venvPython : 'python');
+
+            const serverScript = fs.existsSync(path.join(apiDir, 'server.py')) 
+                ? path.join(apiDir, 'server.py') 
+                : 'manage.py';
+
+            const serverArgs = serverScript.endsWith('server.py')
+                ? [serverScript, String(BACKEND_PORT)]
+                : ['manage.py', 'runserver', `127.0.0.1:${BACKEND_PORT}`];
+
+            try {
+                backendProcess = spawn(pythonExe, serverArgs, {
+                    cwd: apiDir,
+                    shell: false,
+                    windowsHide: true,
+                    stdio: 'ignore'
+                });
+
+                backendProcess.on('error', (err) => {
+                    console.error('[Electron] خطأ في تشغيل بايثون:', err);
+                });
+            } catch (e) {
+                console.error('[Electron] تعذر إطلاق عملية الباك إند:', e);
+            }
         }
     });
 }
 
 /**
- * Find available bun executable (bundled bin/bun.exe or system PATH)
+ * تشغيل خادم الفرونت إند في وضع التطوير فقط إن لزم
  */
-function getBunExecutablePath() {
-    const fs = require('fs');
-    const projectRoot = path.join(__dirname, '..');
-    
-    // Check bundled in app resources or project bin/
-    const candidatePaths = [
-        path.join(process.resourcesPath || '', 'bin', 'bun.exe'),
-        path.join(projectRoot, 'bin', 'bun.exe'),
-        path.join(process.env.USERPROFILE || '', '.bun', 'bin', 'bun.exe')
-    ];
+function startFrontendDevIfNeeded() {
+    if (app.isPackaged) return; // في النسخة الإنتاجية يتم تقديم الواجهة مباشرة عبر Django أو الملفات المحلية
 
-    for (const p of candidatePaths) {
-        if (p && fs.existsSync(p)) {
-            console.log('[Electron] Using bun executable at:', p);
-            return p;
-        }
-    }
-    return 'bun';
-}
-
-/**
- * Launch frontend Next.js dev server if not already running
- */
-function startFrontendIfNeeded() {
-    checkServerReady(FRONTEND_URL, 3, 500).then((isAlive) => {
+    checkServerReady(FRONTEND_DEV_URL, 2, 400).then((isAlive) => {
         if (isAlive) {
-            console.log('[Electron] Frontend Next.js is already running on port ' + FRONTEND_PORT);
+            console.log('[Electron] خادم Next.js التطويري يعمل مسبقاً على المنفذ ' + FRONTEND_DEV_PORT);
             return;
         }
 
         const projectRoot = path.join(__dirname, '..');
         const frontendDir = path.join(projectRoot, 'restaurant-frontend');
-        const bunExe = getBunExecutablePath();
+        const candidateBuns = [
+            path.join(projectRoot, 'bin', 'bun.exe'),
+            path.join(process.env.USERPROFILE || '', '.bun', 'bin', 'bun.exe'),
+            'bun'
+        ];
 
-        console.log('[Electron] Starting Next.js frontend service silently with:', bunExe);
+        let bunExe = candidateBuns.find(p => p === 'bun' || fs.existsSync(p)) || 'npm';
+
         try {
-            frontendProcess = spawn(bunExe, ['run', 'dev'], {
+            const args = bunExe.includes('npm') ? ['run', 'dev'] : ['run', 'dev'];
+            frontendProcess = spawn(bunExe, args, {
                 cwd: frontendDir,
                 shell: false,
                 windowsHide: true,
-                detached: false,
                 stdio: 'ignore'
             });
 
             frontendProcess.on('error', (err) => {
-                console.error('[Electron] Failed to start frontend with bun, trying npm/node:', err);
+                console.error('[Electron] خطأ في تشغيل الواجهة التطويرية:', err);
             });
         } catch (e) {
-            console.error('[Electron] Error spawning frontend process:', e);
+            console.error('[Electron] تعذر إطلاق خادم التطوير للفرونت إند:', e);
         }
     });
 }
 
 /**
- * Create the main desktop application window
+ * إنشاء نافذة سطح المكتب الرئيسية
  */
 function createWindow() {
-    const iconPath = path.join(__dirname, '..', 'restaurant-frontend', 'public', 'icons', 'icon-512x512.png');
+    const iconCandidates = [
+        path.join(__dirname, 'icon.ico'),
+        path.join(__dirname, '..', 'restaurant-frontend', 'public', 'icons', 'icon-512x512.png'),
+        path.join(__dirname, '..', 'restaurant-frontend', 'public', 'favicon.ico')
+    ];
+    const iconPath = iconCandidates.find(p => fs.existsSync(p)) || undefined;
 
     mainWindow = new BrowserWindow({
         width: 1400,
@@ -189,13 +246,12 @@ function createWindow() {
     Menu.setApplicationMenu(null);
     mainWindow.setMenuBarVisibility(false);
 
-    // Native window controls
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
         mainWindow.maximize();
     });
 
-    // Loading Splash / Progress
+    // شاشة الانتظار الحديثة (Loading Splash)
     const splashHtml = `
     <!DOCTYPE html>
     <html dir="rtl">
@@ -215,47 +271,68 @@ function createWindow() {
                 user-select: none;
             }
             .spinner {
-                width: 48px;
-                height: 48px;
+                width: 52px;
+                height: 52px;
                 border: 4px solid #1e293b;
                 border-top: 4px solid #2563eb;
                 border-radius: 50%;
-                animation: spin 1s linear infinite;
+                animation: spin 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
                 margin-bottom: 24px;
             }
             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            h1 { font-size: 20px; font-weight: 800; margin: 0 0 8px 0; color: #ffffff; }
-            p { font-size: 13px; color: #94a3b8; margin: 0; }
+            h1 { font-size: 22px; font-weight: 800; margin: 0 0 10px 0; color: #ffffff; letter-spacing: -0.5px; }
+            p { font-size: 14px; color: #94a3b8; margin: 0; }
         </style>
     </head>
     <body>
         <div class="spinner"></div>
-        <h1>RestoERP - نظام إدارة المطاعم ونقاط البيع</h1>
-        <p>جاري تهيئة خدمات النظام وقواعد البيانات المحلية...</p>
+        <h1>RestoERP - نظام إدارة المطاعم والمقاهي</h1>
+        <p>جاري تشغيل خوادم النظام وقواعد البيانات المحلية تلقائياً...</p>
     </body>
     </html>
     `;
 
     mainWindow.loadURL('data:text/html;charset=UTF-8,' + encodeURIComponent(splashHtml));
 
-    // Wait for the servers to be online, then load frontend
-    checkServerReady(FRONTEND_URL, 30, 1000).then((ready) => {
-        if (ready && mainWindow) {
-            mainWindow.loadURL(FRONTEND_URL);
-        } else if (mainWindow) {
-            mainWindow.loadURL('data:text/html;charset=UTF-8,' + encodeURIComponent(`
-                <html dir="rtl" style="background:#070b14;color:#f8fafc;font-family:sans-serif;padding:40px;text-align:center;">
-                <body>
-                    <h2>تعذر الاتصال بخدمة الواجهة الأمامية</h2>
-                    <p style="color:#ef4444;">يرجى التأكد من تشغيل خادم النظام (run_system.bat) ثم إعادة المحاولة.</p>
-                    <button onclick="location.reload()" style="padding:10px 20px;font-size:14px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;">إعادة المحاولة</button>
-                </body>
-                </html>
-            `));
+    // تحديد الرابط المستهدف: خادم Django الموحد (الذي يقدم الواجهة + API معاً بدون مشاكل CORS)
+    // أو منفذ الفرونت إند التطويري إذا كان يعمل
+    const loadApp = async () => {
+        if (!app.isPackaged) {
+            const devReady = await checkServerReady(FRONTEND_DEV_URL, 6, 500);
+            if (devReady && mainWindow) {
+                console.log('[Electron] توجيه النافذة نحو خادم Next.js التطويري:', FRONTEND_DEV_URL);
+                mainWindow.loadURL(FRONTEND_DEV_URL);
+                return;
+            }
         }
-    });
 
-    // Handle POS F11 Fullscreen Toggle
+        // انتظار استقرار خادم الباك إند (الذي يقدم الواجهة والـ API)
+        const backendReady = await checkServerReady(`${BACKEND_URL}/api/docs`, 40, 600);
+        if (backendReady && mainWindow) {
+            console.log('[Electron] توجيه النافذة نحو خادم الإنتاج الموحد:', BACKEND_URL);
+            mainWindow.loadURL(BACKEND_URL);
+        } else if (mainWindow) {
+            // محاولة التحميل من ملفات Static Export المحلية كخيار إضافي
+            const localOutHtml = path.join(__dirname, '..', 'restaurant-frontend', 'out', 'index.html');
+            if (fs.existsSync(localOutHtml)) {
+                mainWindow.loadFile(localOutHtml);
+            } else {
+                mainWindow.loadURL('data:text/html;charset=UTF-8,' + encodeURIComponent(`
+                    <html dir="rtl" style="background:#070b14;color:#f8fafc;font-family:sans-serif;padding:40px;text-align:center;">
+                    <body>
+                        <h2 style="color:#ef4444;">تعذر بدء تشغيل خدمة النظام</h2>
+                        <p style="color:#94a3b8;">يرجى التأكد من اكتمال بناء النظام أو تشغيل السيرفر يدوياً.</p>
+                        <button onclick="location.reload()" style="margin-top:16px;padding:12px 24px;font-size:14px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;">إعادة المحاولة</button>
+                    </body>
+                    </html>
+                `));
+            }
+        }
+    };
+
+    loadApp();
+
+    // اختصار F11 للشاشة الكاملة
     mainWindow.webContents.on('before-input-event', (event, input) => {
         if (input.key === 'F11' && input.type === 'keyDown') {
             mainWindow.setFullScreen(!mainWindow.isFullScreen());
@@ -268,14 +345,14 @@ function createWindow() {
     });
 }
 
-// IPC Handlers
+// معالجات IPC لطباعة الفواتير وأزرار النافذة
 ipcMain.handle('get-printers', async () => {
     if (!mainWindow) return [];
     return await mainWindow.webContents.getPrintersAsync();
 });
 
 ipcMain.handle('print-silent', async (event, options = {}) => {
-    if (!mainWindow) return { success: false, error: 'Window not available' };
+    if (!mainWindow) return { success: false, error: 'النافذة غير متاحة' };
     try {
         const defaultOptions = {
             silent: true,
@@ -341,11 +418,35 @@ ipcMain.handle('get-machine-id', () => {
     }
 });
 
+// إيقاف جميع العمليات التابعة بأمان تام
+function killChildProcesses() {
+    if (backendProcess && backendProcess.pid) {
+        try {
+            if (process.platform === 'win32') {
+                spawn('taskkill', ['/pid', backendProcess.pid.toString(), '/f', '/t'], { windowsHide: true, shell: false });
+            } else {
+                backendProcess.kill();
+            }
+        } catch (e) {}
+        backendProcess = null;
+    }
 
-// App Lifecycle
+    if (frontendProcess && frontendProcess.pid) {
+        try {
+            if (process.platform === 'win32') {
+                spawn('taskkill', ['/pid', frontendProcess.pid.toString(), '/f', '/t'], { windowsHide: true, shell: false });
+            } else {
+                frontendProcess.kill();
+            }
+        } catch (e) {}
+        frontendProcess = null;
+    }
+}
+
+// دورة حياة التطبيق (App Lifecycle)
 app.whenReady().then(() => {
-    startBackendIfNeeded();
-    startFrontendIfNeeded();
+    startBackend();
+    startFrontendDevIfNeeded();
     createWindow();
 
     app.on('activate', () => {
@@ -353,27 +454,12 @@ app.whenReady().then(() => {
     });
 });
 
-app.on('window-all-closed', () => {
-    // Terminate child processes on Windows silently
-    if (backendProcess) {
-        try {
-            if (process.platform === 'win32' && backendProcess.pid) {
-                spawn('taskkill', ['/pid', backendProcess.pid.toString(), '/f', '/t'], { windowsHide: true, shell: false });
-            } else {
-                backendProcess.kill();
-            }
-        } catch (e) {}
-    }
-    if (frontendProcess) {
-        try {
-            if (process.platform === 'win32' && frontendProcess.pid) {
-                spawn('taskkill', ['/pid', frontendProcess.pid.toString(), '/f', '/t'], { windowsHide: true, shell: false });
-            } else {
-                frontendProcess.kill();
-            }
-        } catch (e) {}
-    }
+app.on('before-quit', () => {
+    killChildProcesses();
+});
 
+app.on('window-all-closed', () => {
+    killChildProcesses();
     if (process.platform !== 'darwin') {
         app.quit();
     }

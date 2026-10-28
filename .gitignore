@@ -65,3 +65,7 @@ Thumbs.db
 # Large binaries
 bin/bun.exe
 bin/*.exe
+backend_dist/
+dist_electron/
+build_staging_backend/
+*.blockmap

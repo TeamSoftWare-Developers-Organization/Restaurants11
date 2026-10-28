@@ -221,7 +221,17 @@ LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
 
-USE_I18N = True
+# في بيئة سطح المكتب المجمعة (PyInstaller / Standalone Executable)
+# نتحقق من وجود ملفات الترجمة لتفادي خطأ OSError: No translation files found for default language
+if getattr(sys, 'frozen', False):
+    try:
+        import django
+        locale_path = Path(django.__file__).resolve().parent / 'conf' / 'locale'
+        USE_I18N = locale_path.exists()
+    except Exception:
+        USE_I18N = False
+else:
+    USE_I18N = True
 
 USE_TZ = True
 

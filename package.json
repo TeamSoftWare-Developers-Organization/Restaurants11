@@ -8,6 +8,9 @@
   "scripts": {
     "start": "electron electron/main.js",
     "desktop:dev": "electron electron/main.js",
+    "frontend:build": "cd restaurant-frontend && npm run build",
+    "backend:build": "restaurantsApi\\venv\\Scripts\\python.exe build_backend.py",
+    "build:all": "npm run frontend:build && npm run backend:build",
     "desktop:pack": "electron-builder --dir",
     "desktop:dist": "electron-builder --win nsis",
     "desktop:portable": "electron-builder --win portable"
@@ -21,18 +24,27 @@
     "productName": "RestoERP",
     "copyright": "Copyright © 2026 RestoERP Team",
     "directories": {
-      "output": "dist"
+      "output": "dist_electron"
     },
     "files": [
       "electron/**/*",
-      "bin/**/*",
+      "restaurant-frontend/out/**/*",
       "restaurant-frontend/public/icons/**/*"
     ],
     "extraResources": [
       {
-        "from": "bin",
-        "to": "bin",
-        "filter": ["**/*"]
+        "from": "backend_dist/django_server",
+        "to": "django_server",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "restaurant-frontend/out",
+        "to": "frontend",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
