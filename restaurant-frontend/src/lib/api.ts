@@ -7,24 +7,48 @@ import axios from 'axios';
  * وفي باقي الحالات يتم استخدام الرابط السحابي على Render.
  */
 export const getApiBaseUrl = (): string => {
+    if (typeof window !== 'undefined') {
+        const origin = window.location.origin;
+        const protocol = window.location.protocol;
+        const href = window.location.href;
+
+        // بيئة سطح المكتب (Tauri / Electron) أو الخادم المحلي: توجيه مباشر نحو السيرفر المحلي دائماً
+        // ملاحظة: في محرك Chromium تكون قيمة origin لبروتوكول file:// هي النص 'null'، وفي Tauri تكون tauri.localhost
+        const isTauri =
+            protocol === 'tauri:' ||
+            origin.includes('tauri.localhost') ||
+            '__TAURI_INTERNALS__' in window;
+
+        if (
+            isTauri ||
+            protocol === 'file:' ||
+            origin === 'null' ||
+            href.startsWith('file:') ||
+            (origin && (origin.includes('127.0.0.1') || origin.includes('localhost')))
+        ) {
+            if (origin && origin.includes(':8000')) {
+                return `${origin}/api`;
+            }
+            return 'http://127.0.0.1:8000/api';
+        }
+
+        // إذا كان يعمل على خادم ويب حقيقي (نطاق سحابي مخصص)، استخدم نفس الأصل
+        if (origin && origin !== 'null' && !origin.includes('undefined')) {
+            return `${origin}/api`;
+        }
+    }
+
     const envUrl = process.env.NEXT_PUBLIC_API_URL;
     if (envUrl && envUrl.trim() !== '') {
         return envUrl.trim();
     }
 
-    if (typeof window !== 'undefined') {
-        const origin = window.location.origin;
-        if (origin && !origin.startsWith('file:') && !origin.includes('undefined')) {
-            return `${origin}/api`;
-        }
-    }
-
-    return 'https://restaurants11.onrender.com/api';
+    return 'http://127.0.0.1:8000/api';
 };
 
 const api = axios.create({
     baseURL: getApiBaseUrl(),
-    timeout: 60000, // 60s timeout to allow Render free tier instances to spin up
+    timeout: 5000,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -33,33 +57,52 @@ const api = axios.create({
 // Add a request interceptor to add the JWT token to headers
 api.interceptors.request.use(
     (config) => {
+        config.baseURL = getApiBaseUrl();
         if (typeof window !== 'undefined') {
             const authStorage = localStorage.getItem('auth-storage');
             if (authStorage) {
                 try {
                     const parsed = JSON.parse(authStorage);
                     const token = parsed.state?.token || parsed.token;
-                    if (token) {
-                        const bearerToken = `Bearer ${token}`;
+                    switch (Boolean(token)) {
+                        case true: {
+                            const bearerToken = `Bearer ${token}`;
 
-                        // 1. Direct assignment
-                        if (!config.headers) config.headers = {} as any;
-                        (config.headers as any).Authorization = bearerToken;
+                            // 1. Direct assignment
+                            switch (Boolean(!config.headers)) {
+                                case true:
+                                    config.headers = {} as any;
+                                    break;
+                                default:
+                                    break;
+                            }
+                            (config.headers as any).Authorization = bearerToken;
 
-                        // 2. set method for Axios 1.x
-                        if (config.headers.set && typeof config.headers.set === 'function') {
-                            config.headers.set('Authorization', bearerToken);
+                            // 2. set method for Axios 1.x
+                            switch (Boolean(typeof config.headers?.set === 'function')) {
+                                case true:
+                                    config.headers.set('Authorization', bearerToken);
+                                    break;
+                                default:
+                                    break;
+                            }
+
+                            // 3. common headers for some configs
+                            switch (Boolean((config.headers as any)?.common)) {
+                                case true:
+                                    (config.headers as any).common['Authorization'] = bearerToken;
+                                    break;
+                                default:
+                                    break;
+                            }
+
+                            // Diagnostic log for the browser console (visible to user)
+                            console.log(`🚀 [API] ${config.method?.toUpperCase()} ${config.url} | Token: ${token.substring(0, 10)}...`);
+                            break;
                         }
-
-                        // 3. common headers for some configs
-                        if ((config.headers as any).common) {
-                            (config.headers as any).common['Authorization'] = bearerToken;
-                        }
-
-                        // Diagnostic log for the browser console (visible to user)
-                        console.log(`🚀 [API] ${config.method?.toUpperCase()} ${config.url} | Token: ${token.substring(0, 10)}...`);
-                    } else {
-                        console.warn(`⚠️ [API] ${config.method?.toUpperCase()} ${config.url} | NO TOKEN FOUND in storage!`);
+                        default:
+                            console.warn(`⚠️ [API] ${config.method?.toUpperCase()} ${config.url} | NO TOKEN FOUND in storage!`);
+                            break;
                     }
                 } catch (e) {
                     console.error('Error parsing auth-storage', e);
