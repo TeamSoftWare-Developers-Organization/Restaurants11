@@ -29,7 +29,10 @@ import {
     Lock,
     ShieldAlert,
     ArrowRight,
-    UserCheck
+    UserCheck,
+    Zap,
+    Box,
+    Rocket
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useUIStore } from '@/store/uiStore';
@@ -426,33 +429,158 @@ export default function DesktopShowcasePage() {
                                         </div>
                                     </div>
 
-                                    {/* Method 3: Electron .exe */}
-                                    <div className="p-5 rounded-2xl border border-gray-200 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-900/40 flex flex-col justify-between space-y-4">
+                                    {/* Method 3: Tauri v2 .exe */}
+                                    <div className="p-5 rounded-2xl border-2 border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20 flex flex-col justify-between space-y-4">
                                         <div className="space-y-3">
-                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[11px] font-black">
-                                                <span>الخيار 3 (Electron .exe)</span>
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[11px] font-black">
+                                                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                                                <span>الخيار 3 (Tauri v2 • الأسرع والأخف)</span>
                                             </div>
-                                            <h3 className="font-black text-slate-900 dark:text-white text-base">حزمة التثبيت RestoERP-Setup.exe</h3>
+                                            <h3 className="font-black text-slate-900 dark:text-white text-base">مثبت ويندوز الرسمي (Tauri NSIS)</h3>
                                             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                                بناء حزمة ويندوز تنفيذية كاملة بمثبت احترافي NSIS للعملاء النهائيين.
+                                                حزمة سطح مكتب احترافية فائقة الخفة بنواة Rust الأصلية ومحرك WebView2 بدلاً من Electron، مع استهلاك رام ضئيل (أقل من 40MB).
                                             </p>
-                                            <div className="p-3 bg-gray-100 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 font-mono text-[11px] flex items-center justify-between">
-                                                <span>bun run desktop:dist</span>
-                                                <button
-                                                    onClick={() => copyToClipboard('bun run desktop:dist', 'dist')}
-                                                    className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-                                                    title="نسخ"
-                                                >
-                                                    {copiedSnippet === 'dist' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                                                </button>
+                                            <div className="space-y-2">
+                                                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">أمر بناء الحزمة والمثبت النهائي:</div>
+                                                <div className="p-2.5 bg-gray-100 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 font-mono text-[11px] flex items-center justify-between">
+                                                    <span>bun run tauri build</span>
+                                                    <button
+                                                        onClick={() => copyToClipboard('bun run tauri build', 'tauri-build')}
+                                                        className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                                                        title="نسخ"
+                                                    >
+                                                        {copiedSnippet === 'tauri-build' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium pt-2 border-t border-gray-200 dark:border-slate-800">
-                                            ✔ ملف تنفيذي تقليدي .exe <br />
-                                            ✔ تحكم عميق بالطابعات والمعدات
+                                        <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40">
+                                            ✔ توفير 80% من الرام مقارنة بـ Electron <br />
+                                            ✔ مثبت تنفيذي NSIS رسمي للعملاء
                                         </div>
                                     </div>
 
+                                </div>
+
+                                {/* Dedicated Tauri v2 Production & Installation Guide */}
+                                <div className="p-6 rounded-3xl border border-indigo-200/80 dark:border-indigo-900/40 bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/40 dark:from-slate-900/90 dark:via-slate-900/60 dark:to-indigo-950/30 space-y-5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-slate-800 pb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black">
+                                                <Rocket className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-slate-900 dark:text-white text-base">
+                                                    دليل بناء وتثبيت تطبيق سطح المكتب عبر محرك Tauri v2 (Rust)
+                                                </h3>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                    تم استبدال Electron.js بمحرك Tauri 2 لمنح تطبيق الكاشير استقراراً تاماً وسرعة فائقة بأقل استهلاك للموارد.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 text-xs font-black">
+                                            Tauri 2.12 + Rust Core
+                                        </span>
+                                    </div>
+
+                                    {/* Steps Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {/* Step 1 */}
+                                        <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/60 border border-gray-200/70 dark:border-slate-800 space-y-2.5">
+                                            <div className="flex items-center justify-between">
+                                                <span className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs font-black flex items-center justify-center">1</span>
+                                                <span className="text-[10px] font-bold text-slate-500">البيئة الأساسية</span>
+                                            </div>
+                                            <h4 className="font-black text-slate-900 dark:text-white text-xs">تثبيت متطلبات Rust & C++</h4>
+                                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                يحتاج تجميع Tauri لأول مرة لتوفر مترجم Rust و C++ Build Tools في نظام ويندوز.
+                                            </p>
+                                            <div className="p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg font-mono text-[10px] flex items-center justify-between">
+                                                <span>winget install Rustlang.Rustup</span>
+                                                <button
+                                                    onClick={() => copyToClipboard('winget install Rustlang.Rustup', 'rustup')}
+                                                    className="text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                                                    title="نسخ"
+                                                >
+                                                    {copiedSnippet === 'rustup' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Step 2 */}
+                                        <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/60 border border-gray-200/70 dark:border-slate-800 space-y-2.5">
+                                            <div className="flex items-center justify-between">
+                                                <span className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs font-black flex items-center justify-center">2</span>
+                                                <span className="text-[10px] font-bold text-slate-500">التطوير والتشغيل</span>
+                                            </div>
+                                            <h4 className="font-black text-slate-900 dark:text-white text-xs">تشغيل بيئة سطح المكتب الحية</h4>
+                                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                يفتح نافذة البرنامج فوراً مع خادم Next.js المحلي ويدعم التحديث الحي (Hot-Reload).
+                                            </p>
+                                            <div className="p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg font-mono text-[10px] flex items-center justify-between">
+                                                <span>bun run tauri dev</span>
+                                                <button
+                                                    onClick={() => copyToClipboard('bun run tauri dev', 'tauri-dev')}
+                                                    className="text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                                                    title="نسخ"
+                                                >
+                                                    {copiedSnippet === 'tauri-dev' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Step 3 */}
+                                        <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/60 border border-gray-200/70 dark:border-slate-800 space-y-2.5">
+                                            <div className="flex items-center justify-between">
+                                                <span className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs font-black flex items-center justify-center">3</span>
+                                                <span className="text-[10px] font-bold text-slate-500">الإنتاج النهائي</span>
+                                            </div>
+                                            <h4 className="font-black text-slate-900 dark:text-white text-xs">تجميع حزمة التثبيت (Setup.exe)</h4>
+                                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                تصدير الواجهة وبناء مثبت NSIS مدمج ومغلق الكود جاهز لتسليمه للعميل.
+                                            </p>
+                                            <div className="p-2 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg font-mono text-[10px] flex items-center justify-between">
+                                                <span>bun run tauri build</span>
+                                                <button
+                                                    onClick={() => copyToClipboard('bun run tauri build', 'tauri-bld')}
+                                                    className="text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                                                    title="نسخ"
+                                                >
+                                                    {copiedSnippet === 'tauri-bld' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Output path & Comparison bar */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+                                        <div className="p-3.5 rounded-xl bg-gray-100/80 dark:bg-slate-950/80 border border-gray-200 dark:border-slate-800 text-xs space-y-1.5">
+                                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                <Box className="w-4 h-4 text-indigo-500" />
+                                                مسار ملف التثبيت الناتج (.exe Installer):
+                                            </div>
+                                            <div className="font-mono text-[11px] text-indigo-700 dark:text-indigo-300 break-all bg-white dark:bg-slate-900 p-2 rounded-lg border border-gray-200/60 dark:border-slate-800">
+                                                src-tauri\target\release\bundle\nsis\SmartRestaurantPOS_1.0.0_x64-setup.exe
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3.5 rounded-xl bg-gray-100/80 dark:bg-slate-950/80 border border-gray-200 dark:border-slate-800 text-xs space-y-1.5">
+                                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                <Zap className="w-4 h-4 text-amber-500" />
+                                                مقارنة الأداء: Tauri v2 مقابل Electron القديم:
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300 pt-1">
+                                                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                                                    <span className="font-bold text-emerald-700 dark:text-emerald-400 block">Tauri v2 (الحالي):</span>
+                                                    استهلاك رام ~35MB • حجم خفيف جداً • إقلاع فوري
+                                                </div>
+                                                <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20">
+                                                    <span className="font-bold text-rose-700 dark:text-rose-400 block">Electron (الملغي):</span>
+                                                    استهلاك رام 250MB+ • حجم ضخم • إقلاع أبطأ
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
