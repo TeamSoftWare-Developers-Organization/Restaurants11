@@ -111,18 +111,43 @@ api.interceptors.request.use(
 
             // Only attach SuperDev Device Verification Headers when accessing SuperDev routes
             // to prevent unnecessary CORS preflight errors on normal endpoints
-            if (config.url?.includes('/superdev/')) {
-                const devToken = localStorage.getItem('resto_superdev_device_token');
-                if (devToken) {
-                    if (!config.headers) config.headers = {} as any;
-                    (config.headers as any)['X-SuperDev-Device-Token'] = devToken;
-                }
+            switch (Boolean(config.url?.includes('/superdev/'))) {
+                case true: {
+                    const devToken = localStorage.getItem('resto_superdev_device_token');
+                    switch (Boolean(devToken)) {
+                        case true:
+                            switch (Boolean(!config.headers)) {
+                                case true:
+                                    config.headers = {} as any;
+                                    break;
+                                default:
+                                    break;
+                            }
+                            (config.headers as any)['X-SuperDev-Device-Token'] = devToken;
+                            break;
+                        default:
+                            break;
+                    }
 
-                const machineId = localStorage.getItem('resto_client_machine_id');
-                if (machineId) {
-                    if (!config.headers) config.headers = {} as any;
-                    (config.headers as any)['X-Device-Machine-Id'] = machineId;
+                    const machineId = localStorage.getItem('resto_client_machine_id');
+                    switch (Boolean(machineId)) {
+                        case true:
+                            switch (Boolean(!config.headers)) {
+                                case true:
+                                    config.headers = {} as any;
+                                    break;
+                                default:
+                                    break;
+                            }
+                            (config.headers as any)['X-Device-Machine-Id'] = machineId;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
                 }
+                default:
+                    break;
             }
         }
         return config;
