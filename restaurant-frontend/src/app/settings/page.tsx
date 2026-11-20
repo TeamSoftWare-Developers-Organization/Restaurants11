@@ -34,7 +34,8 @@ import {
     Database,
     Network,
     Cable,
-    Clock
+    Clock,
+    Keyboard
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -47,6 +48,7 @@ import { attendanceService } from '@/services/attendanceService';
 import InvoiceLivePreview from '@/components/invoices/InvoiceLivePreview';
 import SuperDevKeyGenerator from '@/components/settings/SuperDevKeyGenerator';
 import SuperDevPostgresGuide from '@/components/settings/SuperDevPostgresGuide';
+import SystemShortcutsGuide from '@/components/settings/SystemShortcutsGuide';
 
 
 
@@ -66,7 +68,7 @@ export default function SettingsPage() {
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [localError, setLocalError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [activeTab, setActiveTab] = useState<'general' | 'financial' | 'invoices' | 'operational' | 'superdev'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'financial' | 'invoices' | 'operational' | 'shortcuts' | 'superdev'>('general');
     const [superDevSubTab, setSuperDevSubTab] = useState<'keys' | 'database' | 'biometrics'>('database');
     const [isTestingBiometric, setIsTestingBiometric] = useState(false);
     const [biometricTestResult, setBiometricTestResult] = useState<{
@@ -373,7 +375,7 @@ export default function SettingsPage() {
                     )}
 
                     {/* Tabs Navigation */}
-                    <div className={`grid grid-cols-2 ${isSuperDev ? 'md:grid-cols-5' : 'md:grid-cols-4'} p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 sm:mb-8 gap-1.5`}>
+                    <div className={`grid grid-cols-2 sm:grid-cols-3 ${isSuperDev ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 sm:mb-8 gap-1.5`}>
                         <button
                             type="button"
                             onClick={() => setActiveTab('general')}
@@ -422,11 +424,23 @@ export default function SettingsPage() {
                             <Globe className="w-4 h-4 shrink-0" />
                             التشغيل والتوصيل
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('shortcuts')}
+                            className={`flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                                activeTab === 'shortcuts'
+                                    ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm'
+                                    : 'text-gray-500 hover:bg-white/50 dark:hover:bg-gray-700/30'
+                            }`}
+                        >
+                            <Keyboard className="w-4 h-4 shrink-0 text-indigo-500" />
+                            اختصارات لوحة المفاتيح
+                        </button>
                         {isSuperDev && (
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('superdev')}
-                                className={`flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition-all cursor-pointer col-span-2 md:col-span-1 ${
+                                className={`flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl font-black text-xs sm:text-sm transition-all cursor-pointer col-span-2 sm:col-span-1 ${
                                     activeTab === 'superdev'
                                         ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/30'
                                         : 'text-amber-600 dark:text-amber-400 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/40'
@@ -1161,6 +1175,13 @@ export default function SettingsPage() {
                                         )}
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Shortcuts Tab */}
+                        {activeTab === 'shortcuts' && (
+                            <div className="space-y-6 animate-in fade-in duration-500">
+                                <SystemShortcutsGuide />
                             </div>
                         )}
                     </div>
