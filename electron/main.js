@@ -32,36 +32,44 @@ if (!gotTheLock) {
 /**
  * فحص استجابة خادم الويب المحلي
  */
-function checkServerReady(url, maxRetries = 35, intervalMs = 600) {
+function checkServerReady(url, maxRetries = 35, intervalMs = 500) {
+    const checkUrl = Array.isArray(url) ? url[0] : url;
     return new Promise((resolve) => {
         let attempts = 0;
+        let isDone = false;
+
         const check = () => {
+            if (isDone) return;
             attempts++;
-            const req = http.get(url, (res) => {
-                if (res.statusCode >= 200 && res.statusCode < 500) {
+
+            const req = http.get(checkUrl, (res) => {
+                if (!isDone && res.statusCode >= 200 && res.statusCode < 500) {
+                    isDone = true;
+                    console.log(`[Electron] تم الاتصال بالسيرفر بنجاح: ${checkUrl} (${res.statusCode})`);
                     resolve(true);
-                } else if (attempts < maxRetries) {
-                    setTimeout(check, intervalMs);
-                } else {
-                    resolve(false);
+                } else if (!isDone) {
+                    if (attempts < maxRetries) {
+                        setTimeout(check, intervalMs);
+                    } else {
+                        isDone = true;
+                        resolve(false);
+                    }
                 }
             });
 
             req.on('error', () => {
-                if (attempts < maxRetries) {
-                    setTimeout(check, intervalMs);
-                } else {
-                    resolve(false);
+                if (!isDone) {
+                    if (attempts < maxRetries) {
+                        setTimeout(check, intervalMs);
+                    } else {
+                        isDone = true;
+                        resolve(false);
+                    }
                 }
             });
 
             req.setTimeout(1200, () => {
                 req.destroy();
-                if (attempts < maxRetries) {
-                    setTimeout(check, intervalMs);
-                } else {
-                    resolve(false);
-                }
             });
         };
         check();
@@ -112,7 +120,7 @@ function getBackendExecutablePath() {
  * تشغيل خادم Django الخلفي
  */
 function startBackend() {
-    checkServerReady(`${BACKEND_URL}/api/docs`, 2, 400).then((isAlive) => {
+    checkServerReady(`${BACKEND_URL}/api/health`, 2, 300).then((isAlive) => {
         if (isAlive) {
             console.log('[Electron] سيرفر الباك إند يعمل مسبقاً على المنفذ ' + BACKEND_PORT);
             return;
@@ -227,7 +235,7 @@ function createWindow() {
         height: 900,
         minWidth: 1024,
         minHeight: 700,
-        title: 'RestoERP - Restaurant Management & POS Suite',
+        title: 'RestoSystem - نظام إدارة المطاعم ونقاط البيع | TechTwo',
         icon: iconPath,
         backgroundColor: '#070b14',
         show: false,
@@ -286,8 +294,9 @@ function createWindow() {
     </head>
     <body>
         <div class="spinner"></div>
-        <h1>RestoERP - نظام إدارة المطاعم والمقاهي</h1>
-        <p>جاري تشغيل خوادم النظام وقواعد البيانات المحلية تلقائياً...</p>
+        <h1>RestoSystem - نظام رستو تك لإدارة المطاعم</h1>
+        <p style="font-weight:600; color:#38bdf8; margin-bottom:4px;">تطوير فريق TechTwo (تك تو) للحلول البرمجية المتكاملة</p>
+        <p style="font-size:12px; color:#94a3b8;">جاري تشغيل خوادم النظام وقواعد البيانات المحلية تلقائياً...</p>
     </body>
     </html>
     `;
@@ -307,7 +316,7 @@ function createWindow() {
         }
 
         // انتظار استقرار خادم الباك إند (الذي يقدم الواجهة والـ API)
-        const backendReady = await checkServerReady(`${BACKEND_URL}/api/docs`, 40, 600);
+        const backendReady = await checkServerReady(`${BACKEND_URL}/api/health`, 50, 500);
         if (backendReady && mainWindow) {
             console.log('[Electron] توجيه النافذة نحو خادم الإنتاج الموحد:', BACKEND_URL);
             mainWindow.loadURL(BACKEND_URL);
@@ -337,6 +346,17 @@ function createWindow() {
         if (input.key === 'F11' && input.type === 'keyDown') {
             mainWindow.setFullScreen(!mainWindow.isFullScreen());
             event.preventDefault();
+        }
+    });
+
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+        console.error(`[Electron] فشل تحميل الرابط (${errorCode}): ${errorDescription} - ${validatedURL}`);
+        if (validatedURL && (validatedURL.includes('127.0.0.1') || validatedURL.includes('localhost'))) {
+            setTimeout(() => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.loadURL(BACKEND_URL);
+                }
+            }, 1500);
         }
     });
 

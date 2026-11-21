@@ -226,7 +226,7 @@ def main():
 
     # الانتظار حتى يتأكد السكربت من جاهزية خادم Django
     print(" ⏳ التحقق من جاهزية خادم الباك إند...")
-    wait_for_server(f"http://127.0.0.1:{backend_port}/api/docs", timeout=15)
+    wait_for_server(f"http://127.0.0.1:{backend_port}/api/health", timeout=15)
 
     # 4. تشغيل الواجهة الأمامية (Bun / Next.js)
     # فحص مسار bun المدمج داخل مجلد bin أولاً

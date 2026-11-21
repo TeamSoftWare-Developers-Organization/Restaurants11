@@ -1,9 +1,9 @@
 {
-  "name": "restoerp-desktop",
+  "name": "restosystem-desktop",
   "version": "1.0.0",
-  "description": "RestoERP - Standalone Desktop Restaurant Management & POS Suite",
+  "description": "RestoSystem - Smart Restaurant Management & POS Suite by TechTwo",
   "main": "electron/main.js",
-  "author": "RestoERP Team",
+  "author": "TechTwo Team",
   "license": "MIT",
   "scripts": {
     "start": "electron electron/main.js",
@@ -13,35 +13,37 @@
     "build:all": "npm run frontend:build && npm run backend:build",
     "desktop:pack": "electron-builder --dir",
     "desktop:dist": "electron-builder --win nsis",
-    "desktop:portable": "electron-builder --win portable"
+    "desktop:portable": "electron-builder --win portable",
+    "tauri:info": "cd restaurant-frontend && npx tauri info",
+    "tauri:sidecar": "restaurantsApi\\venv\\Scripts\\python.exe build_backend.py --tauri",
+    "tauri:dev": "cd restaurant-frontend && npm run tauri dev",
+    "tauri:build": "npm run tauri:sidecar && cd restaurant-frontend && npm run tauri build"
   },
   "devDependencies": {
     "electron": "^33.4.11",
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.restoerp.pos",
-    "productName": "RestoERP",
-    "copyright": "Copyright © 2026 RestoERP Team",
+    "appId": "com.techtwo.restosystem",
+    "productName": "RestoSystem",
+    "copyright": "Copyright © 2026 TechTwo Team. All rights reserved.",
+    "compression": "maximum",
+    "electronLanguages": [
+      "ar",
+      "en",
+      "en-US"
+    ],
     "directories": {
       "output": "dist_electron"
     },
     "files": [
       "electron/**/*",
-      "restaurant-frontend/out/**/*",
       "restaurant-frontend/public/icons/**/*"
     ],
     "extraResources": [
       {
         "from": "backend_dist/django_server",
         "to": "django_server",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "restaurant-frontend/out",
-        "to": "frontend",
         "filter": [
           "**/*"
         ]
@@ -69,10 +71,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "RestoERP POS",
+      "shortcutName": "RestoSystem POS",
       "installerIcon": "electron/icon.ico",
       "uninstallerIcon": "electron/icon.ico",
-      "uninstallDisplayName": "RestoERP POS Suite"
+      "uninstallDisplayName": "RestoSystem POS Suite"
     }
   }
 }

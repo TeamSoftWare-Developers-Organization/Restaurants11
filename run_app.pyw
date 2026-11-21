@@ -178,7 +178,7 @@ def start_services() -> tuple[subprocess.Popen | None, subprocess.Popen | None, 
     )
 
     # انتظار جاهزية السيرفرات
-    wait_for_server(f"http://127.0.0.1:{backend_port}/api/docs", timeout=15)
+    wait_for_server(f"http://127.0.0.1:{backend_port}/api/health", timeout=15)
     wait_for_server(f"http://localhost:{frontend_port}", timeout=35)
 
     return backend_proc, frontend_proc, frontend_port
