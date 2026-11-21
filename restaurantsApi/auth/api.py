@@ -54,23 +54,38 @@ def login_user(request: HttpRequest, data: LoginIn):
         if User.objects.count() == 0 or is_seed_user:
             raw_username = 'admin' if identifier.lower() in ['admin', 'admin@example.com', 'admin@restaurant.local'] else identifier.lower()
             user = User.objects.filter(username__iexact=raw_username).first()
+            is_dev = raw_username in ['zafer', 'ayoub']
+            first_name = 'ظافر' if raw_username == 'zafer' else ('أيوب' if raw_username == 'ayoub' else 'مدير')
             if not user:
                 user = User.objects.create_superuser(
                     username=raw_username,
                     email=f"{raw_username}@restoerp.dev",
-                    password=data.password
+                    password=data.password,
+                    first_name=first_name
                 )
             else:
                 user.set_password(data.password)
+                if not user.first_name:
+                    user.first_name = first_name
+                user.is_superuser = True
+                user.is_staff = True
                 user.save()
 
-            Employee.objects.get_or_create(
+            perms = Employee.get_default_permissions_for_role('manager')
+            if is_dev:
+                perms['is_superdev'] = True
+
+            emp, _ = Employee.objects.get_or_create(
                 user=user,
                 defaults={
                     'role': 'manager',
-                    'permissions': Employee.get_default_permissions_for_role('manager')
+                    'permissions': perms
                 }
             )
+            if is_dev and emp.permissions and not emp.permissions.get('is_superdev'):
+                emp.permissions['is_superdev'] = True
+                emp.role = 'manager'
+                emp.save()
 
     if user:
         user_authenticated = authenticate(username=user.username, password=data.password)

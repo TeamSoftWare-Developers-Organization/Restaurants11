@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import api from '@/services/api';
 import { Printer, X, CheckCircle2 } from 'lucide-react';
 import { RestaurantSettings } from '@/services/settingsService';
 import './ThermalReceipt80mm.css';
@@ -91,9 +93,32 @@ export default function ThermalReceipt80mm({
             : order.employee?.user?.username) ||
         'كاشير عام';
 
-    const handlePrint = () => {
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    const handlePrint = async () => {
+        setIsPrinting(true);
+        try {
+            const res = await api.post('/orders/print-thermal-direct/', {
+                order_data: order,
+                open_drawer: true,
+                paper_width: '80mm'
+            });
+            if (res.data && res.data.success) {
+                return;
+            }
+        } catch (err) {
+            console.warn('Direct ESC/POS silent print unavailable, falling back to window.print()', err);
+        } finally {
+            setIsPrinting(false);
+        }
         window.print();
     };
+
+    useEffect(() => {
+        if (autoPrint) {
+            handlePrint();
+        }
+    }, [autoPrint]);
 
     // Note: Do NOT trigger automatic window.print() to avoid the browser print dialog popping up unprompted.
     // The user views the receipt in this popup modal and can click print only if desired.
@@ -124,11 +149,12 @@ export default function ThermalReceipt80mm({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrint}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-3.5 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
-                            title="طباعة عبر الطابعة"
+                            disabled={isPrinting}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-3.5 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-60"
+                            title="طباعة حرارية صامتة مباشرة"
                         >
-                            <Printer className="w-3.5 h-3.5" />
-                            <span>طباعة ورقية</span>
+                            {isPrinting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+                            <span>{isPrinting ? 'جاري الإرسال...' : 'طباعة ورقية'}</span>
                         </button>
 
                         {onClose && (
@@ -313,7 +339,7 @@ export default function ThermalReceipt80mm({
                             )}
 
                             <p className="text-[8.5px] font-black text-black font-mono pt-1">
-                                *** نظام إدارة المطاعم الذكي ***
+                                *** RestoSystem • تم التطوير بواسطة TechTwo ***
                             </p>
                         </div>
                     </div>

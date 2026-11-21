@@ -171,7 +171,7 @@ export default function DesktopShowcasePage() {
                                 <div className="flex flex-wrap items-center gap-2">
                                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100/70 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-400/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold tracking-wide">
                                         <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                                        <span>برنامج سطح المكتب المخصص • RestoERP Desktop Edition v1.0.0</span>
+                                        <span>برنامج سطح المكتب المخصص • RestoSystem Desktop Edition v1.0.0 • TechTwo</span>
                                     </div>
                                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
                                         <UserCheck className="w-3.5 h-3.5" />
@@ -631,7 +631,7 @@ export default function DesktopShowcasePage() {
                                         كيف تربط أجهزة المطبخ والصالة بالسيرفر الرئيسي؟
                                     </h4>
                                     <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        يعمل RestoERP بنظام الخادم المحلي (Local LAN Server)، حيث يمكن للجهاز الرئيسي (الكاشير) أن يستضيف النظام لجميع الأجهزة والتابلت المتصلة بنفس راوتر المطعم دون الحاجة لإنترنت!
+                                        يعمل RestoSystem بنظام الخادم المحلي (Local LAN Server)، حيث يمكن للجهاز الرئيسي (الكاشير) أن يستضيف النظام لجميع الأجهزة والتابلت المتصلة بنفس راوتر المطعم دون الحاجة لإنترنت!
                                     </p>
                                 </div>
 

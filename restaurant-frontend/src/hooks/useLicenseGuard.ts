@@ -1,46 +1,70 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, ChangeEvent, FormEvent } from 'react';
-import { licenseService, LicenseStatus } from '@/services/licenseService';
+import api from '@/services/api';
+import { licenseService } from '@/services/licenseService';
+import { ILicenseStatus } from '@/types';
 
 export function useLicenseGuard() {
-  const [license, setLicense] = useState<LicenseStatus | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [productKey, setProductKey] = useState('');
-  const [isActivating, setIsActivating] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [license, setLicense] = useState<ILicenseStatus | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isBlocked, setIsBlocked] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
-  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  const [productKey, setProductKey] = useState<string>('');
+  const [isActivating, setIsActivating] = useState<boolean>(false);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [isBannerDismissed, setIsBannerDismissed] = useState<boolean>(false);
   const [secondsLeft, setSecondsLeft] = useState<number>(0);
 
-  // حساب التوقيت المطلق لانتهاء التجربة
-  const expirationTimestamp = useMemo(() => {
-    if (!license?.installed_at) return null;
-    const installedMs = new Date(license.installed_at).getTime();
-    const durationMs = (license.trial_duration_seconds || 3600) * 1000;
-    return installedMs + durationMs;
-  }, [license?.installed_at, license?.trial_duration_seconds]);
-
-  // فحص حالة الترخيص عند تحميل المكون
-  const fetchStatus = useCallback(async (retryCount = 1) => {
+  // فحص حالة الترخيص مع مهلة أقصاها 3 ثوانٍ حتى لا تتجمد الواجهة نهائياً
+  const checkLicense = useCallback(async () => {
     try {
-      const data = await licenseService.getLicenseStatus();
-      setLicense(data);
-    } catch (err: any) {
-      console.warn('[ActivationGuard] Could not fetch license status:', err?.message || err);
-      if (retryCount > 0) {
-        setTimeout(() => fetchStatus(retryCount - 1), 3000);
-        return;
+      setIsLoading(true);
+      setErrorMessage('');
+
+      const response = await api.get<ILicenseStatus>('/core/license/status/', {
+        timeout: 3000,
+      });
+
+      setLicense(response.data);
+      const isCloud = response.data.license_type === 'CLOUD' || Boolean((response.data as any).is_cloud);
+      // إذا انتهت الفترة التجريبية ولم يتم التفعيل
+      const isExpired = (response.data as any).is_expired || (!response.data.is_trial_active && !response.data.is_activated);
+      if (!isCloud && isExpired && !response.data.is_activated) {
+        setIsBlocked(true);
+      } else {
+        setIsBlocked(false);
       }
+    } catch (error: any) {
+      console.error('فشل التحقق من الترخيص:', error);
+      // في حال تعذر الوصول للسيرفر، ننهي التعليق فوراً ونظهر شاشة القفل/التفعيل
+      setIsBlocked(true);
+      setErrorMessage(
+        error.code === 'ECONNABORTED'
+          ? 'انتهت مهلة الاتصال بالخادم الداخلي.'
+          : 'تعذر الاتصال بخادم النظام الداخلي (Django).'
+      );
     } finally {
+      // إيقاف مؤشر التحميل مهما كانت النتيجة لكسر الشاشة المعلقة
       setIsLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    checkLicense();
+  }, [checkLicense]);
+
+  // حساب التوقيت المطلق لانتهاء التجربة
+  const expirationTimestamp = useMemo(() => {
+    if (!license?.installed_at || license.license_type === 'CLOUD' || (license as any)?.is_cloud) return null;
+    const installedMs = new Date(license.installed_at).getTime();
+    const durationMs = (license.trial_duration_seconds || 3600) * 1000;
+    return installedMs + durationMs;
+  }, [license?.installed_at, license?.trial_duration_seconds, license?.license_type]);
+
   // دالة لمزامنة الثواني المتبقية مع التوقيت الفعلي للجهاز
   const syncRemainingTime = useCallback(() => {
-    // Guard clause: Early exit if trial not active or no expiration
     if (!license || !license.is_trial_active || !expirationTimestamp) return;
 
     const now = Date.now();
@@ -48,30 +72,25 @@ export function useLicenseGuard() {
     setSecondsLeft(remaining);
 
     if (remaining <= 0) {
-      fetchStatus();
+      checkLicense();
     }
-  }, [license, expirationTimestamp, fetchStatus]);
+  }, [license, expirationTimestamp, checkLicense]);
 
-  // مزامنة فورية عند جلب بيانات الترخيص
   useEffect(() => {
     syncRemainingTime();
   }, [syncRemainingTime]);
 
-  // عداد تنازلي حي يتزامن لحظياً وكل ثانية ومع عودة الجهاز من الإغلاق أو وضع السكون
   useEffect(() => {
     if (!license || !license.is_trial_active || !expirationTimestamp) return;
 
     syncRemainingTime();
-
-    // 1. نبضة كل ثانية لحساب الوقت الحقيقي المنقضي
     const interval = setInterval(() => {
       syncRemainingTime();
     }, 1000);
 
-    // 2. تحديث فوري عند استئناف الجهاز أو فتح الشاشة أو عودة التركيز للنافذة
     const handleWakeOrFocus = () => {
       syncRemainingTime();
-      fetchStatus();
+      checkLicense();
     };
 
     document.addEventListener('visibilitychange', handleWakeOrFocus);
@@ -82,11 +101,7 @@ export function useLicenseGuard() {
       document.removeEventListener('visibilitychange', handleWakeOrFocus);
       window.removeEventListener('focus', handleWakeOrFocus);
     };
-  }, [license, expirationTimestamp, syncRemainingTime, fetchStatus]);
-
-  useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
+  }, [license, expirationTimestamp, syncRemainingTime, checkLicense]);
 
   const formatCountdown = useCallback((secs: number) => {
     if (secs <= 0) return 'انتهت مدة التجربة';
@@ -99,7 +114,7 @@ export function useLicenseGuard() {
     return `${mins} دقيقة و ${s} ثانية`;
   }, []);
 
-  // نسخ معرف الجهاز مع Guard Clause
+  // نسخ معرف الجهاز
   const handleCopyMachineId = useCallback(() => {
     if (!license?.machine_id) return;
     navigator.clipboard.writeText(license.machine_id);
@@ -113,7 +128,7 @@ export function useLicenseGuard() {
     if (val.length > 16) val = val.slice(0, 16);
     const parts = val.match(/.{1,4}/g);
     setProductKey(parts ? parts.join('-') : val);
-    setErrorMessage(null);
+    setErrorMessage('');
   }, []);
 
   // إرسال كود التفعيل
@@ -121,14 +136,13 @@ export function useLicenseGuard() {
     async (e?: FormEvent) => {
       if (e) e.preventDefault();
 
-      // Guard clause: Empty product key
       if (!productKey.trim()) {
         setErrorMessage('يرجى إدخال مفتاح المنتج المكون من 16 حرفاً.');
         return;
       }
 
       setIsActivating(true);
-      setErrorMessage(null);
+      setErrorMessage('');
       setSuccessMessage(null);
 
       try {
@@ -156,26 +170,30 @@ export function useLicenseGuard() {
     [productKey]
   );
 
-  const isLocked = Boolean(license && !license.is_valid);
+  const isCloud = license?.license_type === 'CLOUD' || Boolean((license as any)?.is_cloud);
+  const isLocked = !isCloud && (isBlocked || Boolean(license && !license.is_valid));
 
   return {
     license,
     isLoading,
-    productKey,
-    setProductKey,
-    isActivating,
+    isBlocked,
+    isLocked,
     errorMessage,
     setErrorMessage,
     successMessage,
+    productKey,
+    setProductKey,
+    isActivating,
     isCopied,
     isBannerDismissed,
     setIsBannerDismissed,
     secondsLeft,
-    isLocked,
     formatCountdown,
     handleCopyMachineId,
     handleKeyChange,
     handleActivate,
-    fetchStatus
+    retry: checkLicense,
+    fetchStatus: checkLicense,
+    connectionError: isBlocked && !license ? errorMessage : null,
   };
 }

@@ -1,5 +1,5 @@
 """
-RestoERP Setup Wizard - مثبت النظام التفاعلي
+RestoSystem Setup Wizard - مثبت النظام التفاعلي
 واجهة رسومية تفاعلية حديثة تتيح للمستخدم أو العميل اختيار المكونات والأدوات المراد تثبيتها
 مع دعم التثبيت النظيف (Clean Install) وتصفير الإعدادات القديمة بالكامل.
 """
@@ -24,7 +24,7 @@ FRONTEND_DIR = ROOT_DIR / "restaurant-frontend"
 class ModernSetupWizard(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("RestoERP — معالج تثبيت النظام وإعداد المكونات")
+        self.title("RestoSystem — معالج تثبيت النظام وإعداد المكونات")
         self.geometry("760x640")
         self.minsize(720, 560)
         self.configure(bg="#0F172A")  # لون خلفية كحلي داكن عصري
@@ -57,7 +57,7 @@ class ModernSetupWizard(tk.Tk):
 
         title_lbl = tk.Label(
             header_frame,
-            text="🍽️ معالج تثبيت وتجهيز نظام المطاعم المتكامل (RestoERP)",
+            text="🍽️ معالج تثبيت وتجهيز نظام المطاعم المتكامل (RestoSystem)",
             font=("Segoe UI", 14, "bold"),
             fg="#F8FAFC",
             bg="#1E293B"
@@ -325,7 +325,7 @@ class ModernSetupWizard(tk.Tk):
 
             # اكتمال التثبيت
             self.log("✅ اكتمل تثبيت وتجهيز كافة المكونات المحددة بنجاح!", total_steps, total_steps)
-            messagebox.showinfo("تم التثبيت بنجاح", "تهانينا! تم تثبيت وإعداد نظام RestoERP كنسخة جديدة نظيفة بنجاح تام.\nيمكنك الآن تشغيل النظام مباشرة.")
+            messagebox.showinfo("تم التثبيت بنجاح", "تهانينا! تم تثبيت وإعداد نظام RestoSystem كنسخة جديدة نظيفة بنجاح تام.\nيمكنك الآن تشغيل النظام مباشرة.")
             self.destroy()
 
         except Exception as err:
@@ -457,7 +457,7 @@ SECRET_KEY=django-insecure-fresh-restoerp-setup-key-2026-clean-instance
         try:
             desktop = Path(os.path.expandvars(r"%USERPROFILE%\Desktop"))
             target_bat = ROOT_DIR / "start_system.bat"
-            shortcut_path = desktop / "RestoERP POS.lnk"
+            shortcut_path = desktop / "RestoSystem POS.lnk"
             icon_path = ROOT_DIR / "dist" / ".icon-ico" / "icon.ico"
 
             vbs_script = f"""
@@ -466,7 +466,7 @@ sLinkFile = "{shortcut_path}"
 Set oLink = oWS.CreateShortcut(sLinkFile)
 oLink.TargetPath = "{target_bat}"
 oLink.WorkingDirectory = "{ROOT_DIR}"
-oLink.Description = "RestoERP Restaurant Management and POS"
+oLink.Description = "RestoSystem Restaurant Management and POS"
 If "{icon_path}" <> "" Then
     oLink.IconLocation = "{icon_path}"
 End If

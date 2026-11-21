@@ -146,6 +146,7 @@ class SystemLicense(models.Model):
     LICENSE_TYPE_CHOICES = [
         ('TRIAL', 'فترة تجريبية (ساعة واحدة)'),
         ('LIFETIME', 'ترخيص دائم مدى الحياة'),
+        ('CLOUD', 'ترخيص سحابي غير محدود (Cloud Unlimited)'),
     ]
 
     machine_id = models.CharField(max_length=64, unique=True, verbose_name="معرف الجهاز الفريد (Machine ID)")
@@ -162,14 +163,18 @@ class SystemLicense(models.Model):
         verbose_name_plural = "تراخيص النظام"
 
     def __str__(self):
+        if self.license_type == 'CLOUD':
+            return f"ترخيص الجهاز [{self.machine_id}] - ترخيص سحابي غير محدود ☁️"
         status_text = "مفعل" if self.is_activated else f"تجريبي ({self.remaining_trial_formatted} متبقية)"
         return f"ترخيص الجهاز [{self.machine_id}] - {status_text}"
 
     @property
     def trial_duration_seconds(self) -> int:
         """
-        إجمالي مدة الفترة التجريبية بالثواني (افتراضياً 1.0 ساعة = 3600 ثانية)
+        إجمالي مدة الفترة التجريبية بالثواني (للسحابي أو المفعل 10 سنوات)
         """
+        if self.license_type == 'CLOUD' or self.is_activated:
+            return 86400 * 3650
         hours = getattr(self, 'trial_hours', 1.0) or 1.0
         return int(hours * 3600)
 
@@ -177,9 +182,9 @@ class SystemLicense(models.Model):
     def elapsed_seconds(self) -> int:
         """
         الوقت المنقضي بالثواني منذ بدء التثبيت أو إعادة تعيين الفترة التجريبية
-        يتم حسابه بالوقت الحقيقي المطلق (Wall-clock Time) بحيث تستمر المدة
-        بالنقصان حتى ولو كان الجهاز مغلقاً أو مطفأً أو في وضع السكون.
         """
+        if self.license_type == 'CLOUD' or self.is_activated:
+            return 0
         now = timezone.now()
         # حماية ضد التلاعب بساعة النظام: إذا قام المستخدم بإرجاع ساعة الجهاز قبل تاريخ التثبيت
         if now < self.installed_at:
@@ -192,8 +197,8 @@ class SystemLicense(models.Model):
         """
         الثواني المتبقية من الفترة التجريبية
         """
-        if self.is_activated:
-            return 0
+        if self.license_type == 'CLOUD' or self.is_activated:
+            return 86400 * 3650
         rem = self.trial_duration_seconds - self.elapsed_seconds
         return max(0, rem)
 
@@ -202,7 +207,7 @@ class SystemLicense(models.Model):
         """
         التحقق مما إذا كانت الفترة التجريبية لا تزال سارية المفعول
         """
-        if self.is_activated:
+        if self.license_type in ('CLOUD', 'LIFETIME') or self.is_activated:
             return False
         return self.remaining_trial_seconds > 0
 
@@ -225,6 +230,8 @@ class SystemLicense(models.Model):
         """
         صيغة نصية تفصيلية للوقت المتبقي (ساعات، دقائق، ثوانٍ)
         """
+        if self.license_type == 'CLOUD':
+            return "ترخيص سحابي غير محدود ☁️"
         if self.is_activated:
             return "مفعل دائماً"
         secs = self.remaining_trial_seconds
@@ -243,6 +250,8 @@ class SystemLicense(models.Model):
     @property
     def is_valid(self) -> bool:
         """
-        صلاحية النظام للعمل (إما مفعل مدى الحياة أو في فترة التجربة)
+        صلاحية النظام للعمل (إما مفعل مدى الحياة أو ترخيص سحابي أو في فترة التجربة)
         """
+        if self.license_type in ('CLOUD', 'LIFETIME'):
+            return True
         return self.is_activated or self.is_trial_active

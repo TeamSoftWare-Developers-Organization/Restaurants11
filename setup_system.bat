@@ -81,7 +81,7 @@ cd /d "%SCRIPT_DIR%"
 :: 6. إنشاء اختصار مباشر على سطح المكتب للعميل
 echo.
 echo [5/5] Creating Desktop Application Shortcut on User Desktop...
-set "VBS_SCRIPT=%TEMP%\create_restoerp_shortcut.vbs"
+set "VBS_SCRIPT=%TEMP%\create_restosystem_shortcut.vbs"
 
 :: تحديد مسار الأيقونة المفضلة
 set "ICON_PATH=%SCRIPT_DIR%electron\icon.ico"
@@ -98,7 +98,7 @@ echo oLink.WorkingDirectory = "%SCRIPT_DIR%" >> "%VBS_SCRIPT%"
 if exist "%ICON_PATH%" (
     echo oLink.IconLocation = "%ICON_PATH%" >> "%VBS_SCRIPT%"
 )
-echo oLink.Description = "نظام إدارة المطاعم والمقاهي الذكي - RestoERP" >> "%VBS_SCRIPT%"
+echo oLink.Description = "نظام إدارة المطاعم والمقاهي الذكي - RestoSystem" >> "%VBS_SCRIPT%"
 echo oLink.Save >> "%VBS_SCRIPT%"
 
 cscript //nologo "%VBS_SCRIPT%" >nul 2>&1

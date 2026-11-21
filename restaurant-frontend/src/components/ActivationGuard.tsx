@@ -18,6 +18,8 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
     const {
         license,
         isLoading,
+        connectionError,
+        fetchStatus,
         productKey,
         isActivating,
         errorMessage,
@@ -37,8 +39,32 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
     if (isLoading) {
         return (
             <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center text-white space-y-4">
-                <div className="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 <p className="text-sm font-bold text-gray-400">جاري التحقق من أمان وترخيص النظام...</p>
+            </div>
+        );
+    }
+
+    // إذا فشل الاتصال بالخادم ولم تتوفر بيانات الترخيص
+    if (connectionError && !license) {
+        return (
+            <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-6 text-white text-center space-y-4" dir="rtl">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-amber-500/10">
+                    <ShieldAlert className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-white">تعذر الاتصال بخادم النظام الداخلي</h3>
+                <p className="text-sm text-gray-400 max-w-md">
+                    {errorMessage || 'تعذر الاتصال بخادم النظام الداخلي (Django) على المنفذ 8000.'}
+                </p>
+                <div className="flex items-center gap-3 mt-4">
+                    <button
+                        onClick={() => fetchStatus()}
+                        type="button"
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+                    >
+                        إعادة المحاولة الآن
+                    </button>
+                </div>
             </div>
         );
     }
@@ -154,8 +180,8 @@ export default function ActivationGuard({ children }: { children: React.ReactNod
         );
     }
 
-    // الحالة 2: النظام مفعل بصفة دائمة -> عرض التطبيق مباشرة دون أي تنبيه
-    if (license?.is_activated) {
+    // الحالة 2: النظام مفعل بصفة دائمة أو ترخيص سحابي -> عرض التطبيق مباشرة دون أي تنبيه
+    if (license?.is_activated || license?.license_type === 'CLOUD' || Boolean((license as any)?.is_cloud)) {
         return <>{children}</>;
     }
 

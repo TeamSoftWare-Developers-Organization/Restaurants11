@@ -69,3 +69,10 @@ backend_dist/
 dist_electron/
 build_staging_backend/
 *.blockmap
+*.bak
+restaurant-frontend/src-tauri/target/
+src-tauri/target/
+restaurant-frontend/src-tauri/binaries/
+src-tauri/binaries/
+restaurant-frontend/src-tauri/resources/
+src-tauri/resources/

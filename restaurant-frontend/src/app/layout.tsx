@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
-import { Cairo } from "next/font/google";
 import "./globals.css";
 
-const cairo = Cairo({
-  variable: "--font-cairo",
-  subsets: ["arabic"],
-  weight: ["200", "300", "400", "500", "600", "700", "800", "900", "1000"],
-});
+const cairo = { variable: "font-cairo" };
 
 export const metadata: Metadata = {
-  title: "نظام إدارة المطعم المتكامل | Restaurant AI ERP & POS",
-  description: "نظام شامل لإدارة المطاعم، الموظفين، المخزون، والطلبات مدعوم بالذكاء الاصطناعي",
+  title: "RestoSystem | نظام إدارة المطاعم ونقاط البيع - TechTwo",
+  description: "نظام RestoSystem المتكامل لإدارة المطاعم والمقاهي ونقاط البيع، تطوير فريق TechTwo للحلول البرمجية المتكاملة",
   icons: {
     icon: "/icons/icon-192x192.png",
     apple: "/icons/icon-192x192.png",

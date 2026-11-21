@@ -25,9 +25,15 @@ from ninja_extra import NinjaExtraAPI
 from ninja_jwt.controller import NinjaJWTDefaultController
 
 # إنشاء كائن NinjaExtraAPI لدعم JWT
-api = NinjaExtraAPI(title="Restaurant Management System API",
-    description="API للتعامل مع نظام إدارة المطاعم",
-    version="1.0.0",)
+api = NinjaExtraAPI(
+    title="RestoSystem API",
+    description="واجهة برمجة تطبيقات نظام RestoSystem - تطوير فريق TechTwo",
+    version="2.0.0",
+)
+
+@api.get("/health", auth=None)
+def health_check(request):
+    return {"status": "ok", "app": "RestoSystem", "team": "TechTwo"}
 
 def add_router_safe(prefix, router_obj):
     if router_obj is not None:
@@ -54,13 +60,7 @@ add_router_safe("/core/license", license_router)
 add_router_safe("/zakat", zakat_router)
 add_router_safe("/ai", ai_router)
 
-# مثال:
-# @api.get("/hello")
-# def hello(request):
-#     return {"message": "Hello from Django Ninja!"}
-
 urlpatterns = [
-
     path('admin/', admin.site.urls),
     path('api/', api.urls),
 ]
@@ -101,7 +101,7 @@ if getattr(settings, 'FRONTEND_DIST', None) and settings.FRONTEND_DIST.exists():
 else:
     urlpatterns += [
         path('', lambda request: redirect('/api/docs'), name='root_redirect'),
-]
+    ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

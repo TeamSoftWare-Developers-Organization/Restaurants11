@@ -1,4 +1,4 @@
-# 🍽️ Restaurants11 — Smart Restaurant Management & POS System
+# 🍽️ RestoSystem — Smart Restaurant Management & POS System by TechTwo
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.5-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB?logo=react)](https://react.dev/)
@@ -9,7 +9,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-Responsive-06B6D4?logo=tailwind-css)](https://tailwindcss.com/)
 [![TensorFlow](https://img.shields.io/badge/AI_Biometrics-TensorFlow_CNN-FF6F00?logo=tensorflow)](https://tensorflow.org/)
 [![ZATCA Compliant](https://img.shields.io/badge/E--Invoicing-ZATCA_Phase_2-008080)](https://zatca.gov.sa/)
-[![License](https://img.shields.io/badge/License-TeamSoftWare-orange.svg)](#license)
+[![Team](https://img.shields.io/badge/Team-TechTwo-blue.svg)](#license)
 
 A modern, cloud-ready and standalone desktop-capable Restaurant Enterprise Resource Planning (ERP) and Point of Sale (POS) system. Powered by **Artificial Intelligence & Machine Learning** for biometric attendance, hardware scanners, intelligent market basket analysis, stock depletion forecasting, cashier fraud detection, kitchen synchronized firing (KDS), reservation no-show prediction, menu engineering matrices, one-click automated procurement, and an exclusive **SuperDev Portal** for hardware-locked lifetime licensing, wall-clock trial security, and automated PostgreSQL database setup.
 

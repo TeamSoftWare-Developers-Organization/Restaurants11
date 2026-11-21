@@ -64,12 +64,12 @@ export default function LoginPage() {
                 <div className="bg-card dark:bg-card/70 backdrop-blur-xl border border-gray-100 dark:border-gray-800/40 shadow-2xl rounded-2xl p-6 sm:p-7">
                     {/* Header */}
                     <div className="flex flex-col items-center gap-3 mb-6">
-                        <div className="w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30 rotate-3">
-                            <LayoutDashboard className="w-5 h-5 text-white" />
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl shadow-indigo-600/25 border border-indigo-500/30 bg-slate-950 p-1 flex items-center justify-center">
+                            <img src="/branding/restosystem-logo.png" alt="RestoSystem" className="w-full h-full object-cover rounded-xl" />
                         </div>
                         <div className="text-center">
-                            <h2 className="text-xl font-black text-gray-900 dark:text-white leading-tight">دخول النظام</h2>
-                            <p className="text-[11px] text-gray-400 font-bold tracking-wide mt-0.5">أهلاً بك مجدداً في RestoERP</p>
+                            <h2 className="text-xl font-black text-gray-900 dark:text-white leading-tight">RestoSystem</h2>
+                            <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold tracking-wide mt-0.5">نظام رستو تك لإدارة المطاعم ونقاط البيع</p>
                         </div>
                     </div>
 
@@ -133,13 +133,20 @@ export default function LoginPage() {
                     {/* Quick Demo Switcher */}
                     <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800/40 space-y-2">
                         <span className="text-[10px] text-gray-400 font-bold block text-center">حسابات الدخول السريعة:</span>
-                        <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                        <div className="grid grid-cols-3 gap-1.5 text-[10px]">
                             <button
                                 type="button"
                                 onClick={() => handleFillAccount('zafer', 'Password@123')}
                                 className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-center transition cursor-pointer"
                             >
                                 ⚡ ظافر (SuperDev)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleFillAccount('ayoub', 'Password@123')}
+                                className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-center transition cursor-pointer"
+                            >
+                                ⚡ أيوب (SuperDev)
                             </button>
                             <button
                                 type="button"
@@ -151,8 +158,12 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <div className="mt-6 text-center border-t border-gray-100 dark:border-gray-800/40 pt-4">
-                        <p className="text-[9px] text-gray-300 dark:text-gray-600 font-bold uppercase tracking-tighter">نظام إدارة المطاعم الذكي v2.0</p>
+                    <div className="mt-6 text-center border-t border-gray-100 dark:border-gray-800/40 pt-4 flex flex-col items-center gap-1.5">
+                        <div className="flex items-center justify-center gap-2">
+                            <img src="/branding/techtwo-logo.png" alt="TechTwo" className="w-5 h-5 object-contain" />
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 font-bold">تطوير: <span className="text-indigo-600 dark:text-indigo-400 font-black">فريق TechTwo (تك تو)</span></p>
+                        </div>
+                        <p className="text-[9px] text-gray-400 font-medium tracking-tight">حلول برمجية متكاملة للمطاعم والكافيهات</p>
                     </div>
                 </div>
             </div>

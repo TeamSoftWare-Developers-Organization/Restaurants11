@@ -11,11 +11,47 @@ from .models import SystemLicense
 LICENSE_SECRET_SALT = "RestaurantManagement-OfflineKeySalt-2026-v1"
 
 
+def is_cloud_environment() -> bool:
+    """
+    التحقق مما إذا كان النظام يعمل في بيئة سحابية (Render, Railway, Heroku, Docker, VPS, Fly.io, etc.)
+    أو عبر متغيرات البيئة الصريحة لتفعيل الوضع السحابي الدائم.
+    """
+    # 1. متغيرات بيئة أشهر منصات الاستضافة السحابية
+    if os.environ.get('RENDER') == 'true' or os.environ.get('RENDER_SERVICE_ID'):
+        return True
+    if any(k in os.environ for k in ('RAILWAY_ENVIRONMENT', 'RAILWAY_STATIC_URL', 'DYNO', 'FLY_APP_NAME', 'VERCEL', 'KUBERNETES_SERVICE_HOST')):
+        return True
+
+    # 2. متغيرات بيئة إعدادات السحابة الصريحة للنظام
+    if os.environ.get('CLOUD_DEPLOYMENT', '').lower() in ('true', '1', 'yes'):
+        return True
+    if os.environ.get('IS_CLOUD', '').lower() in ('true', '1', 'yes'):
+        return True
+    if os.environ.get('RESTO_CLOUD_MODE', '').lower() in ('true', '1', 'yes'):
+        return True
+    if os.environ.get('DEPLOYMENT_MODE', '').lower() in ('cloud', 'web', 'saas', 'production'):
+        return True
+
+    # 3. في حال الاتصال بقاعدة بيانات سحابية خارجية (Remote PostgreSQL)
+    db_url = os.environ.get('DATABASE_URL', '')
+    if db_url and not any(loc in db_url for loc in ('127.0.0.1', 'localhost')):
+        return True
+
+    # 4. فحص استضافة لينكس السحابية عند غياب بيئة الديسكتوب وتوفر متغيرات إنتاج
+    if os.environ.get('ENVIRONMENT', '').lower() in ('production', 'prod') and not os.environ.get('LOCALAPPDATA'):
+        return True
+
+    return False
+
+
 def get_or_create_machine_id() -> str:
     """
     توليد أو استرجاع معرف فريد ثابت للجهاز (Machine ID).
-    يعتمد على عنوان الماك (MAC address) ونظام التشغيل، مع Fallback ثابت.
+    في البيئات السحابية يتم استخدام معرف سحابي مستقر وثابت لمنع تغير البصمة عند إعادة إقلاع الحاويات.
     """
+    if is_cloud_environment():
+        return os.environ.get('CLOUD_MACHINE_ID', 'CLOUD-RESTOERP-PRODUCTION')
+
     try:
         node = uuid.getnode()
         system_info = f"{platform.node()}-{node}"
@@ -75,19 +111,48 @@ class LicenseService:
     @classmethod
     def get_or_initialize_license(cls) -> SystemLicense:
         """
-        الحصول على سجل ترخيص النظام، أو إنشائه تلقائياً بأول تشغيل مع فترة تجريبية (ساعة واحدة).
+        الحصول على سجل ترخيص النظام، أو إنشائه تلقائياً بأول تشغيل.
+        في البيئة السحابية: يتم تفعيل الترخيص تلقائياً بترخيص سحابي غير محدود (CLOUD) مدى الحياة.
+        في بيئة سطح المكتب: تبدأ الفترة التجريبية (ساعة واحدة) ما لم يتم تفعيل مفتاح المنتج.
         """
+        is_cloud = is_cloud_environment()
         license_obj = SystemLicense.objects.first()
+
         if not license_obj:
             m_id = get_or_create_machine_id()
-            license_obj = SystemLicense.objects.create(
-                machine_id=m_id,
-                installed_at=timezone.now(),
-                trial_days=1,
-                trial_hours=1.0,
-                is_activated=False,
-                license_type='TRIAL'
-            )
+            if is_cloud:
+                product_key = generate_valid_product_key(m_id)
+                license_obj = SystemLicense.objects.create(
+                    machine_id=m_id,
+                    installed_at=timezone.now(),
+                    trial_days=3650,
+                    trial_hours=87600.0,
+                    is_activated=True,
+                    product_key=product_key,
+                    activated_at=timezone.now(),
+                    license_type='CLOUD'
+                )
+            else:
+                license_obj = SystemLicense.objects.create(
+                    machine_id=m_id,
+                    installed_at=timezone.now(),
+                    trial_days=1,
+                    trial_hours=1.0,
+                    is_activated=False,
+                    license_type='TRIAL'
+                )
+        elif is_cloud and (not license_obj.is_activated or license_obj.license_type != 'CLOUD'):
+            # إصلاح وترقية ذاتية وفورية لأي نسخة منشورة على السحابة
+            license_obj.is_activated = True
+            license_obj.license_type = 'CLOUD'
+            license_obj.trial_days = 3650
+            license_obj.trial_hours = 87600.0
+            if not license_obj.product_key:
+                license_obj.product_key = generate_valid_product_key(license_obj.machine_id)
+            if not license_obj.activated_at:
+                license_obj.activated_at = timezone.now()
+            license_obj.save()
+
         return license_obj
 
     @classmethod
@@ -96,23 +161,40 @@ class LicenseService:
         إرجاع القاموس الكامل لبيانات حالة الترخيص الحالية
         """
         lic = cls.get_or_initialize_license()
+        is_cloud = is_cloud_environment() or lic.license_type == 'CLOUD'
         return {
             "machine_id": lic.machine_id,
             "installed_at": lic.installed_at.isoformat(),
             "trial_days": lic.trial_days,
             "trial_hours": getattr(lic, 'trial_hours', 1.0) or 1.0,
             "trial_duration_seconds": lic.trial_duration_seconds,
-            "is_activated": lic.is_activated,
+            "is_activated": lic.is_activated or is_cloud,
             "license_type": lic.license_type,
-            "product_key": lic.product_key if lic.is_activated else None,
+            "product_key": lic.product_key if (lic.is_activated or is_cloud) else None,
             "activated_at": lic.activated_at.isoformat() if lic.activated_at else None,
-            "is_trial_active": lic.is_trial_active,
+            "is_trial_active": lic.is_trial_active if not is_cloud else False,
             "remaining_trial_days": lic.remaining_trial_days,
             "remaining_trial_seconds": lic.remaining_trial_seconds,
             "remaining_trial_minutes": lic.remaining_trial_minutes,
             "remaining_trial_formatted": lic.remaining_trial_formatted,
             "is_valid": lic.is_valid,
+            "is_cloud": is_cloud,
         }
+
+    @classmethod
+    def activate_cloud_license(cls) -> SystemLicense:
+        """
+        تفعيل الترخيص السحابي الدائم للنظام فورياً وبلا قيود
+        """
+        lic = cls.get_or_initialize_license()
+        lic.is_activated = True
+        lic.license_type = 'CLOUD'
+        lic.trial_days = 3650
+        lic.trial_hours = 87600.0
+        lic.product_key = generate_valid_product_key(lic.machine_id)
+        lic.activated_at = timezone.now()
+        lic.save()
+        return lic
 
     @classmethod
     def verify_and_activate(cls, input_key: str) -> Tuple[bool, str, Optional[SystemLicense]]:
@@ -182,15 +264,26 @@ def verify_superdev_device_token(token: str) -> bool:
 
 def is_authorized_superdev_device(request) -> bool:
     """
-    التحقق الصارم من أن الجهاز الذي يقوم بالطلب هو حصرياً جهاز ظافر أو جهاز أيوب.
-    ممنوع ومحجوب تماماً عن أي حاسوب عميل آخر سواء تم تنصيب النظام محلياً أو أونلاين.
+    التحقق الصارم من أن الجهاز أو المستخدم هو حصرياً المطور الفائق (ظافر أو أيوب).
+    مسموح للمطورين ظافر وأيوب سحابياً ومحلياً، ومحجوب تماماً عن أي حاسوب عميل عادي.
     """
-    # 1. فحص توكن اعتماد الجهاز الممرر في الهيدر
+    # 1. التحقق من هوية المطور المسجل دخوله (ظافر أو أيوب) سحابياً أو محلياً
+    user = getattr(request, 'auth', None) or getattr(request, 'user', None)
+    if user and getattr(user, 'is_authenticated', False):
+        uname = (getattr(user, 'username', '') or '').strip().lower()
+        first_name = (getattr(user, 'first_name', '') or '').strip().lower()
+        if uname in {'zafer', 'ayoub', 'zafer12', 'zafer@restoerp.dev', 'ayoub@restoerp.dev', 'zafer@admin.com', 'zaefrali90@gmail.com'} or first_name in {'ظافر', 'أيوب'}:
+            return True
+        emp = getattr(user, 'employee_profile', None)
+        if emp and isinstance(emp.permissions, dict) and emp.permissions.get('is_superdev') is True:
+            return True
+
+    # 2. فحص توكن اعتماد الجهاز الممرر في الهيدر
     dev_token = request.headers.get('X-SuperDev-Device-Token') or request.headers.get('x-superdev-device-token')
     if dev_token and verify_superdev_device_token(dev_token):
         return True
 
-    # 2. فحص معرف الجهاز الممرر من المتصفح / Electron
+    # 3. فحص معرف الجهاز الممرر من المتصفح / Electron
     client_machine_id = (
         request.headers.get('X-Device-Machine-Id') or 
         request.headers.get('x-device-machine-id') or 
@@ -207,7 +300,7 @@ def is_authorized_superdev_device(request) -> bool:
     if client_machine_id and client_machine_id in allowed_machines:
         return True
 
-    # 3. في حالة الخادم المحلي أو أثناء العمل من نفس الجهاز (localhost)
+    # 4. في حالة الخادم المحلي أو أثناء العمل من نفس الجهاز (localhost)
     remote_addr = request.META.get('REMOTE_ADDR', '')
     if remote_addr in ['127.0.0.1', '::1', 'localhost']:
         local_id = get_or_create_machine_id().upper()

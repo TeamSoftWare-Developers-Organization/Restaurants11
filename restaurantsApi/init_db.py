@@ -15,7 +15,7 @@ def seed():
     try:
         settings = RestaurantSettings.load()
         if not settings.name:
-            settings.name = "RestoERP Restaurant"
+            settings.name = "RestoSystem Restaurant"
         settings.show_qr_code = False
         settings.save()
         print("✅ Restaurant settings loaded successfully.")
@@ -55,6 +55,18 @@ def seed():
             )
         except Exception as e:
             print(f"⚠️ Error creating user {username}: {e}")
+
+    # 3. Initialize & Activate System License (Automatic Cloud Mode Activation)
+    try:
+        from core.license_service import LicenseService, is_cloud_environment
+        lic = LicenseService.get_or_initialize_license()
+        if is_cloud_environment() or os.environ.get('AUTO_ACTIVATE_LICENSE', '').lower() in ('true', '1', 'yes') or os.environ.get('CLOUD_DEPLOYMENT', '').lower() in ('true', '1', 'yes'):
+            LicenseService.activate_cloud_license()
+            print("☁️ Cloud License auto-activated successfully (Cloud Unlimited).")
+        else:
+            print(f"🔑 System License initialized ({lic.license_type}).")
+    except Exception as e:
+        print(f"⚠️ License initialization error: {e}")
 
     print("🎉 Database initialization completed!")
 

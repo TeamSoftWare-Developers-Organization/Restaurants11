@@ -9,7 +9,7 @@ export interface LicenseStatus {
     trial_hours?: number;
     trial_duration_seconds?: number;
     is_activated: boolean;
-    license_type: 'TRIAL' | 'LIFETIME';
+    license_type: 'TRIAL' | 'LIFETIME' | 'CLOUD';
     product_key?: string | null;
     activated_at?: string | null;
     is_trial_active: boolean;
@@ -18,6 +18,7 @@ export interface LicenseStatus {
     remaining_trial_minutes?: number;
     remaining_trial_formatted?: string;
     is_valid: boolean;
+    is_cloud?: boolean;
 }
 
 export interface ActivateResponse {
@@ -160,6 +161,14 @@ export const licenseService = {
      */
     reactivateLifetime: async (): Promise<LicenseStatus> => {
         const response = await api.post<LicenseStatus>('/core/license/trial/reactivate-lifetime/');
+        return response.data;
+    },
+
+    /**
+     * تفعيل الترخيص السحابي الدائم للنظام (Cloud Unlimited).
+     */
+    activateCloudLicense: async (): Promise<LicenseStatus> => {
+        const response = await api.post<LicenseStatus>('/core/license/cloud/activate/');
         return response.data;
     },
 };

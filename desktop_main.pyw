@@ -47,7 +47,7 @@ def get_writable_app_dir() -> Path:
         test_file.unlink()
         return ROOT_DIR
     except Exception:
-        app_data = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "SmartRestaurantERP"
+        app_data = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "RestoSystem"
         app_data.mkdir(parents=True, exist_ok=True)
         return app_data
 

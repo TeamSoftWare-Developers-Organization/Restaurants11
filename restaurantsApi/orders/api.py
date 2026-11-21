@@ -38,6 +38,12 @@ class OrderItemOut(Schema):
 # 2. تعريف المخططات (Schemas) لـ Order
 
 # Schema لإدخال بيانات طلب جديد
+class ThermalPrintIn(Schema):
+    printer_name: Optional[str] = None
+    open_drawer: bool = True
+    paper_width: str = '80mm'
+    order_data: Optional[dict] = None
+
 class OrderIn(Schema):
     employee_id: Optional[int] = None
     table_number: Optional[str] = None
@@ -186,6 +192,77 @@ def get_order_qr(request, order_id: int):
     order = get_object_or_404(Order, id=order_id)
     from core.qr_generator import get_order_qr_data
     return get_order_qr_data(order)
+
+@order_router.get("/printers/list/")
+def list_available_printers(request):
+    """إرجاع قائمة بكافة الطابعات المعرفة في ويندوز مع الطابعة الافتراضية."""
+    from pos.printer_service import list_printers, get_default_printer
+    return {
+        "default_printer": get_default_printer(),
+        "printers": list_printers()
+    }
+
+@order_router.post("/{order_id}/print-thermal/")
+def print_thermal_receipt(request, order_id: int, payload: Optional[ThermalPrintIn] = None):
+    """طباعة حرارية صامتة ومباشرة للفاتورة مع فتح درج النقدية دون أي نوافذ حوار."""
+    from pos.printer_service import print_order_receipt
+    from core.models import RestaurantSettings
+
+    order = get_object_or_404(Order, id=order_id)
+    settings_obj = RestaurantSettings.objects.first()
+    settings_dict = {
+        "name": settings_obj.name,
+        "tax_number": settings_obj.tax_number,
+        "currency": settings_obj.currency
+    } if settings_obj else {}
+
+    items_data = []
+    for item in order.items.select_related("menu_item"):
+        items_data.append({
+            "name": item.menu_item.name if item.menu_item else "صنف",
+            "quantity": item.quantity,
+            "unit_price": float(item.unit_price)
+        })
+
+    data = {
+        "id": order.id,
+        "order_number": f"ORD-{order.id}",
+        "order_date_time": order.created_at.strftime("%Y-%m-%d %H:%M:%S") if order.created_at else "",
+        "cashier_name": order.employee.user.get_full_name() if (order.employee and order.employee.user) else "كاشير عام",
+        "table_number": order.table_number or "سفري",
+        "items": items_data,
+        "total_amount": float(order.total_amount),
+        "discount_amount": float(order.discount_amount or 0),
+        "tax_amount": float(order.tax_amount or 0)
+    }
+
+    printer_name = payload.printer_name if payload else None
+    open_drawer = payload.open_drawer if payload else True
+    paper_width = payload.paper_width if payload else "80mm"
+
+    return print_order_receipt(data, printer_name=printer_name, open_drawer=open_drawer, paper_width=paper_width, settings=settings_dict)
+
+@order_router.post("/print-thermal-direct/")
+def print_thermal_direct(request, payload: ThermalPrintIn):
+    """طباعة فورية مباشرة لبيانات الفاتورة المرسلة من الواجهة مع فتح درج النقدية دون نافذة طباعة."""
+    from pos.printer_service import print_order_receipt
+    from core.models import RestaurantSettings
+
+    settings_obj = RestaurantSettings.objects.first()
+    settings_dict = {
+        "name": settings_obj.name,
+        "tax_number": settings_obj.tax_number,
+        "currency": settings_obj.currency
+    } if settings_obj else {}
+
+    order_data = payload.order_data or {}
+    return print_order_receipt(
+        order_data,
+        printer_name=payload.printer_name,
+        open_drawer=payload.open_drawer,
+        paper_width=payload.paper_width,
+        settings=settings_dict
+    )
 
 @order_router.put("/{order_id}", response=OrderOut, auth=JWTAuth())
 def update_order(request, order_id: int, order_data: OrderIn):
@@ -399,4 +476,4 @@ def complete_kds_order(request, order_id: int):
     order.save()
     return {"success": True, "order_id": order.id, "status": order.status}
 
-
+

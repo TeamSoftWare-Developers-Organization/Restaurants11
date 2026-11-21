@@ -155,6 +155,7 @@ class LicenseStatusOut(Schema):
     remaining_trial_minutes: int = 0
     remaining_trial_formatted: str = ""
     is_valid: bool
+    is_cloud: bool = False
 
 class LicenseActivateIn(Schema):
     product_key: str
@@ -239,6 +240,15 @@ def reactivate_lifetime(request):
     lic.product_key = key
     lic.activated_at = timezone.now()
     lic.save()
+    return LicenseService.get_license_status()
+
+@license_router.post("/cloud/activate/", response=LicenseStatusOut)
+def activate_cloud_mode(request):
+    """
+    تفعيل الترخيص السحابي الدائم للنظام (Cloud Mode) دون أي قيود زمنية
+    """
+    from core.license_service import LicenseService
+    LicenseService.activate_cloud_license()
     return LicenseService.get_license_status()
 
 
@@ -527,7 +537,7 @@ def auto_setup_postgres(request, data: AutoSetupPostgresIn):
 
     # 3. حفظ الإعدادات في ملف البيئة .env لضمان البقاء عليها دائماً
     try:
-        env_path = settings.BASE_DIR / '.env'
+        env_path = getattr(settings, 'ENV_FILE', settings.BASE_DIR / '.env')
         env_lines = []
         if env_path.exists():
             with open(env_path, 'r', encoding='utf-8') as f:

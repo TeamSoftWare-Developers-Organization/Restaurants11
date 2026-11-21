@@ -2,7 +2,7 @@
 
 !macro NSIS_HOOK_POSTINSTALL
   DetailPrint "جاري إضافة استثناءات الأمان لتسريع إقلاع الخادم الداخلي..."
-  nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Add-MpPreference -ExclusionPath \"$INSTDIR\", \"$LOCALAPPDATA\SmartRestaurantERP\" -ErrorAction SilentlyContinue"'
+  nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Add-MpPreference -ExclusionPath \"$INSTDIR\", \"$LOCALAPPDATA\RestoSystem\" -ErrorAction SilentlyContinue"'
 
   DetailPrint "جاري التحقق من خدمة قاعدة البيانات PostgreSQL..."
   ; فحص ما إذا كان المنفذ 5432 قيد الاستماع أو وجود خدمة postgresql

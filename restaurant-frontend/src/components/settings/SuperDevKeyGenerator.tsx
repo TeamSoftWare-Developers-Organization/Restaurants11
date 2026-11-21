@@ -15,7 +15,8 @@ import {
     UserCheck,
     Clock,
     Play,
-    FastForward
+    FastForward,
+    Cloud
 } from 'lucide-react';
 import { licenseService, SuperDevGenerateKeyResponse } from '@/services/licenseService';
 
@@ -88,6 +89,26 @@ export default function SuperDevKeyGenerator({ currentMachineId, developerName }
             setTrialActionMsg({
                 type: 'error',
                 text: err?.response?.data?.message || 'فشل في استعادة التفعيل الدائم.'
+            });
+        } finally {
+            setTrialActionLoading(false);
+        }
+    };
+
+    const handleActivateCloud = async () => {
+        try {
+            setTrialActionLoading(true);
+            setTrialActionMsg(null);
+            const res = await licenseService.activateCloudLicense();
+            setTrialActionMsg({
+                type: 'success',
+                text: `تم تفعيل الترخيص السحابي الدائم بنجاح ☁️ (Cloud Unlimited)! النظام غير مقيد بأي مدة زمنية. معرف النظام: ${res.machine_id}`
+            });
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err: any) {
+            setTrialActionMsg({
+                type: 'error',
+                text: err?.response?.data?.message || 'فشل في تفعيل الترخيص السحابي.'
             });
         } finally {
             setTrialActionLoading(false);
@@ -334,7 +355,7 @@ export default function SuperDevKeyGenerator({ currentMachineId, developerName }
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
                     <button
                         type="button"
                         disabled={trialActionLoading}
@@ -342,7 +363,7 @@ export default function SuperDevKeyGenerator({ currentMachineId, developerName }
                         className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-50"
                     >
                         <Play className="w-4 h-4 fill-current" />
-                        <span>بدء تجربة 1 ساعة جديدة</span>
+                        <span>بدء تجربة 1 ساعة</span>
                     </button>
 
                     <button
@@ -352,7 +373,7 @@ export default function SuperDevKeyGenerator({ currentMachineId, developerName }
                         className="flex items-center justify-center gap-2 px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-50"
                     >
                         <FastForward className="w-4 h-4 fill-current" />
-                        <span>محاكاة انتهاء الساعة (قفل فوري)</span>
+                        <span>قفل فوري (انتهاء الساعة)</span>
                     </button>
 
                     <button
@@ -362,7 +383,17 @@ export default function SuperDevKeyGenerator({ currentMachineId, developerName }
                         className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-50"
                     >
                         <ShieldCheck className="w-4 h-4" />
-                        <span>إعادة التفعيل الدائم (Lifetime)</span>
+                        <span>تفعيل دائم (Lifetime)</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        disabled={trialActionLoading}
+                        onClick={handleActivateCloud}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white font-black text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-50"
+                    >
+                        <Cloud className="w-4 h-4" />
+                        <span>ترخيص سحابي (Cloud ☁️)</span>
                     </button>
                 </div>
             </div>

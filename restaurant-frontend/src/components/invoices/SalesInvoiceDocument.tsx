@@ -435,7 +435,7 @@ export default function SalesInvoiceDocument({
                 {settings?.sales_invoice_terms && (
                     <p className="text-[9px] font-bold text-black leading-tight">{settings.sales_invoice_terms}</p>
                 )}
-                <p className="text-[8px] font-black text-black pt-1">*** نظام إدارة المطاعم الذكي ***</p>
+                <p className="text-[8px] font-black text-black pt-1">*** RestoSystem • تم التطوير بواسطة TechTwo ***</p>
             </div>
         </div>
     );

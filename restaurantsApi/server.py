@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 خادم الإنتاج المستقل لنظام إدارة المطاعم (Django + Waitress + Embedded Postgres/SQLite)
-RestoERP Standalone Production Backend Runner
+RestoSystem Standalone Production Backend Runner (TechTwo)
 """
 
 import os
@@ -52,10 +52,22 @@ if str(BASE_DIR) not in sys.path:
 if str(BUNDLE_DIR) not in sys.path:
     sys.path.insert(0, str(BUNDLE_DIR))
 
-# إعداد السجلات
-LOG_DIR = BASE_DIR / "logs"
+# إعداد السجلات (مع بديل آمن في AppData إذا كان مجلد التثبيت للقراءة فقط)
+def _resolve_log_dir() -> Path:
+    candidate = BASE_DIR / "logs"
+    try:
+        candidate.mkdir(parents=True, exist_ok=True)
+        probe = candidate / ".log_write_test"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+        return candidate
+    except Exception:
+        fallback = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "RestoSystem" / "logs"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+LOG_DIR = _resolve_log_dir()
 try:
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
     LOG_FILE = LOG_DIR / "backend_server.log"
     logging.basicConfig(
         level=logging.INFO,
@@ -203,6 +215,45 @@ def run_migrations():
         logging.info("[Backend] فحص وتطبيق هجرات قاعدة البيانات...")
         call_command("migrate", interactive=False, no_color=True)
         logging.info("[Backend] قاعدة البيانات محدثة بنجاح.")
+
+        # التأكد من تهيئة الإعدادات والتراخيص والمستخدمين الافتراضيين تلقائياً
+        try:
+            from core.models import RestaurantSettings
+            from core.license_service import LicenseService
+            from django.contrib.auth.models import User
+            from employees.models import Employee
+
+            RestaurantSettings.load()
+            LicenseService.get_or_initialize_license()
+
+            default_users = [
+                ('admin', 'admin@restaurant.local', 'Password@123', 'manager'),
+                ('zafer', 'zafer@restoerp.dev', 'Password@123', 'manager'),
+                ('ayoub', 'ayoub@restoerp.dev', 'Password@123', 'manager'),
+            ]
+            for uname, email, pwd, role in default_users:
+                u = User.objects.filter(username__iexact=uname).first()
+                if not u:
+                    u = User.objects.create_superuser(
+                        username=uname,
+                        email=email,
+                        password=pwd
+                    )
+                else:
+                    u.is_superuser = True
+                    u.is_staff = True
+                    u.save()
+
+                Employee.objects.get_or_create(
+                    user=u,
+                    defaults={
+                        'role': role,
+                        'permissions': Employee.get_default_permissions_for_role(role)
+                    }
+                )
+            logging.info("[Backend] تم التحقق من تهيئة المستخدمين والإعدادات الأساسية.")
+        except Exception as seed_err:
+            logging.warning(f"[Backend] تنبيه أثناء تهيئة البيانات الافتراضية: {seed_err}")
     except Exception as e:
         logging.error(f"[Backend] حدث خطأ أثناء فحص الهجرات: {e}")
 
@@ -224,7 +275,9 @@ def start_server(port: int = 8000):
     # 4. تشغيل خادم Waitress
     from waitress import serve
     from restaurant_management_system.wsgi import application
-
+    from django.conf import settings
+    frontend_dist_val = getattr(settings, 'FRONTEND_DIST', None)
+    logging.info(f"[Backend] FRONTEND_DIST: {frontend_dist_val} (exists: {frontend_dist_val.exists() if frontend_dist_val else False})")
     logging.info(f"[Backend] خادم الإنتاج يعمل الآن على: http://127.0.0.1:{port}")
     print(f"DJANGO_SERVER_STARTED:http://127.0.0.1:{port}", flush=True)
 

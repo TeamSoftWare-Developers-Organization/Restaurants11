@@ -1,8 +1,8 @@
 [package]
-name = "smart-restaurant-pos"
+name = "restosystem-pos"
 version = "1.0.0"
-description = "RestoERP - Standalone Desktop Restaurant Management & POS Suite"
-authors = ["RestoERP Team"]
+description = "RestoSystem - Standalone Desktop Restaurant Management & POS Suite by TechTwo"
+authors = ["TechTwo Team"]
 edition = "2021"
 
 [lib]

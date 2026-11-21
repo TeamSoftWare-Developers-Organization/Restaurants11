@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-title RestoERP - Installation \u0026 Setup Wizard
+title RestoSystem - Installation \u0026 Setup Wizard
 color 0A
 
 set "SCRIPT_DIR=%~dp0"

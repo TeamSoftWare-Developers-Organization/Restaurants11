@@ -22,36 +22,44 @@ if getattr(sys, 'frozen', False):
     _MEIPASS_DIR = Path(getattr(sys, '_MEIPASS', sys.executable))
     _EXE_DIR = Path(sys.executable).parent
     possible_dists = [
-        _MEIPASS_DIR / "restaurant-frontend" / "out",
-        _MEIPASS_DIR / "frontend",
-        _MEIPASS_DIR / "out",
         _EXE_DIR / "frontend",
         _EXE_DIR / "out",
         _EXE_DIR.parent / "frontend",
+        _EXE_DIR.parent / "restaurant-frontend" / "out",
         _EXE_DIR.parent.parent / "frontend",
+        _EXE_DIR.parent.parent / "restaurant-frontend" / "out",
+        _MEIPASS_DIR / "restaurant-frontend" / "out",
+        _MEIPASS_DIR / "frontend",
+        _MEIPASS_DIR / "out",
+        Path(r"E:\restaurants\restaurant-frontend\out"),
     ]
     FRONTEND_DIST = next((p for p in possible_dists if p.exists()), _EXE_DIR / "frontend")
 else:
     FRONTEND_DIST = (BASE_DIR.parent / "restaurant-frontend" / "out").resolve()
 
 def _resolve_data_dir():
+    # في الوضع التنفيذي --onefile نختبر مجلد الملف التنفيذي الحقيقي وليس مجلد الفك المؤقت (_MEIPASS)
+    base_candidate = Path(sys.executable).parent if getattr(sys, 'frozen', False) else BASE_DIR
     try:
-        test_file = BASE_DIR / '.write_test'
+        test_file = base_candidate / '.write_test'
         with open(test_file, 'w') as f:
             f.write('ok')
         test_file.unlink()
-        return BASE_DIR
+        return base_candidate
     except Exception:
-        app_data = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'SmartRestaurantERP'
+        app_data = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'RestoSystem'
         app_data.mkdir(parents=True, exist_ok=True)
         return app_data
 
 DATA_DIR = _resolve_data_dir()
+ENV_FILE = (DATA_DIR / '.env') if getattr(sys, 'frozen', False) else (BASE_DIR / '.env')
 
 try:
-
     from dotenv import load_dotenv
-    load_dotenv(BASE_DIR / '.env')
+    if ENV_FILE.exists():
+        load_dotenv(ENV_FILE)
+    elif (BASE_DIR / '.env').exists():
+        load_dotenv(BASE_DIR / '.env')
 except ImportError:
     pass
 
@@ -269,6 +277,9 @@ SESSION_COOKIE_AGE = 86400  # 24 hours
 
 # CSRF settings for cross-origin requests
 CSRF_TRUSTED_ORIGINS = [
+    'http://tauri.localhost',
+    'https://tauri.localhost',
+    'tauri://localhost',
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',

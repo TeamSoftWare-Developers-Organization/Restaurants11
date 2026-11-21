@@ -4,7 +4,7 @@
  */
 
 // 1. License & Activation
-export type LicenseType = 'TRIAL' | 'LIFETIME';
+export type LicenseType = 'TRIAL' | 'LIFETIME' | 'CLOUD';
 
 export interface LicenseStatus {
   machine_id: string;
@@ -22,6 +22,7 @@ export interface LicenseStatus {
   remaining_trial_minutes?: number;
   remaining_trial_formatted?: string;
   is_valid: boolean;
+  is_cloud?: boolean;
 }
 
 export interface ActivateResponse {

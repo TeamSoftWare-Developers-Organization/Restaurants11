@@ -22,7 +22,7 @@ def seed():
     try:
         settings = RestaurantSettings.load()
         if not settings.name:
-            settings.name = "RestoERP Restaurant"
+            settings.name = "RestoSystem Restaurant"
         settings.show_qr_code = False
         settings.save()
         print("✅ Restaurant settings loaded successfully.")
