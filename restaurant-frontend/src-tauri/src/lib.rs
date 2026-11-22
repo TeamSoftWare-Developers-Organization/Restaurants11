@@ -241,7 +241,7 @@ pub fn run() {
 
                 let main_url = tauri::WebviewUrl::App(PathBuf::new());
                 if let Ok(main_window) = tauri::WebviewWindowBuilder::new(&handle, "main", main_url)
-                    .title("نظام إدارة المطعم ونقاط البيع الذكي")
+                    .title("RestoSystem - نظام إدارة المطاعم ونقاط البيع | TechTwo")
                     .inner_size(1366.0, 768.0)
                     .min_inner_size(1024.0, 700.0)
                     .center()

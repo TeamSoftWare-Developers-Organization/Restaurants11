@@ -67,6 +67,7 @@ bin/bun.exe
 bin/*.exe
 backend_dist/
 dist_electron/
+release/
 build_staging_backend/
 *.blockmap
 *.bak
