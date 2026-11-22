@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 class RestaurantSettings(models.Model):
-    name = models.CharField(max_length=255, default="My Restaurant", verbose_name="اسم المطعم")
+    name = models.CharField(max_length=255, default="RestoSystem", verbose_name="اسم المطعم أو النظام")
     owner_name = models.CharField(max_length=255, null=True, blank=True, verbose_name="اسم صاحب المطعم / المدير")
     logo = models.ImageField(upload_to='restaurant/', null=True, blank=True, verbose_name="شعار المطعم")
     address = models.TextField(null=True, blank=True, verbose_name="العنوان بالكامل")
@@ -13,7 +13,7 @@ class RestaurantSettings(models.Model):
     email = models.EmailField(max_length=255, null=True, blank=True, verbose_name="البريد الإلكتروني")
     tax_number = models.CharField(max_length=100, null=True, blank=True, verbose_name="الرقم الضريبي")
     commercial_record = models.CharField(max_length=100, null=True, blank=True, verbose_name="السجل التجاري")
-    bio = models.TextField(null=True, blank=True, verbose_name="نبذة عن المطعم أو الشعار الترويجي")
+    bio = models.TextField(null=True, blank=True, default="نظام رستو تك • تطوير فريق TechTwo", verbose_name="نبذة عن المطعم أو الشعار الترويجي")
     website = models.CharField(max_length=255, null=True, blank=True, verbose_name="الموقع الإلكتروني أو صفحة التواصل")
     
     # Financials

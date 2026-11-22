@@ -71,6 +71,44 @@ export default function Dashboard() {
 
       <main className={`flex-1 mr-0 ${isSidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'} min-h-screen p-3.5 sm:p-6 lg:p-8 min-w-0 w-full transition-all duration-300`}>
         {/* Header - Comfortable & Responsive */}
+                {/* شريط الهوية الرسمية للنظام والفريق المطور (RestoSystem & TechTwo) */}
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border border-indigo-500/25 shadow-xl text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* هوية النظام: RestoSystem - نظام رستو تك */}
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-indigo-500/40 overflow-hidden shadow-lg shadow-indigo-600/25 flex items-center justify-center p-1 shrink-0">
+              <img src="/branding/restosystem-logo.png" alt="RestoSystem" className="w-full h-full object-cover rounded-xl" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">RestoSystem</h2>
+                <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-indigo-500/25 text-indigo-300 border border-indigo-500/35">
+                  نظام رستو تك
+                </span>
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  النسخة السحابية + سطح المكتب
+                </span>
+              </div>
+              <p className="text-xs sm:text-[13px] text-gray-300 font-medium mt-1">
+                نظام إدارة المطاعم والكافيهات الذكي ونقاط البيع السريعة
+              </p>
+            </div>
+          </div>
+
+          {/* هوية الفريق المطور: TechTwo - تك تو */}
+          <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl self-start md:self-auto backdrop-blur-sm">
+            <div className="w-10 h-10 rounded-lg bg-white/10 p-1 flex items-center justify-center shrink-0 border border-white/10">
+              <img src="/branding/techtwo-logo.png" alt="TechTwo" className="w-full h-full object-contain" />
+            </div>
+            <div className="text-right">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-black text-white">TechTwo</span>
+                <span className="text-xs font-black text-cyan-400">تك تو</span>
+              </div>
+              <p className="text-[10px] text-gray-300 font-medium">حلول برمجية متكاملة</p>
+            </div>
+          </div>
+        </div>
+
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div className="flex items-center gap-3.5 sm:gap-4">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 shrink-0">

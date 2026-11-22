@@ -363,13 +363,30 @@ export default function POSPage() {
                 <section className={`flex-1 min-w-0 space-y-4 ${mobileTab === 'cart' ? 'hidden xl:flex xl:flex-col' : 'flex flex-col'}`}>
                     <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0">
-                                <Utensils className="text-white w-5 h-5" />
+                            <div className="w-10 h-10 rounded-xl bg-slate-950 border border-indigo-500/30 overflow-hidden shadow-md flex items-center justify-center p-0.5 shrink-0">
+                                <img src="/branding/restosystem-logo.png" alt="RestoSystem" className="w-full h-full object-cover rounded-lg" />
                             </div>
                             <div>
-                                <h1 className="text-base md:text-lg font-black text-gray-900 dark:text-white leading-tight">نقطة البيع</h1>
-                                <p className="text-gray-400 dark:text-gray-400 text-[11px] font-semibold">المبيعات المباشرة</p>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-base md:text-lg font-black text-gray-900 dark:text-white leading-tight">
+                                        RestoSystem POS
+                                    </h1>
+                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                        نظام رستو تك
+                                    </span>
+                                </div>
+                                <p className="text-gray-400 dark:text-gray-400 text-[11px] font-semibold">
+                                    شاشة الكاشير والمبيعات المباشرة
+                                </p>
                             </div>
+                        </div>
+
+                        {/* TechTwo Dev Tag */}
+                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/50">
+                            <img src="/branding/techtwo-logo.png" alt="TechTwo" className="w-4 h-4 object-contain" />
+                            <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                                تطوير: <strong className="text-indigo-600 dark:text-indigo-400 font-black">TechTwo (تك تو)</strong>
+                            </span>
                         </div>
 
                         <div className="flex items-center gap-2">
