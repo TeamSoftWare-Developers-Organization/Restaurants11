@@ -50,6 +50,7 @@ export default function POSPage() {
     const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [barcodeQuery, setBarcodeQuery] = useState('');
+    const [barcodeFlash, setBarcodeFlash] = useState(false);
     const barcodeInputRef = useRef<HTMLInputElement>(null);
 
     const [isClient, setIsClient] = useState(false);
@@ -145,26 +146,107 @@ export default function POSPage() {
         }
     }, [isLoggedIn, router]);
 
+    const isAnyModalOpen =
+        showSuccessModal ||
+        showWarningModal ||
+        alertModal.isOpen ||
+        showShiftModal ||
+        showExpenseModal ||
+        showActiveOrdersModal ||
+        showCardModal ||
+        showDebtModal ||
+        showThermalReceipt ||
+        editingNoteItemId !== null;
+
+    // دالة ضمان بقاء حقل الباركود نشطاً دوماً دون سحب التركيز من الحقول النصية الأخرى
+    const focusBarcodeInput = () => {
+        if (isAnyModalOpen) return;
+        const active = document.activeElement as HTMLElement | null;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT') && active !== barcodeInputRef.current) {
+            return;
+        }
+        if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
+            barcodeInputRef.current.focus();
+        }
+    };
+
     useEffect(() => {
+        // تركيز أولي عند التحميل
+        const timer = setTimeout(focusBarcodeInput, 120);
+
+        // مراقبة النقر في أي مكان بالشاشة لإعادة التركيز التلقائي للباركود
+        const handleGlobalClick = (e: MouseEvent) => {
+            if (isAnyModalOpen) return;
+            const target = e.target as HTMLElement | null;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+                if (target !== barcodeInputRef.current) return;
+            }
+            setTimeout(focusBarcodeInput, 40);
+        };
+
+        // اعتراض ضربات المفاتيح واختصارات الدفع السريعة
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
-            if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
+            if (isAnyModalOpen) return;
+
+            // اختصارات لوحة المفاتيح السريعة لطرق الدفع
+            if (e.key === 'F1') {
+                e.preventDefault();
+                handleCheckout('cash');
                 return;
             }
+            if (e.key === 'F2') {
+                e.preventDefault();
+                if (items.length > 0 || currentOrder) {
+                    setShowCardModal(true);
+                } else {
+                    showAlert('يرجى إضافة أصناف إلى السلة أولاً قبل اختيار طريقة الدفع.', 'السلة فارغة', 'warning');
+                }
+                return;
+            }
+            if (e.key === 'F3') {
+                e.preventDefault();
+                if (items.length > 0 || currentOrder) {
+                    setShowDebtModal(true);
+                } else {
+                    showAlert('يرجى إضافة أصناف إلى السلة أولاً قبل اختيار طريقة الدفع.', 'السلة فارغة', 'warning');
+                }
+                return;
+            }
+            if (e.key === 'F4') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    handleHoldOrder();
+                }
+                return;
+            }
+
+            const target = e.target as HTMLElement | null;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+                if (target !== barcodeInputRef.current) return;
+            }
+
+            // توجيه مدخلات الماسح الضوئي لحقل الباركود
             if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
                 barcodeInputRef.current.focus();
             }
         };
 
+        window.addEventListener('click', handleGlobalClick);
         window.addEventListener('keydown', handleGlobalKeyDown);
+
+        // نبض دوري للتأكد من جهوزية حقل الباركود باستمرار
+        const interval = setInterval(focusBarcodeInput, 700);
+
         return () => {
+            clearTimeout(timer);
+            clearInterval(interval);
+            window.removeEventListener('click', handleGlobalClick);
             window.removeEventListener('keydown', handleGlobalKeyDown);
         };
-    }, []);
+    }, [isAnyModalOpen, items, currentOrder]);
 
     useEffect(() => {
-        if (barcodeInputRef.current) {
-            barcodeInputRef.current.focus();
-        }
+        focusBarcodeInput();
     }, [items]);
 
     const checkCurrentShift = async () => {
@@ -296,6 +378,8 @@ export default function POSPage() {
                 category: matchedItem.category?.name
             });
             setBarcodeQuery('');
+            setBarcodeFlash(true);
+            setTimeout(() => setBarcodeFlash(false), 700);
         } else {
             showAlert(`لم يتم العثور على صنف برمز الباركود: ${cleanCode}`, 'الباركود غير موجود', 'warning');
             setBarcodeQuery('');
@@ -408,43 +492,25 @@ export default function POSPage() {
                         </div>
                     </header>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="relative group shadow-sm md:col-span-2">
-                            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600 group-focus-within:scale-110 transition-transform" />
-                            <input
-                                type="text"
-                                placeholder="ابحث عن اسم الوجبة أو المنتج هنا..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full h-11 md:h-12 bg-white dark:bg-[#111827] border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500/50 focus:border-emerald-600 rounded-2xl pr-12 pl-4 text-xs md:text-sm font-bold transition-all outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
-                            />
-                            {searchQuery && (
-                                <button 
-                                    onClick={() => setSearchQuery('')}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-500 hover:text-rose-500"
-                                >
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            )}
-                        </div>
-
-                        <form onSubmit={handleBarcodeSubmit} className="relative group shadow-sm">
-                            <Barcode className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600 group-focus-within:scale-110 transition-transform" />
-                            <input
-                                ref={barcodeInputRef}
-                                type="text"
-                                placeholder="مسح الباركود للإضافة الفورية..."
-                                value={barcodeQuery}
-                                onChange={(e) => setBarcodeQuery(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        processBarcode(barcodeQuery);
-                                    }
-                                }}
-                                className="w-full h-11 md:h-12 bg-white dark:bg-[#111827] border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500/50 focus:border-emerald-600 rounded-2xl pr-12 pl-4 text-xs md:text-sm font-bold transition-all outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
-                            />
-                        </form>
+                    {/* شريط البحث الممتد بعرض كامل عن الأصناف */}
+                    <div className="relative group shadow-sm w-full">
+                        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600 group-focus-within:scale-110 transition-transform pointer-events-none" />
+                        <input
+                            type="text"
+                            placeholder="ابحث عن اسم الوجبة أو الصنف هنا..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full h-12 bg-white dark:bg-[#111827] border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500/50 focus:border-emerald-600 rounded-2xl pr-12 pl-4 text-xs sm:text-sm font-bold transition-all outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400 shadow-xs"
+                        />
+                        {searchQuery && (
+                            <button 
+                                onClick={() => setSearchQuery('')}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-500 hover:text-rose-500 transition-colors"
+                                title="مسح البحث"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
 
                     {/* ويدجت عروض وتسعير الساعات الهادئة الذكي (AI Dynamic Promotions) */}
@@ -459,15 +525,15 @@ export default function POSPage() {
                                 </h3>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5">
                                 <div
                                     onClick={() => setSelectedCategoryName('الكل')}
-                                    className="cursor-pointer bg-white dark:bg-[#111827] rounded-2xl p-4 md:p-5 border border-gray-100 dark:border-gray-800/60 hover:border-emerald-500 hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-2.5 group active:scale-95"
+                                    className="cursor-pointer bg-white dark:bg-[#111827] rounded-3xl p-5 sm:p-6 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col items-center justify-center text-center gap-3 group active:scale-95 shadow-sm"
                                 >
-                                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <Grid className="w-6 h-6 md:w-7 md:h-7" />
+                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                                        <Grid className="w-7 h-7 sm:w-8 sm:h-8" />
                                     </div>
-                                    <span className="text-xs md:text-sm font-black text-gray-800 dark:text-gray-200">الكل</span>
+                                    <span className="text-sm sm:text-base font-black text-gray-800 dark:text-gray-100">جميع الأصناف (الكل)</span>
                                 </div>
 
                                 {categories.map((cat) => {
@@ -477,16 +543,16 @@ export default function POSPage() {
                                         <div
                                             key={cat.id}
                                             onClick={() => setSelectedCategoryName(cat.name)}
-                                            className="cursor-pointer bg-white dark:bg-[#111827] rounded-2xl p-4 md:p-5 border border-gray-100 dark:border-gray-800/60 hover:border-emerald-500 hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-2.5 group active:scale-95 overflow-hidden"
+                                            className="cursor-pointer bg-white dark:bg-[#111827] rounded-3xl p-5 sm:p-6 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col items-center justify-center text-center gap-3 group active:scale-95 shadow-sm overflow-hidden"
                                         >
-                                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gray-50 dark:bg-gray-800 text-emerald-600 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform">
+                                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-50 dark:bg-gray-800 text-emerald-600 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform shadow-xs">
                                                 {categoryImage ? (
                                                     <img src={getFullUrl(categoryImage)} alt={cat.name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <Utensils className="w-6 h-6 md:w-7 md:h-7" />
+                                                    <Utensils className="w-7 h-7 sm:w-8 sm:h-8" />
                                                 )}
                                             </div>
-                                            <span className="text-xs md:text-sm font-black text-gray-800 dark:text-gray-200 truncate w-full">{cat.name}</span>
+                                            <span className="text-sm sm:text-base font-black text-gray-800 dark:text-gray-100 truncate w-full">{cat.name}</span>
                                         </div>
                                     );
                                 })}
@@ -494,22 +560,25 @@ export default function POSPage() {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                            {/* شبكة مربعات الأصناف الموسعة والواضحة */}
+                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-5">
+                                {/* بطاقة الرجوع للأقسام الرئيسية */}
                                 <div
                                     onClick={() => setSelectedCategoryName(null)}
-                                    className="bg-emerald-50/80 dark:bg-emerald-950/30 rounded-2xl shadow-xs border border-dashed border-emerald-500/65 hover:border-emerald-600 hover:shadow-sm transition-all group cursor-pointer active:scale-95 overflow-hidden flex flex-col items-center justify-center p-3 text-center"
+                                    className="bg-emerald-50/90 dark:bg-emerald-950/30 rounded-3xl shadow-sm border-2 border-dashed border-emerald-500/60 hover:border-emerald-600 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/50 transition-all group cursor-pointer active:scale-95 overflow-hidden flex flex-col items-center justify-center p-5 text-center min-h-[220px] sm:min-h-[250px]"
                                 >
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-sm shadow-emerald-600/20">
-                                        <ArrowRight className="w-5 h-5" />
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-md shadow-emerald-600/30">
+                                        <ArrowRight className="w-6 h-6 sm:w-7 sm:h-7" />
                                     </div>
-                                    <h3 className="text-[11px] font-black text-emerald-900 dark:text-emerald-200 mb-0.5">الخروج للأقسام</h3>
-                                    <p className="text-emerald-600 dark:text-emerald-400 font-bold text-[8px]">العودة للقائمة الرئيسية</p>
+                                    <h3 className="text-sm sm:text-base font-black text-emerald-900 dark:text-emerald-200 mb-1">الخروج للأقسام</h3>
+                                    <p className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">العودة لكافة التصنيفات</p>
                                 </div>
 
+                                {/* بطاقات الأصناف الموسعة */}
                                 {filteredItems.map((item) => (
                                     <div
                                         key={item.id}
-                                        className="bg-white dark:bg-[#111827] rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800/60 hover:shadow-md transition-all group cursor-pointer active:scale-95 overflow-hidden flex flex-col"
+                                        className="bg-white dark:bg-[#111827] rounded-3xl shadow-sm border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all duration-200 group cursor-pointer active:scale-98 overflow-hidden flex flex-col min-h-[220px] sm:min-h-[250px]"
                                         onClick={() => addItem({
                                             id: item.id,
                                             name: item.name,
@@ -518,25 +587,42 @@ export default function POSPage() {
                                             category: item.category?.name
                                         })}
                                     >
-                                        <div className="w-full h-28 sm:h-24 bg-gray-50/50 dark:bg-gray-900/40 relative overflow-hidden">
+                                        {/* صورة الصنف الموسعة */}
+                                        <div className="w-full h-36 sm:h-44 md:h-40 xl:h-44 bg-gray-50 dark:bg-gray-900 relative overflow-hidden shrink-0">
                                             {item.image_url ? (
                                                 <img
                                                     src={getFullUrl(item.image_url)}
                                                     alt={item.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Utensils className="w-6 h-6 text-gray-200 dark:text-gray-800" />
+                                                <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-700">
+                                                    <Utensils className="w-10 h-10 sm:w-12 sm:h-12" />
                                                 </div>
                                             )}
-                                            <div className="absolute top-2 left-2 bg-emerald-600/95 backdrop-blur-md px-2 py-0.5 rounded-md shadow-xs">
-                                                <span className="text-white font-black text-[11px] tabular-nums">{item.price} د.ل</span>
+                                            {/* شارة السعر الكبيرة البارزة */}
+                                            <div className="absolute top-3 left-3 bg-emerald-600/95 backdrop-blur-md px-3 py-1 rounded-xl shadow-md flex items-center gap-1 border border-white/20">
+                                                <span className="text-white font-black text-xs sm:text-sm tabular-nums">{item.price}</span>
+                                                <span className="text-white/80 font-bold text-[10px]">د.ل</span>
                                             </div>
                                         </div>
-                                        <div className="p-3">
-                                            <h3 className="text-xs font-black text-gray-900 dark:text-gray-200 truncate mb-0.5">{item.name}</h3>
-                                            <p className="text-gray-400 font-bold text-[9px] uppercase tracking-wider">{item.category?.name || 'عام'}</p>
+
+                                        {/* تفاصيل الصنف وزر الإضافة السريعة */}
+                                        <div className="p-3.5 sm:p-4 flex flex-col justify-between flex-1">
+                                            <div>
+                                                <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-gray-100 line-clamp-2 mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-snug">
+                                                    {item.name}
+                                                </h3>
+                                            </div>
+
+                                            <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800/60 mt-auto">
+                                                <span className="text-gray-400 font-bold text-xs truncate max-w-[120px]">
+                                                    {item.category?.name || 'عام'}
+                                                </span>
+                                                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-all shadow-xs">
+                                                    <Plus className="w-4 h-4" />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -559,7 +645,7 @@ export default function POSPage() {
                             </div>
                             <div>
                                 <h2 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                    السلة
+                                    سلة المبيعات
                                 </h2>
                                 <span className="text-[10px] font-bold text-gray-400">
                                     {items.reduce((sum, it) => sum + it.quantity, 0)} أصناف مضافة
@@ -577,6 +663,35 @@ export default function POSPage() {
                                 <span>تفريغ</span>
                             </button>
                         )}
+                    </div>
+
+                    {/* حقل الباركود المدمج داخل السلة - نشط دائماً وجاهز للمسح المباشر */}
+                    <div className={`p-2.5 border-b transition-colors shrink-0 ${barcodeFlash ? 'bg-emerald-500/20 border-emerald-500 ring-2 ring-emerald-500/40' : 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-500/20'}`}>
+                        <form onSubmit={handleBarcodeSubmit} className="relative group">
+                            <Barcode className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600 animate-pulse pointer-events-none" />
+                            <input
+                                ref={barcodeInputRef}
+                                type="text"
+                                placeholder="امسح الباركود مباشرة (نشط دائماً)..."
+                                value={barcodeQuery}
+                                onChange={(e) => setBarcodeQuery(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        processBarcode(barcodeQuery);
+                                    }
+                                }}
+                                onBlur={() => {
+                                    setTimeout(focusBarcodeInput, 40);
+                                }}
+                                className="w-full h-11 bg-white dark:bg-gray-900 border-2 border-emerald-500/50 hover:border-emerald-600 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/25 rounded-xl pr-11 pl-20 text-xs sm:text-sm font-bold transition-all outline-none text-gray-900 dark:text-gray-100 placeholder:text-gray-400 shadow-2xs"
+                            />
+                            {/* شارة النشاط الدائم للباركود */}
+                            <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-600 text-white text-[10px] font-black pointer-events-none shadow-xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                                <span>نشط ⚡</span>
+                            </div>
+                        </form>
                     </div>
 
                     {/* منطقة الأصناف المضافة - مساحة ممتدة رأسياً بالكامل */}
@@ -782,34 +897,41 @@ export default function POSPage() {
                         )}
                     </div>
 
-                    {/* الفوتر المدمج والمصغر لتوفير أقصى ارتفاع ممكن للأصناف */}
-                    <div className="shrink-0 p-3 bg-gray-50/70 dark:bg-gray-800/40 border-t border-gray-100 dark:border-gray-800/60 space-y-2">
-                        {/* بطاقة الحسابات المدمجة */}
-                        <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-3 py-2 rounded-xl border border-gray-200/60 dark:border-gray-700/50 shadow-2xs">
+                    {/* فوتر السلة مع أزرار الدفع الكبيرة والواضحة */}
+                    <div className="shrink-0 p-3.5 sm:p-4 bg-gray-50/90 dark:bg-gray-900/90 border-t-2 border-gray-100 dark:border-gray-800/80 space-y-3">
+                        {/* بطاقة الحسابات البارزة */}
+                        <div className="flex justify-between items-center bg-white dark:bg-[#070b14] px-4 py-3 rounded-2xl border-2 border-emerald-500/20 shadow-sm">
                             <div className="text-right">
-                                <span className="text-[10px] font-bold text-gray-400 block">المبلغ الإجمالي</span>
-                                <span className="text-lg font-black text-emerald-600 tabular-nums leading-none">
-                                    {total.toFixed(2)} <span className="text-[10px] font-bold text-gray-400">د.ل</span>
+                                <span className="text-[11px] font-bold text-gray-400 block mb-0.5">المبلغ الإجمالي المستحق</span>
+                                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums leading-none">
+                                    {total.toFixed(2)} <span className="text-xs font-bold text-gray-400">د.ل</span>
                                 </span>
                             </div>
-                            <div className="text-left">
-                                <span className="text-[10px] font-bold text-gray-400 block">المجموع الفرعي</span>
-                                <span className="text-xs font-black text-gray-600 dark:text-gray-300 tabular-nums">
+                            <div className="text-left space-y-0.5">
+                                <span className="text-[11px] font-bold text-gray-400 block">المجموع الفرعي</span>
+                                <span className="text-sm font-black text-gray-700 dark:text-gray-200 tabular-nums">
                                     {subtotal.toFixed(2)} د.ل
                                 </span>
                             </div>
                         </div>
 
-                        {/* أزرار طرق الدفع السريعة */}
-                        <div className="grid grid-cols-3 gap-1.5">
+                        {/* أزرار طرق الدفع الكبيرة - مريحة للشاشات اللمسية وتسهيل عمل الكاشير */}
+                        <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                            {/* زر نقدي كبير */}
                             <button
                                 onClick={() => handleCheckout('cash')}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex items-center justify-center gap-1.5 h-9.5 bg-white hover:bg-emerald-50 dark:bg-gray-900 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-xl font-black text-xs border border-gray-200 dark:border-gray-700 active:scale-95 disabled:opacity-50 shadow-2xs"
+                                className="flex flex-col items-center justify-center gap-1.5 py-3 sm:py-3.5 px-2 bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-black shadow-md shadow-emerald-600/25 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
+                                title="الدفع نقداً (F1)"
                             >
-                                <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>نقدي</span>
+                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Banknote className="w-5 h-5 text-white" />
+                                </div>
+                                <span className="text-sm sm:text-base font-black tracking-wide">نقدي</span>
+                                <span className="text-[9px] font-bold bg-white/20 px-1.5 py-0.2 rounded text-white/90">F1</span>
                             </button>
+
+                            {/* زر بطاقة كبير */}
                             <button
                                 onClick={() => {
                                     if (items.length === 0 && !currentOrder) {
@@ -819,11 +941,17 @@ export default function POSPage() {
                                     setShowCardModal(true);
                                 }}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex items-center justify-center gap-1.5 h-9.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs shadow-sm shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
+                                className="flex flex-col items-center justify-center gap-1.5 py-3 sm:py-3.5 px-2 bg-gradient-to-b from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-black shadow-md shadow-indigo-600/25 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
+                                title="الدفع ببطاقة الدفع الإلكتروني (F2)"
                             >
-                                <CreditCard className="w-3.5 h-3.5" />
-                                <span>بطاقة</span>
+                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <CreditCard className="w-5 h-5 text-white" />
+                                </div>
+                                <span className="text-sm sm:text-base font-black tracking-wide">بطاقة</span>
+                                <span className="text-[9px] font-bold bg-white/20 px-1.5 py-0.2 rounded text-white/90">F2</span>
                             </button>
+
+                            {/* زر آجل كبير */}
                             <button
                                 onClick={() => {
                                     if (items.length === 0 && !currentOrder) {
@@ -833,38 +961,43 @@ export default function POSPage() {
                                     setShowDebtModal(true);
                                 }}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex items-center justify-center gap-1.5 h-9.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-xs shadow-sm shadow-amber-500/20 active:scale-95 disabled:opacity-50"
+                                className="flex flex-col items-center justify-center gap-1.5 py-3 sm:py-3.5 px-2 bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-2xl font-black shadow-md shadow-amber-500/25 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
+                                title="تسجيل الطلب كحساب آجل (F3)"
                             >
-                                <Clock className="w-3.5 h-3.5" />
-                                <span>آجل</span>
+                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Clock className="w-5 h-5 text-white" />
+                                </div>
+                                <span className="text-sm sm:text-base font-black tracking-wide">آجل</span>
+                                <span className="text-[9px] font-bold bg-white/20 px-1.5 py-0.2 rounded text-white/90">F3</span>
                             </button>
                         </div>
 
                         {/* زرا الطلب المعلق وإصدار الفاتورة */}
-                        <div className="grid grid-cols-2 gap-1.5">
+                        <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={handleHoldOrder}
                                 disabled={items.length === 0 || isProcessingHold || isProcessingCheckout}
-                                className="h-8.5 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-300/60 rounded-xl font-black flex items-center justify-center gap-1.5 text-xs disabled:opacity-50 active:scale-98"
+                                className="h-10 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-300/70 rounded-xl font-black flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50 active:scale-98 transition-all"
+                                title="تعليق الطلب الحالي (F4)"
                             >
                                 {isProcessingHold ? (
-                                    <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
                                 ) : (
-                                    <PauseCircle className="w-3.5 h-3.5 text-amber-600" />
+                                    <PauseCircle className="w-4 h-4 text-amber-600" />
                                 )}
-                                <span>طلب معلق</span>
+                                <span>طلب معلق (F4)</span>
                             </button>
                             <button
                                 onClick={() => handlePrintInvoice()}
-                                className="h-8.5 border border-dashed border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-emerald-600 hover:border-emerald-600 font-black rounded-xl flex items-center justify-center gap-1.5 text-xs no-print active:scale-98"
+                                className="h-10 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:text-emerald-600 hover:border-emerald-600 font-black rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm no-print active:scale-98 transition-all shadow-2xs"
                             >
-                                <Receipt className="w-3.5 h-3.5" />
+                                <Receipt className="w-4 h-4 text-emerald-600" />
                                 <span>عرض الفاتورة</span>
                             </button>
                         </div>
 
                         {/* تسجيل مصروفات وإغلاق الوردية */}
-                        <div className="flex items-center justify-between text-[11px] font-bold pt-1 border-t border-gray-200/50 dark:border-gray-700/40 px-1">
+                        <div className="flex items-center justify-between text-xs font-bold pt-1 border-t border-gray-200/60 dark:border-gray-800/60 px-1">
                             <button
                                 onClick={() => setShowExpenseModal(true)}
                                 className="text-rose-500 hover:text-rose-600 hover:underline"
