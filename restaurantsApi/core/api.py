@@ -156,6 +156,7 @@ class LicenseStatusOut(Schema):
     remaining_trial_formatted: str = ""
     is_valid: bool
     is_cloud: bool = False
+    lock_reason: Optional[str] = None
 
 class LicenseActivateIn(Schema):
     product_key: str

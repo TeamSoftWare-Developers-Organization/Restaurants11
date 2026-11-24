@@ -113,17 +113,21 @@ class LicenseService:
         """
         الحصول على سجل ترخيص النظام، أو إنشائه تلقائياً بأول تشغيل.
         في البيئة السحابية: يتم تفعيل الترخيص تلقائياً بترخيص سحابي غير محدود (CLOUD) مدى الحياة.
-        في بيئة سطح المكتب: تبدأ الفترة التجريبية (ساعة واحدة) ما لم يتم تفعيل مفتاح المنتج.
+        في بيئة سطح المكتب:
+        - إذا تم نقل أو نسخ ملفات النظام أو قاعدة البيانات إلى جهاز آخر مختلف برمجياً/عتادياً،
+          يتم الكشف التلقائي عن عدم تطابق المعرف وحظر النظام وإعادة قفله وتعيين المعرف الجديد للجهاز،
+          مع إبلاغ المستخدم بضرورة تفعيل هذه النسخة من جديد للحماية من النقل غير المصرح به.
+        - تبدأ الفترة التجريبية (ساعة واحدة) للأجهزة الجديدة ما لم يتم تفعيل مفتاح المنتج الخاص بها.
         """
         is_cloud = is_cloud_environment()
+        current_m_id = get_or_create_machine_id()
         license_obj = SystemLicense.objects.first()
 
         if not license_obj:
-            m_id = get_or_create_machine_id()
             if is_cloud:
-                product_key = generate_valid_product_key(m_id)
+                product_key = generate_valid_product_key(current_m_id)
                 license_obj = SystemLicense.objects.create(
-                    machine_id=m_id,
+                    machine_id=current_m_id,
                     installed_at=timezone.now(),
                     trial_days=3650,
                     trial_hours=87600.0,
@@ -134,13 +138,40 @@ class LicenseService:
                 )
             else:
                 license_obj = SystemLicense.objects.create(
-                    machine_id=m_id,
+                    machine_id=current_m_id,
                     installed_at=timezone.now(),
                     trial_days=1,
                     trial_hours=1.0,
                     is_activated=False,
                     license_type='TRIAL'
                 )
+        elif not is_cloud:
+            # التحقق الصارم من نقل ملفات النظام أو قاعدة البيانات لجهاز عميل آخر
+            stored_m_id = (license_obj.machine_id or "").strip().upper()
+            if stored_m_id != current_m_id:
+                # تم نقل النسخة لجهاز كمبيوتر آخر مختلف -> قفل فوري ومباشر
+                license_obj.machine_id = current_m_id
+                license_obj.is_activated = False
+                license_obj.product_key = None
+                license_obj.activated_at = None
+                license_obj.license_type = 'TRIAL'
+                license_obj.trial_hours = 0.0
+                license_obj.trial_days = 0
+                license_obj.installed_at = timezone.now() - timezone.timedelta(hours=2)
+                license_obj.save()
+            else:
+                # التحقق المشفر الإضافي: إذا كان مسجلاً كمفعل مدى الحياة، هل المفتاح المخزن يطابق رياضياً معرف هذا الجهاز؟
+                if license_obj.is_activated and license_obj.license_type == 'LIFETIME':
+                    if not verify_product_key(current_m_id, license_obj.product_key or ""):
+                        # المفتاح لا يطابق هذا الجهاز -> قفل فوري
+                        license_obj.is_activated = False
+                        license_obj.product_key = None
+                        license_obj.activated_at = None
+                        license_obj.license_type = 'TRIAL'
+                        license_obj.trial_hours = 0.0
+                        license_obj.trial_days = 0
+                        license_obj.installed_at = timezone.now() - timezone.timedelta(hours=2)
+                        license_obj.save()
         elif is_cloud and (not license_obj.is_activated or license_obj.license_type != 'CLOUD'):
             # إصلاح وترقية ذاتية وفورية لأي نسخة منشورة على السحابة
             license_obj.is_activated = True
@@ -162,6 +193,14 @@ class LicenseService:
         """
         lic = cls.get_or_initialize_license()
         is_cloud = is_cloud_environment() or lic.license_type == 'CLOUD'
+        
+        lock_reason = None
+        if not is_cloud and not lic.is_valid:
+            if getattr(lic, 'trial_hours', 1.0) == 0.0:
+                lock_reason = 'HARDWARE_CHANGED'
+            else:
+                lock_reason = 'TRIAL_EXPIRED'
+
         return {
             "machine_id": lic.machine_id,
             "installed_at": lic.installed_at.isoformat(),
@@ -179,6 +218,7 @@ class LicenseService:
             "remaining_trial_formatted": lic.remaining_trial_formatted,
             "is_valid": lic.is_valid,
             "is_cloud": is_cloud,
+            "lock_reason": lock_reason,
         }
 
     @classmethod

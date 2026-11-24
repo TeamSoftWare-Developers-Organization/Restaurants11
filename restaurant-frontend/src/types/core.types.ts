@@ -23,6 +23,7 @@ export interface LicenseStatus {
   remaining_trial_formatted?: string;
   is_valid: boolean;
   is_cloud?: boolean;
+  lock_reason?: 'HARDWARE_CHANGED' | 'TRIAL_EXPIRED' | string | null;
 }
 
 export interface ActivateResponse {
