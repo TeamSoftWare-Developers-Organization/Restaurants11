@@ -80,6 +80,8 @@ import { useSettingsStore } from '@/store/settingsStore';
 
 import { getApiBaseUrl } from '@/lib/api';
 
+import { RestoLogo } from './RestoLogo';
+
 
 
 const links = [
@@ -345,8 +347,8 @@ export default function Sidebar({ className }: SidebarProps) {
 
 
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-0.5">
-                            <img src="/branding/restosystem-logo.png" alt="RestoSystem" className="w-full h-full object-cover rounded-lg" />
+                        <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md shrink-0 border border-slate-200 dark:border-indigo-500/30 bg-slate-100/80 dark:bg-slate-950 flex items-center justify-center p-0.5 transition-colors">
+                            <RestoLogo className="w-full h-full object-contain" />
                         </div>
                         <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
@@ -462,8 +464,8 @@ export default function Sidebar({ className }: SidebarProps) {
                     <div className="flex items-center justify-between p-4 mb-2 shrink-0 border-b border-gray-50 dark:border-gray-800/30 lg:border-none">
 
                         <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-indigo-600/20 shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-0.5">
-                                <img src="/branding/restosystem-logo.png" alt="RestoSystem" className="w-full h-full object-cover rounded-lg" />
+                            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-indigo-600/15 shrink-0 border border-slate-200 dark:border-indigo-500/30 bg-slate-100/80 dark:bg-slate-950 flex items-center justify-center p-0.5 transition-colors">
+                                <RestoLogo className="w-full h-full object-contain" />
                             </div>
                             {(!isSidebarCollapsed || isMobileMenuOpen) && (
                                 <div className="animate-in fade-in slide-in-from-right-2 duration-300 min-w-0">

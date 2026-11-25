@@ -15,3 +15,4 @@ export { default as ActivationGuard } from './ActivationGuard';
 export { CloseShiftModal } from './shifts/CloseShiftModal';
 export { default as ProfitMarginAndDeficitsWidget } from './dashboard/ProfitMarginAndDeficitsWidget';
 export { default as ElectronWindowControls } from './ElectronWindowControls';
+export { RestoLogo } from './RestoLogo';

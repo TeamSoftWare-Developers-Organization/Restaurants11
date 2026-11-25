@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Sidebar, Modal, ShiftModal, ExpenseModal, ThermalReceipt80mm, RestoLogo } from '@/components';
+import { Sidebar, Modal, ShiftModal, ExpenseModal, ThermalReceipt80mm } from '@/components';
 import AIRecommendations from '@/components/pos/AIRecommendations';
 import AIDynamicPromotionsWidget from '@/components/pos/AIDynamicPromotionsWidget';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -48,7 +48,6 @@ export default function POSPage() {
     const isOrderLoadedManually = useRef(false);
 
     const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
     const [barcodeQuery, setBarcodeQuery] = useState('');
     const [barcodeFlash, setBarcodeFlash] = useState(false);
     const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -402,8 +401,7 @@ export default function POSPage() {
 
     const filteredItems = menuItems.filter(item => {
         const matchesCategory = selectedCategoryName === 'الكل' || !selectedCategoryName || item.category?.name === selectedCategoryName;
-        const matchesSearch = item.name.includes(searchQuery);
-        return matchesCategory && matchesSearch;
+        return matchesCategory;
     });
 
     return (
@@ -445,74 +443,6 @@ export default function POSPage() {
 
                 {/* قسم المنتجات والأقسام (يظهر حسب التبويب في الموبايل ودائماً في الشاشات الكبيرة) */}
                 <section className={`flex-1 min-w-0 space-y-4 ${mobileTab === 'cart' ? 'hidden xl:flex xl:flex-col' : 'flex flex-col'}`}>
-                    <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-indigo-500/30 overflow-hidden shadow-md flex items-center justify-center p-0.5 shrink-0 transition-colors">
-                                <RestoLogo className="w-full h-full object-contain" />
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h1 className="text-base md:text-lg font-black text-gray-900 dark:text-white leading-tight">
-                                        RestoSystem POS
-                                    </h1>
-                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                                        نظام رستو تك
-                                    </span>
-                                </div>
-                                <p className="text-gray-400 dark:text-gray-400 text-[11px] font-semibold">
-                                    شاشة الكاشير والمبيعات المباشرة
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* TechTwo Dev Tag */}
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/50">
-                            <img src="/branding/techtwo-logo.png" alt="TechTwo" className="w-4 h-4 object-contain" />
-                            <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">
-                                تطوير: <strong className="text-indigo-600 dark:text-indigo-400 font-black">TechTwo (تك تو)</strong>
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => {
-                                    fetchActiveOrders();
-                                    setShowActiveOrdersModal(true);
-                                }}
-                                className="relative flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 hover:border-emerald-500 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 transition-all shadow-sm group active:scale-95 w-full sm:w-auto justify-center"
-                            >
-                                <Clock className="w-3.5 h-3.5 text-amber-500 group-hover:scale-110 transition-transform" />
-                                <span>الطلبيات النشطة والمعلقة</span>
-                                {activeOrders.length > 0 && (
-                                    <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
-                                        {activeOrders.length}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    </header>
-
-                    {/* شريط البحث الممتد بعرض كامل عن الأصناف */}
-                    <div className="relative group shadow-sm w-full">
-                        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600 group-focus-within:scale-110 transition-transform pointer-events-none" />
-                        <input
-                            type="text"
-                            placeholder="ابحث عن اسم الوجبة أو الصنف هنا..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full h-12 bg-white dark:bg-[#111827] border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500/50 focus:border-emerald-600 rounded-2xl pr-12 pl-4 text-xs sm:text-sm font-bold transition-all outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400 shadow-xs"
-                        />
-                        {searchQuery && (
-                            <button 
-                                onClick={() => setSearchQuery('')}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-500 hover:text-rose-500 transition-colors"
-                                title="مسح البحث"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-
                     {/* ويدجت عروض وتسعير الساعات الهادئة الذكي (AI Dynamic Promotions) */}
                     <AIDynamicPromotionsWidget compact={true} className="mb-1" />
 
@@ -1027,22 +957,14 @@ export default function POSPage() {
                             </button>
                         </div>
 
-                        {/* تسجيل مصروفات وإغلاق الوردية */}
-                        <div className="flex items-center justify-between text-xs font-bold pt-1 border-t border-gray-200/60 dark:border-gray-800/60 px-1">
+                        {/* تسجيل مصروفات */}
+                        <div className="pt-1 border-t border-gray-200/60 dark:border-gray-800/60 px-1">
                             <button
                                 onClick={() => setShowExpenseModal(true)}
-                                className="text-rose-500 hover:text-rose-600 hover:underline"
+                                className="w-full py-2 bg-rose-50/60 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer touch-manipulation shadow-2xs"
+                                title="تسجيل مصروفات نثرية أو تشغيلية"
                             >
-                                + تسجيل مصروف
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShiftMode('close');
-                                    setShowShiftModal(true);
-                                }}
-                                className="text-amber-600 hover:text-amber-700 hover:underline"
-                            >
-                                إغلاق الوردية
+                                <span>+ تسجيل مصروف جديد</span>
                             </button>
                         </div>
                     </div>

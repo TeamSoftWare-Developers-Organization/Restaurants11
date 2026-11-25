@@ -258,6 +258,43 @@ def run_migrations():
         logging.error(f"[Backend] حدث خطأ أثناء فحص الهجرات: {e}")
 
 
+def ensure_media_files():
+    """التأكد من وجود مجلد وسائط المنتجات ومزامنة الصور الافتراضية إلى AppData تلقائياً"""
+    try:
+        from django.conf import settings
+        import shutil
+
+        media_root = Path(settings.MEDIA_ROOT)
+        media_root.mkdir(parents=True, exist_ok=True)
+
+        candidate_source_dirs = [
+            BASE_DIR / "media",
+            BUNDLE_DIR / "media",
+            BUNDLE_DIR / "restaurantsApi" / "media",
+            BASE_DIR / "restaurantsApi" / "media",
+            BASE_DIR.parent / "restaurantsApi" / "media",
+            Path(r"E:\restaurants\restaurantsApi\media"),
+        ]
+
+        source_media = next((p for p in candidate_source_dirs if p.exists() and any(p.iterdir())), None)
+        if not source_media or source_media.resolve() == media_root.resolve():
+            return
+
+        for sub_name in ["menu", "inventory_images"]:
+            sub_src = source_media / sub_name
+            sub_dst = media_root / sub_name
+            if sub_src.exists():
+                sub_dst.mkdir(parents=True, exist_ok=True)
+                for item in sub_src.iterdir():
+                    if item.is_file():
+                        dst_file = sub_dst / item.name
+                        if not dst_file.exists():
+                            shutil.copy2(item, dst_file)
+        logging.info(f"[Backend] تم التحقق من مجلد الوسائط والصور الأولية في: {media_root}")
+    except Exception as e:
+        logging.warning(f"[Backend] تنبيه أثناء تهيئة ملفات الوسائط: {e}")
+
+
 def start_server(port: int = 8000):
     """إطلاق خادم Waitress لخدمة واجهة Next.js والـ API معاً"""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "restaurant_management_system.settings")
@@ -269,8 +306,9 @@ def start_server(port: int = 8000):
     import django
     django.setup()
 
-    # 3. تشغيل الهجرات
+    # 3. تشغيل الهجرات وتهيئة الوسائط
     run_migrations()
+    ensure_media_files()
 
     # 4. تشغيل خادم Waitress
     from waitress import serve

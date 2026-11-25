@@ -185,7 +185,23 @@ def build(for_tauri: bool = False):
     # تنظيف مجلد الـ staging
     shutil.rmtree(staging_dir.parent, ignore_errors=True)
 
+    # نسخ ملفات الوسائط والصور الافتراضية إلى المجلد الهدف
+    media_src = BACKEND_DIR / "media"
+    if media_src.exists():
+        dest_media = (target_server_dir if for_tauri else DIST_DIR / "django_server") / "media"
+        if dest_media.exists():
+            shutil.rmtree(dest_media, ignore_errors=True)
+        print(f"نسخ ملفات الوسائط والصور من {media_src} إلى {dest_media}...")
+        shutil.copytree(media_src, dest_media)
+
     if for_tauri:
+        frontend_out = ROOT_DIR / "restaurant-frontend" / "out"
+        if frontend_out.exists():
+            dest_frontend = target_server_dir / "frontend"
+            if dest_frontend.exists():
+                shutil.rmtree(dest_frontend, ignore_errors=True)
+            print(f"نسخ ملفات الواجهة من {frontend_out} إلى {dest_frontend}...")
+            shutil.copytree(frontend_out, dest_frontend)
         exe_file = target_server_dir / "django_server.exe"
     else:
         frontend_out = ROOT_DIR / "restaurant-frontend" / "out"

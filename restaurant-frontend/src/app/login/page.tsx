@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { LayoutDashboard, Lock, User, Sun, Moon, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { RestoLogo } from '@/components/RestoLogo';
 
 export default function LoginPage() {
     const { login, isLoading, isLoggedIn, error: storeError } = useAuthStore();
@@ -64,8 +65,8 @@ export default function LoginPage() {
                 <div className="bg-card dark:bg-card/70 backdrop-blur-xl border border-gray-100 dark:border-gray-800/40 shadow-2xl rounded-2xl p-6 sm:p-7">
                     {/* Header */}
                     <div className="flex flex-col items-center gap-3 mb-6">
-                        <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl shadow-indigo-600/25 border border-indigo-500/30 bg-slate-950 p-1 flex items-center justify-center">
-                            <img src="/branding/restosystem-logo.png" alt="RestoSystem" className="w-full h-full object-cover rounded-xl" />
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl shadow-indigo-600/15 border border-slate-200 dark:border-indigo-500/30 bg-slate-100/80 dark:bg-slate-950 p-1.5 flex items-center justify-center transition-colors">
+                            <RestoLogo className="w-full h-full object-contain" />
                         </div>
                         <div className="text-center">
                             <h2 className="text-xl font-black text-gray-900 dark:text-white leading-tight">RestoSystem</h2>

@@ -103,5 +103,41 @@ else:
         path('', lambda request: redirect('/api/docs'), name='root_redirect'),
     ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+def serve_media_fallback(request, path=""):
+    """خدمة ملفات الوسائط مع فحص المسارات البديلة وضمان إرجاع الصور في بيئات سطح المكتب والإنتاج"""
+    from pathlib import Path
+    import sys
+    import shutil
+
+    clean_path = path.strip("/\\")
+    media_root = Path(settings.MEDIA_ROOT)
+    target = media_root / clean_path
+
+    if target.is_file():
+        return serve(request, clean_path, document_root=str(media_root))
+
+    # فحص مسارات البدائل في حال لم تكن الصورة منسوخة بعد في AppData
+    candidate_roots = [
+        settings.BASE_DIR / "media",
+        Path(sys.executable).parent / "media" if getattr(sys, 'frozen', False) else None,
+        Path(getattr(sys, '_MEIPASS', '')) / "media" if getattr(sys, 'frozen', False) else None,
+        Path(getattr(sys, '_MEIPASS', '')) / "restaurantsApi" / "media" if getattr(sys, 'frozen', False) else None,
+        Path(r"E:\restaurants\restaurantsApi\media"),
+    ]
+
+    for c_root in candidate_roots:
+        if c_root and (c_root / clean_path).is_file():
+            # نسخ الملف إلى MEDIA_ROOT للاستدعاءات اللاحقة
+            try:
+                dest = media_root / clean_path
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(c_root / clean_path, dest)
+            except Exception:
+                pass
+            return serve(request, clean_path, document_root=str(c_root))
+
+    return serve(request, clean_path, document_root=str(media_root))
+
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve_media_fallback),
+]
