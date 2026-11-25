@@ -94,7 +94,7 @@ export default function AIRecommendations({ className = "", compact = false }: A
         {recommendations.map((item) => (
           <div
             key={item.id}
-            className="bg-gray-50/70 dark:bg-gray-800/40 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 border border-gray-100 dark:border-gray-700/60 hover:border-emerald-500/40 p-3 rounded-2xl flex flex-col justify-between transition-all group shadow-xs hover:shadow-md hover:scale-[1.01]"
+            className="bg-gray-50/70 dark:bg-gray-800/40 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 border border-gray-100 dark:border-gray-700/60 hover:border-emerald-500/40 p-3 rounded-none flex flex-col justify-between transition-all group shadow-xs hover:shadow-md hover:scale-[1.01]"
           >
             <div>
               <p className="text-xs font-black text-gray-900 dark:text-gray-100 truncate group-hover:text-emerald-600 transition-colors">
@@ -114,7 +114,7 @@ export default function AIRecommendations({ className = "", compact = false }: A
                   image_url: item.image_url,
                 })
               }
-              className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm shadow-emerald-600/20"
+              className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black py-2 rounded-none transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm shadow-emerald-600/20"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>إضافة للسلة</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Sidebar, Modal, ShiftModal, ExpenseModal, ThermalReceipt80mm } from '@/components';
+import { Sidebar, Modal, ShiftModal, ExpenseModal, ThermalReceipt80mm, RestoLogo } from '@/components';
 import AIRecommendations from '@/components/pos/AIRecommendations';
 import AIDynamicPromotionsWidget from '@/components/pos/AIDynamicPromotionsWidget';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -447,8 +447,8 @@ export default function POSPage() {
                 <section className={`flex-1 min-w-0 space-y-4 ${mobileTab === 'cart' ? 'hidden xl:flex xl:flex-col' : 'flex flex-col'}`}>
                     <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#111827] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-950 border border-indigo-500/30 overflow-hidden shadow-md flex items-center justify-center p-0.5 shrink-0">
-                                <img src="/branding/restosystem-logo.png" alt="RestoSystem" className="w-full h-full object-cover rounded-lg" />
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-indigo-500/30 overflow-hidden shadow-md flex items-center justify-center p-0.5 shrink-0 transition-colors">
+                                <RestoLogo className="w-full h-full object-contain" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
@@ -528,9 +528,9 @@ export default function POSPage() {
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5">
                                 <div
                                     onClick={() => setSelectedCategoryName('الكل')}
-                                    className="cursor-pointer bg-white dark:bg-[#111827] rounded-3xl p-5 sm:p-6 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col items-center justify-center text-center gap-3 group active:scale-95 shadow-sm"
+                                    className="cursor-pointer bg-white dark:bg-[#111827] rounded-none p-5 sm:p-6 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col items-center justify-center text-center gap-3 group active:scale-95 shadow-sm"
                                 >
-                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-none bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
                                         <Grid className="w-7 h-7 sm:w-8 sm:h-8" />
                                     </div>
                                     <span className="text-sm sm:text-base font-black text-gray-800 dark:text-gray-100">جميع الأصناف (الكل)</span>
@@ -543,9 +543,9 @@ export default function POSPage() {
                                         <div
                                             key={cat.id}
                                             onClick={() => setSelectedCategoryName(cat.name)}
-                                            className="cursor-pointer bg-white dark:bg-[#111827] rounded-3xl p-5 sm:p-6 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col items-center justify-center text-center gap-3 group active:scale-95 shadow-sm overflow-hidden"
+                                            className="cursor-pointer bg-white dark:bg-[#111827] rounded-none p-5 sm:p-6 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col items-center justify-center text-center gap-3 group active:scale-95 shadow-sm overflow-hidden"
                                         >
-                                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-50 dark:bg-gray-800 text-emerald-600 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform shadow-xs">
+                                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-none bg-gray-50 dark:bg-gray-800 text-emerald-600 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform shadow-xs">
                                                 {categoryImage ? (
                                                     <img src={getFullUrl(categoryImage)} alt={cat.name} className="w-full h-full object-cover" />
                                                 ) : (
@@ -565,9 +565,9 @@ export default function POSPage() {
                                 {/* بطاقة الرجوع للأقسام الرئيسية */}
                                 <div
                                     onClick={() => setSelectedCategoryName(null)}
-                                    className="bg-emerald-50/90 dark:bg-emerald-950/30 rounded-3xl shadow-sm border-2 border-dashed border-emerald-500/60 hover:border-emerald-600 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/50 transition-all group cursor-pointer active:scale-95 overflow-hidden flex flex-col items-center justify-center p-5 text-center min-h-[220px] sm:min-h-[250px]"
+                                    className="bg-emerald-50/90 dark:bg-emerald-950/30 rounded-none shadow-sm border-2 border-dashed border-emerald-500/60 hover:border-emerald-600 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/50 transition-all group cursor-pointer active:scale-95 overflow-hidden flex flex-col items-center justify-center p-5 text-center min-h-[220px] sm:min-h-[250px]"
                                 >
-                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-md shadow-emerald-600/30">
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-none bg-emerald-600 text-white flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-md shadow-emerald-600/30">
                                         <ArrowRight className="w-6 h-6 sm:w-7 sm:h-7" />
                                     </div>
                                     <h3 className="text-sm sm:text-base font-black text-emerald-900 dark:text-emerald-200 mb-1">الخروج للأقسام</h3>
@@ -578,7 +578,7 @@ export default function POSPage() {
                                 {filteredItems.map((item) => (
                                     <div
                                         key={item.id}
-                                        className="bg-white dark:bg-[#111827] rounded-3xl shadow-sm border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all duration-200 group cursor-pointer active:scale-98 overflow-hidden flex flex-col min-h-[220px] sm:min-h-[250px]"
+                                        className="bg-white dark:bg-[#111827] rounded-none shadow-sm border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-xl transition-all duration-200 group cursor-pointer active:scale-98 overflow-hidden flex flex-col min-h-[220px] sm:min-h-[250px]"
                                         onClick={() => addItem({
                                             id: item.id,
                                             name: item.name,
@@ -588,20 +588,24 @@ export default function POSPage() {
                                         })}
                                     >
                                         {/* صورة الصنف الموسعة */}
-                                        <div className="w-full h-36 sm:h-44 md:h-40 xl:h-44 bg-gray-50 dark:bg-gray-900 relative overflow-hidden shrink-0">
+                                        <div className="w-full h-36 sm:h-44 md:h-40 xl:h-44 bg-gray-50 dark:bg-gray-900 relative overflow-hidden shrink-0 flex items-center justify-center rounded-none">
                                             {item.image_url ? (
                                                 <img
                                                     src={getFullUrl(item.image_url)}
                                                     alt={item.name}
                                                     className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = 'none';
+                                                        const fb = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                                                        if (fb) fb.classList.remove('hidden');
+                                                    }}
                                                 />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-700">
-                                                    <Utensils className="w-10 h-10 sm:w-12 sm:h-12" />
-                                                </div>
-                                            )}
+                                            ) : null}
+                                            <div className={`w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-700 fallback-icon ${item.image_url ? 'hidden' : ''}`}>
+                                                <Utensils className="w-10 h-10 sm:w-12 sm:h-12" />
+                                            </div>
                                             {/* شارة السعر الكبيرة البارزة */}
-                                            <div className="absolute top-3 left-3 bg-emerald-600/95 backdrop-blur-md px-3 py-1 rounded-xl shadow-md flex items-center gap-1 border border-white/20">
+                                            <div className="absolute top-3 left-3 bg-emerald-600/95 backdrop-blur-md px-3 py-1 rounded-none shadow-md flex items-center gap-1 border border-white/20">
                                                 <span className="text-white font-black text-xs sm:text-sm tabular-nums">{item.price}</span>
                                                 <span className="text-white/80 font-bold text-[10px]">د.ل</span>
                                             </div>
@@ -619,7 +623,7 @@ export default function POSPage() {
                                                 <span className="text-gray-400 font-bold text-xs truncate max-w-[120px]">
                                                     {item.category?.name || 'عام'}
                                                 </span>
-                                                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-all shadow-xs">
+                                                <div className="w-8 h-8 rounded-none bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-all shadow-xs">
                                                     <Plus className="w-4 h-4" />
                                                 </div>
                                             </div>
@@ -638,31 +642,48 @@ export default function POSPage() {
 
                 {/* قسم السلة الجانبي (يظهر حسب التبويب في الموبايل ودائماً في الشاشات الكبيرة) */}
                 <section className={`w-full xl:w-[400px] 2xl:w-[420px] shrink-0 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60 flex flex-col h-[calc(100vh-7rem)] xl:h-[calc(100vh-3rem)] sticky top-3 xl:top-6 overflow-hidden ${mobileTab === 'menu' ? 'hidden xl:flex' : 'flex'}`}>
-                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/60 flex justify-between items-center bg-gray-50/40 dark:bg-gray-800/30 shrink-0">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 shadow-sm">
+                    <div className="px-3.5 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 dark:border-gray-800/60 flex justify-between items-center bg-gray-50/40 dark:bg-gray-800/30 shrink-0 gap-2">
+                        {/* يمين الترويسة: أيقونة السلة وعنوان سلة المبيعات */}
+                        <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
                                 <ShoppingBag className="w-4 h-4" />
                             </div>
-                            <div>
-                                <h2 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                            <div className="min-w-0">
+                                <h2 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white leading-tight truncate">
                                     سلة المبيعات
                                 </h2>
-                                <span className="text-[10px] font-bold text-gray-400">
+                                <span className="text-[10px] font-bold text-gray-400 block truncate">
                                     {items.reduce((sum, it) => sum + it.quantity, 0)} أصناف مضافة
                                 </span>
                             </div>
                         </div>
 
-                        {items.length > 0 && (
+                        {/* يسار الترويسة: زر إغلاق الوردية الكبير للشاشات اللمسية + زر تفريغ السلة */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            {items.length > 0 && (
+                                <button
+                                    onClick={clearCart}
+                                    className="flex items-center gap-1 px-2.5 py-2 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl border border-rose-200/50 dark:border-rose-900/40 transition-all cursor-pointer active:scale-95 touch-manipulation"
+                                    title="تفريغ السلة بالكامل"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">تفريغ</span>
+                                </button>
+                            )}
+
+                            {/* زر إغلاق الوردية البارز لأعلى السلة على اليسار لسهولة اللمس */}
                             <button
-                                onClick={clearCart}
-                                className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-all"
-                                title="تفريغ السلة بالكامل"
+                                onClick={() => {
+                                    setShiftMode('close');
+                                    setShowShiftModal(true);
+                                }}
+                                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 bg-gradient-to-r from-amber-500/15 to-orange-500/15 hover:from-amber-500/25 hover:to-orange-500/25 text-amber-700 dark:text-amber-300 border-2 border-amber-500/40 hover:border-amber-500/70 rounded-xl text-xs sm:text-sm font-black transition-all shadow-xs cursor-pointer active:scale-95 touch-manipulation"
+                                title="إغلاق الوردية الحالية وتسليم الخزينة"
                             >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>تفريغ</span>
+                                <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                                <span>إغلاق الوردية</span>
                             </button>
-                        )}
+                        </div>
                     </div>
 
                     {/* حقل الباركود المدمج داخل السلة - نشط دائماً وجاهز للمسح المباشر */}
@@ -765,12 +786,22 @@ export default function POSPage() {
                                         className="group bg-gray-50/70 dark:bg-gray-800/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800/70 hover:border-emerald-500/40 transition-all flex flex-col gap-2"
                                     >
                                         <div className="flex items-center gap-2.5">
-                                            <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-700/50 flex items-center justify-center shadow-xs">
+                                            <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-white dark:bg-gray-900 border border-gray-200/60 dark:border-gray-700/50 flex items-center justify-center shadow-xs relative">
                                                 {item.image_url ? (
-                                                    <img src={getFullUrl(item.image_url)} alt={item.name} className="w-full h-full object-cover" />
-                                                ) : (
+                                                    <img
+                                                        src={getFullUrl(item.image_url)}
+                                                        alt={item.name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            e.currentTarget.style.display = 'none';
+                                                            const fb = e.currentTarget.parentElement?.querySelector('.fallback-cart-icon');
+                                                            if (fb) fb.classList.remove('hidden');
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <div className={`fallback-cart-icon flex items-center justify-center ${item.image_url ? 'hidden' : ''}`}>
                                                     <Utensils className="w-5 h-5 text-emerald-600/70" />
-                                                )}
+                                                </div>
                                             </div>
 
                                             <div className="flex-1 min-w-0">
