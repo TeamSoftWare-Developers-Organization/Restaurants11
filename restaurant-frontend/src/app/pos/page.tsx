@@ -571,7 +571,7 @@ export default function POSPage() {
                 </section>
 
                 {/* قسم السلة الجانبي (يظهر حسب التبويب في الموبايل ودائماً في الشاشات الكبيرة) */}
-                <section className={`w-full xl:w-[400px] 2xl:w-[420px] shrink-0 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60 flex flex-col h-[calc(100vh-7rem)] xl:h-[calc(100vh-3rem)] sticky top-3 xl:top-6 overflow-hidden ${mobileTab === 'menu' ? 'hidden xl:flex' : 'flex'}`}>
+                <section className={`w-full xl:w-[460px] 2xl:w-[490px] shrink-0 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/60 flex flex-col h-[calc(100vh-7rem)] xl:h-[calc(100vh-3rem)] sticky top-3 xl:top-6 overflow-hidden ${mobileTab === 'menu' ? 'hidden xl:flex' : 'flex'}`}>
                     <div className="px-3.5 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 dark:border-gray-800/60 flex justify-between items-center bg-gray-50/40 dark:bg-gray-800/30 shrink-0 gap-2">
                         {/* يمين الترويسة: أيقونة السلة وعنوان سلة المبيعات */}
                         <div className="flex items-center gap-2 min-w-0">
@@ -859,40 +859,38 @@ export default function POSPage() {
                     </div>
 
                     {/* فوتر السلة مع أزرار الدفع الكبيرة والواضحة */}
-                    <div className="shrink-0 p-3.5 sm:p-4 bg-gray-50/90 dark:bg-gray-900/90 border-t-2 border-gray-100 dark:border-gray-800/80 space-y-3">
+                    <div className="shrink-0 p-2.5 sm:p-3 bg-gray-50/90 dark:bg-gray-900/90 border-t-2 border-gray-100 dark:border-gray-800/80 space-y-2">
                         {/* بطاقة الحسابات البارزة */}
-                        <div className="flex justify-between items-center bg-white dark:bg-[#070b14] px-4 py-3 rounded-2xl border-2 border-emerald-500/20 shadow-sm">
+                        <div className="flex justify-between items-center bg-white dark:bg-[#070b14] px-3.5 py-2 rounded-xl border border-emerald-500/20 shadow-xs">
                             <div className="text-right">
-                                <span className="text-[11px] font-bold text-gray-400 block mb-0.5">المبلغ الإجمالي المستحق</span>
-                                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums leading-none">
+                                <span className="text-[10px] font-bold text-gray-400 block">المبلغ الإجمالي المستحق</span>
+                                <span className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums leading-tight">
                                     {total.toFixed(2)} <span className="text-xs font-bold text-gray-400">د.ل</span>
                                 </span>
                             </div>
                             <div className="text-left space-y-0.5">
-                                <span className="text-[11px] font-bold text-gray-400 block">المجموع الفرعي</span>
-                                <span className="text-sm font-black text-gray-700 dark:text-gray-200 tabular-nums">
+                                <span className="text-[10px] font-bold text-gray-400 block">المجموع الفرعي</span>
+                                <span className="text-xs sm:text-sm font-black text-gray-700 dark:text-gray-200 tabular-nums">
                                     {subtotal.toFixed(2)} د.ل
                                 </span>
                             </div>
                         </div>
 
-                        {/* أزرار طرق الدفع الكبيرة - مريحة للشاشات اللمسية وتسهيل عمل الكاشير */}
-                        <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-                            {/* زر نقدي كبير */}
+                        {/* أزرار طرق الدفع - تصميم رشيق ومريح يتيح أقصى مساحة لقائمة الأصناف */}
+                        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                            {/* زر نقدي */}
                             <button
                                 onClick={() => handleCheckout('cash')}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex flex-col items-center justify-center gap-1.5 py-3 sm:py-3.5 px-2 bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-black shadow-md shadow-emerald-600/25 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
+                                className="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-black shadow-xs shadow-emerald-600/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
                                 title="الدفع نقداً (F1)"
                             >
-                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <Banknote className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-sm sm:text-base font-black tracking-wide">نقدي</span>
-                                <span className="text-[9px] font-bold bg-white/20 px-1.5 py-0.2 rounded text-white/90">F1</span>
+                                <Banknote className="w-4 h-4 text-white shrink-0 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs sm:text-sm font-black tracking-wide">نقدي</span>
+                                <span className="text-[9px] font-bold bg-white/20 px-1 py-0.2 rounded text-white/90">F1</span>
                             </button>
 
-                            {/* زر بطاقة كبير */}
+                            {/* زر بطاقة */}
                             <button
                                 onClick={() => {
                                     if (items.length === 0 && !currentOrder) {
@@ -902,17 +900,15 @@ export default function POSPage() {
                                     setShowCardModal(true);
                                 }}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex flex-col items-center justify-center gap-1.5 py-3 sm:py-3.5 px-2 bg-gradient-to-b from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-black shadow-md shadow-indigo-600/25 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
+                                className="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black shadow-xs shadow-indigo-600/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
                                 title="الدفع ببطاقة الدفع الإلكتروني (F2)"
                             >
-                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <CreditCard className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-sm sm:text-base font-black tracking-wide">بطاقة</span>
-                                <span className="text-[9px] font-bold bg-white/20 px-1.5 py-0.2 rounded text-white/90">F2</span>
+                                <CreditCard className="w-4 h-4 text-white shrink-0 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs sm:text-sm font-black tracking-wide">بطاقة</span>
+                                <span className="text-[9px] font-bold bg-white/20 px-1 py-0.2 rounded text-white/90">F2</span>
                             </button>
 
-                            {/* زر آجل كبير */}
+                            {/* زر آجل */}
                             <button
                                 onClick={() => {
                                     if (items.length === 0 && !currentOrder) {
@@ -922,46 +918,44 @@ export default function POSPage() {
                                     setShowDebtModal(true);
                                 }}
                                 disabled={isProcessingCheckout || isProcessingHold}
-                                className="flex flex-col items-center justify-center gap-1.5 py-3 sm:py-3.5 px-2 bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-2xl font-black shadow-md shadow-amber-500/25 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
+                                className="flex items-center justify-center gap-1.5 py-2 sm:py-2.5 px-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl font-black shadow-xs shadow-amber-500/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer group"
                                 title="تسجيل الطلب كحساب آجل (F3)"
                             >
-                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <Clock className="w-5 h-5 text-white" />
-                                </div>
-                                <span className="text-sm sm:text-base font-black tracking-wide">آجل</span>
-                                <span className="text-[9px] font-bold bg-white/20 px-1.5 py-0.2 rounded text-white/90">F3</span>
+                                <Clock className="w-4 h-4 text-white shrink-0 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs sm:text-sm font-black tracking-wide">آجل</span>
+                                <span className="text-[9px] font-bold bg-white/20 px-1 py-0.2 rounded text-white/90">F3</span>
                             </button>
                         </div>
 
                         {/* زرا الطلب المعلق وإصدار الفاتورة */}
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                             <button
                                 onClick={handleHoldOrder}
                                 disabled={items.length === 0 || isProcessingHold || isProcessingCheckout}
-                                className="h-10 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-300/70 rounded-xl font-black flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50 active:scale-98 transition-all"
+                                className="h-8.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-300/70 rounded-lg font-black flex items-center justify-center gap-1.5 text-xs disabled:opacity-50 active:scale-98 transition-all"
                                 title="تعليق الطلب الحالي (F4)"
                             >
                                 {isProcessingHold ? (
-                                    <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
                                 ) : (
-                                    <PauseCircle className="w-4 h-4 text-amber-600" />
+                                    <PauseCircle className="w-3.5 h-3.5 text-amber-600" />
                                 )}
                                 <span>طلب معلق (F4)</span>
                             </button>
                             <button
                                 onClick={() => handlePrintInvoice()}
-                                className="h-10 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:text-emerald-600 hover:border-emerald-600 font-black rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm no-print active:scale-98 transition-all shadow-2xs"
+                                className="h-8.5 bg-white dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:text-emerald-600 hover:border-emerald-600 font-black rounded-lg flex items-center justify-center gap-1.5 text-xs no-print active:scale-98 transition-all shadow-2xs"
                             >
-                                <Receipt className="w-4 h-4 text-emerald-600" />
+                                <Receipt className="w-3.5 h-3.5 text-emerald-600" />
                                 <span>عرض الفاتورة</span>
                             </button>
                         </div>
 
                         {/* تسجيل مصروفات */}
-                        <div className="pt-1 border-t border-gray-200/60 dark:border-gray-800/60 px-1">
+                        <div className="pt-0.5 border-t border-gray-200/60 dark:border-gray-800/60 px-0.5">
                             <button
                                 onClick={() => setShowExpenseModal(true)}
-                                className="w-full py-2 bg-rose-50/60 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer touch-manipulation shadow-2xs"
+                                className="w-full py-1.5 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30 rounded-lg text-[11px] font-black transition-all flex items-center justify-center gap-1 active:scale-98 cursor-pointer touch-manipulation"
                                 title="تسجيل مصروفات نثرية أو تشغيلية"
                             >
                                 <span>+ تسجيل مصروف جديد</span>
