@@ -455,15 +455,15 @@ export default function POSPage() {
                                 </h3>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3.5 sm:gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-4.5">
                                 <div
                                     onClick={() => setSelectedCategoryName('الكل')}
-                                    className="cursor-pointer bg-white dark:bg-[#111827] rounded-none p-4 sm:p-5 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-2.5 group active:scale-95 shadow-xs aspect-square"
+                                    className="cursor-pointer bg-white dark:bg-[#111827] rounded-none p-5 sm:p-6 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-3 group active:scale-95 shadow-xs min-h-[160px] sm:min-h-[180px]"
                                 >
-                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-none bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs">
-                                        <Grid className="w-6 h-6 sm:w-7 sm:h-7" />
+                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-none bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs">
+                                        <Grid className="w-7 h-7 sm:w-8 sm:h-8" />
                                     </div>
-                                    <span className="text-xs sm:text-sm font-black text-gray-800 dark:text-gray-100 line-clamp-2">جميع الأصناف (الكل)</span>
+                                    <span className="text-sm sm:text-base font-black text-gray-800 dark:text-gray-100 line-clamp-2">جميع الأصناف (الكل)</span>
                                 </div>
 
                                 {categories.map((cat) => {
@@ -473,16 +473,16 @@ export default function POSPage() {
                                         <div
                                             key={cat.id}
                                             onClick={() => setSelectedCategoryName(cat.name)}
-                                            className="cursor-pointer bg-white dark:bg-[#111827] rounded-none p-4 sm:p-5 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-2.5 group active:scale-95 shadow-xs overflow-hidden aspect-square"
+                                            className="cursor-pointer bg-white dark:bg-[#111827] rounded-none p-5 sm:p-6 border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-lg transition-all flex flex-col items-center justify-center text-center gap-3 group active:scale-95 shadow-xs overflow-hidden min-h-[160px] sm:min-h-[180px]"
                                         >
-                                            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-none bg-gray-50 dark:bg-gray-800 text-emerald-600 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform shadow-2xs">
+                                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-none bg-gray-50 dark:bg-gray-800 text-emerald-600 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform shadow-2xs">
                                                 {categoryImage ? (
                                                     <img src={getFullUrl(categoryImage)} alt={cat.name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <Utensils className="w-6 h-6 sm:w-7 sm:h-7" />
+                                                    <Utensils className="w-7 h-7 sm:w-8 sm:h-8" />
                                                 )}
                                             </div>
-                                            <span className="text-xs sm:text-sm font-black text-gray-800 dark:text-gray-100 truncate w-full">{cat.name}</span>
+                                            <span className="text-sm sm:text-base font-black text-gray-800 dark:text-gray-100 truncate w-full">{cat.name}</span>
                                         </div>
                                     );
                                 })}
@@ -490,25 +490,25 @@ export default function POSPage() {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {/* شبكة مربعات الأصناف المتناسقة والمريحة */}
-                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-3 sm:gap-3.5">
+                            {/* شبكة مربعات الأصناف المتناسقة والواضحة */}
+                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-3.5 sm:gap-4">
                                 {/* بطاقة الرجوع للأقسام الرئيسية */}
                                 <div
                                     onClick={() => setSelectedCategoryName(null)}
-                                    className="bg-emerald-50/90 dark:bg-emerald-950/30 rounded-none shadow-xs border-2 border-dashed border-emerald-500/60 hover:border-emerald-600 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/50 transition-all group cursor-pointer active:scale-95 overflow-hidden flex flex-col items-center justify-center p-4 text-center min-h-[170px] sm:min-h-[190px]"
+                                    className="bg-emerald-50/90 dark:bg-emerald-950/30 rounded-none shadow-xs border-2 border-dashed border-emerald-500/60 hover:border-emerald-600 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/50 transition-all group cursor-pointer active:scale-95 overflow-hidden flex flex-col items-center justify-center p-4 text-center min-h-[195px] sm:min-h-[215px]"
                                 >
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-none bg-emerald-600 text-white flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-sm shadow-emerald-600/30">
-                                        <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                                    <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-none bg-emerald-600 text-white flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm shadow-emerald-600/30">
+                                        <ArrowRight className="w-6 h-6 sm:w-7 sm:h-7" />
                                     </div>
-                                    <h3 className="text-xs sm:text-sm font-black text-emerald-900 dark:text-emerald-200 mb-0.5">الخروج للأقسام</h3>
-                                    <p className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">العودة للتصنيفات</p>
+                                    <h3 className="text-sm sm:text-base font-black text-emerald-900 dark:text-emerald-200 mb-0.5">الخروج للأقسام</h3>
+                                    <p className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">العودة للتصنيفات</p>
                                 </div>
 
                                 {/* بطاقات الأصناف المتناسقة */}
                                 {filteredItems.map((item) => (
                                     <div
                                         key={item.id}
-                                        className="bg-white dark:bg-[#111827] rounded-none shadow-xs border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-lg transition-all duration-200 group cursor-pointer active:scale-98 overflow-hidden flex flex-col min-h-[170px] sm:min-h-[190px]"
+                                        className="bg-white dark:bg-[#111827] rounded-none shadow-xs border-2 border-gray-100 dark:border-gray-800/80 hover:border-emerald-500 hover:shadow-lg transition-all duration-200 group cursor-pointer active:scale-98 overflow-hidden flex flex-col min-h-[195px] sm:min-h-[215px]"
                                         onClick={() => addItem({
                                             id: item.id,
                                             name: item.name,
@@ -518,7 +518,7 @@ export default function POSPage() {
                                         })}
                                     >
                                         {/* صورة الصنف المتناسقة */}
-                                        <div className="w-full h-28 sm:h-32 bg-gray-50 dark:bg-gray-900 relative overflow-hidden shrink-0 flex items-center justify-center rounded-none">
+                                        <div className="w-full h-32 sm:h-36 bg-gray-50 dark:bg-gray-900 relative overflow-hidden shrink-0 flex items-center justify-center rounded-none">
                                             {item.image_url ? (
                                                 <img
                                                     src={getFullUrl(item.image_url)}
@@ -532,29 +532,29 @@ export default function POSPage() {
                                                 />
                                             ) : null}
                                             <div className={`w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-700 fallback-icon ${item.image_url ? 'hidden' : ''}`}>
-                                                <Utensils className="w-8 h-8 sm:w-9 sm:h-9" />
+                                                <Utensils className="w-9 h-9 sm:w-10 sm:h-10" />
                                             </div>
                                             {/* شارة السعر المدمجة والواضحة */}
-                                            <div className="absolute top-2 left-2 bg-emerald-600/95 backdrop-blur-md px-2 py-0.5 rounded-none shadow-sm flex items-center gap-0.5 border border-white/20">
+                                            <div className="absolute top-2.5 left-2.5 bg-emerald-600/95 backdrop-blur-md px-2.5 py-1 rounded-none shadow-sm flex items-center gap-1 border border-white/20">
                                                 <span className="text-white font-black text-xs sm:text-sm tabular-nums">{item.price}</span>
-                                                <span className="text-white/80 font-bold text-[9px]">د.ل</span>
+                                                <span className="text-white/80 font-bold text-[10px]">د.ل</span>
                                             </div>
                                         </div>
 
                                         {/* تفاصيل الصنف وزر الإضافة السريعة */}
-                                        <div className="p-2.5 sm:p-3 flex flex-col justify-between flex-1">
+                                        <div className="p-3 sm:p-3.5 flex flex-col justify-between flex-1">
                                             <div>
-                                                <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-gray-100 line-clamp-1 mb-0.5 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-snug">
+                                                <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-gray-100 line-clamp-1 mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-snug">
                                                     {item.name}
                                                 </h3>
                                             </div>
 
-                                            <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 dark:border-gray-800/60 mt-auto">
-                                                <span className="text-gray-400 font-bold text-[11px] truncate max-w-[100px]">
+                                            <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800/60 mt-auto">
+                                                <span className="text-gray-400 font-bold text-xs truncate max-w-[110px]">
                                                     {item.category?.name || 'عام'}
                                                 </span>
-                                                <div className="w-6.5 h-6.5 rounded-none bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-all shadow-2xs">
-                                                    <Plus className="w-3.5 h-3.5" />
+                                                <div className="w-7 h-7 rounded-none bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-all shadow-2xs">
+                                                    <Plus className="w-4 h-4" />
                                                 </div>
                                             </div>
                                         </div>
