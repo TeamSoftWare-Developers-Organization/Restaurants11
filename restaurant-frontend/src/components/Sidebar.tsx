@@ -634,17 +634,17 @@ export default function Sidebar({ className }: SidebarProps) {
 
                         {/* بطاقة هوية الفريق المطور TechTwo */}
                         {(!isSidebarCollapsed || isMobileMenuOpen) ? (
-                            <div className="p-2.5 my-2 rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-md">
+                            <div className="p-2.5 my-2 rounded-xl bg-gradient-to-r from-slate-100 via-indigo-50/60 to-slate-100 dark:bg-gradient-to-r dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 text-slate-800 dark:text-white border border-indigo-200/70 dark:border-indigo-500/30 shadow-xs dark:shadow-md transition-colors">
                                 <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-lg bg-white/10 p-1 flex items-center justify-center shrink-0 border border-white/10">
+                                    <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 p-1 flex items-center justify-center shrink-0 border border-indigo-200/50 dark:border-white/10 shadow-xs">
                                         <img src="/branding/techtwo-logo.png" alt="TechTwo" className="w-full h-full object-contain" />
                                     </div>
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-[12px] font-black text-white leading-tight">TechTwo</span>
-                                            <span className="text-[10px] font-black text-cyan-400">تك تو</span>
+                                            <span className="text-[12px] font-black text-slate-900 dark:text-white leading-tight">TechTwo</span>
+                                            <span className="text-[10px] font-black text-indigo-600 dark:text-cyan-400">تك تو</span>
                                         </div>
-                                        <p className="text-[9px] text-gray-300 font-medium truncate">
+                                        <p className="text-[9px] text-slate-500 dark:text-gray-300 font-medium truncate">
                                             حلول برمجية متكاملة
                                         </p>
                                     </div>
@@ -652,11 +652,11 @@ export default function Sidebar({ className }: SidebarProps) {
                             </div>
                         ) : (
                             <div 
-                                className="my-2 p-1.5 rounded-xl bg-slate-900 text-white border border-indigo-500/30 flex items-center justify-center cursor-pointer group relative"
+                                className="my-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center cursor-pointer group relative transition-colors"
                                 title="تطوير: TechTwo (تك تو) - حلول برمجية متكاملة"
                             >
                                 <img src="/branding/techtwo-logo.png" alt="TechTwo" className="w-6 h-6 object-contain" />
-                                <div className="hidden lg:block absolute right-full mr-2 px-2.5 py-1.5 bg-gray-950 text-white text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 border border-gray-800 shadow-xl">
+                                <div className="hidden lg:block absolute right-full mr-2 px-2.5 py-1.5 bg-gray-900 dark:bg-gray-950 text-white text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 border border-gray-700 dark:border-gray-800 shadow-xl">
                                     TechTwo (تك تو) • حلول برمجية متكاملة
                                 </div>
                             </div>
