@@ -604,7 +604,7 @@ export default function MenuPage() {
                                 <select
                                     value={formData.category_id}
                                     onChange={(e) => setFormData({ ...formData, category_id: parseInt(e.target.value) })}
-                                    className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-violet-600/10 appearance-none cursor-pointer"
+                                    className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-violet-600/10 appearance-none cursor-pointer"
                                     required
                                 >
                                     <option value="" disabled>اختر الفئة...</option>

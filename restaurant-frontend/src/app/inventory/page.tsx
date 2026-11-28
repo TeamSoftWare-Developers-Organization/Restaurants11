@@ -404,12 +404,12 @@ export default function InventoryPage() {
                             <select
                                 value={formData.unit}
                                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/40 border border-gray-100 dark:border-gray-800 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/10"
+                                className="w-full h-10 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-600/20 cursor-pointer transition-colors"
                                 required
                             >
-                                <option value="KG">كيلوجرام (KG)</option>
-                                <option value="Liter">لتر (Liter)</option>
-                                <option value="Piece">قطعة (Piece)</option>
+                                <option value="KG" className="bg-white dark:bg-[#0f172a] text-gray-900 dark:text-gray-100 py-2 font-bold">كيلوجرام (KG)</option>
+                                <option value="Liter" className="bg-white dark:bg-[#0f172a] text-gray-900 dark:text-gray-100 py-2 font-bold">لتر (Liter)</option>
+                                <option value="Piece" className="bg-white dark:bg-[#0f172a] text-gray-900 dark:text-gray-100 py-2 font-bold">قطعة (Piece)</option>
                             </select>
                         </div>
                     </div>

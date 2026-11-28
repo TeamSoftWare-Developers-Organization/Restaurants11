@@ -4,15 +4,35 @@
 @variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light;
   --background: #fdfdfe;
   --foreground: #0f172a;
   --card: #ffffff;
 }
 
 .dark {
+  color-scheme: dark;
   --background: #020617;
   --foreground: #f8fafc;
   --card: #0f172a;
+}
+
+select {
+  color-scheme: light;
+}
+
+.dark select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.dark select option {
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
 @theme {
